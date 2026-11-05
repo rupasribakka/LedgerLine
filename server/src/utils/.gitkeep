@@ -1,0 +1,5 @@
+# Utilities folder
+# Reserved for Phase 2:
+# - currency.js (paise formatting and validation)
+# - logger.js (audit logging)
+# - validator.js (schema validations)

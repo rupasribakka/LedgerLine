@@ -1,0 +1,24 @@
+{
+  "name": "ledgerline-root",
+  "version": "1.0.0",
+  "description": "LedgerLine — Secure Financial Transaction and Ledger Management System",
+  "private": true,
+  "scripts": {
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "start:server": "cd server && npm start",
+    "test:server": "cd server && npm test",
+    "build:client": "cd client && npm run build"
+  },
+  "keywords": [
+    "fintech",
+    "ledger",
+    "double-entry",
+    "acid",
+    "postgresql",
+    "react",
+    "express"
+  ],
+  "author": "Snovasys Hackathon Team",
+  "license": "MIT"
+}
