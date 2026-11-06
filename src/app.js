@@ -15,6 +15,11 @@ import {
   postMovement,
   getExternalAccountId,
 } from './ledger.js';
+import {
+  getAccountStatement,
+  verifySystemIntegrity,
+  getDuplicateReplays,
+} from './audit.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,7 +32,14 @@ app.use(express.json());
 const publicDir = path.resolve(__dirname, '../public');
 app.use(express.static(publicDir));
 
-// System Health Probe Endpoint
+// -------------------------------------------------------------------------
+// SYSTEM HEALTH
+// -------------------------------------------------------------------------
+
+/**
+ * GET /api/health
+ * Returns DB liveness and system invariant declarations.
+ */
 app.get('/api/health', async (req, res) => {
   try {
     const dbRes = await query('SELECT NOW() as current_time');
@@ -275,13 +287,13 @@ app.get('/accounts/:id', authenticate, async (req, res, next) => {
 });
 
 // -------------------------------------------------------------------------
-// MONEY MOVEMENT ROUTES (Phase 3 Core)
+// MONEY MOVEMENT ROUTES
 // -------------------------------------------------------------------------
 
 /**
  * POST /deposits
  * Deposits money from system EXTERNAL clearing account into a recipient account.
- * Follows Hard Rules 1-9.
+ * Admin only (Hard Rule 10). Follows Hard Rules 1–9.
  */
 app.post('/deposits', authenticate, async (req, res, next) => {
   const key = req.headers['idempotency-key'];
@@ -325,7 +337,7 @@ app.post('/deposits', authenticate, async (req, res, next) => {
 /**
  * POST /withdrawals
  * Withdraws money from a source account to the system EXTERNAL clearing account.
- * Follows Hard Rules 1-9.
+ * Follows Hard Rules 1–9.
  */
 app.post('/withdrawals', authenticate, async (req, res, next) => {
   const key = req.headers['idempotency-key'];
@@ -357,7 +369,7 @@ app.post('/withdrawals', authenticate, async (req, res, next) => {
 /**
  * POST /transfers
  * Transfers money between two distinct user accounts.
- * Follows Hard Rules 1-9.
+ * Follows Hard Rules 1–9.
  */
 app.post('/transfers', authenticate, async (req, res, next) => {
   const key = req.headers['idempotency-key'];
@@ -393,6 +405,82 @@ app.post('/transfers', authenticate, async (req, res, next) => {
     }
 
     return res.status(result.status).json(result.body);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// -------------------------------------------------------------------------
+// STATEMENT & AUDIT RECONCILIATION ROUTES (Phase 4)
+// -------------------------------------------------------------------------
+
+/**
+ * GET /accounts/:id/statement
+ * Retrieves account transaction journal history with debit/credit/refused rows,
+ * balance_after, user info, duplicate markers, and pagination.
+ * Authorized for: Account Owner, Admin, Auditor.
+ */
+app.get('/accounts/:id/statement', authenticate, async (req, res, next) => {
+  const accountId = parseInt(req.params.id, 10);
+  if (isNaN(accountId) || accountId <= 0) {
+    return res.status(400).json({
+      error: 'Invalid account ID parameter.',
+      code: 'INVALID_ID',
+    });
+  }
+
+  try {
+    // Verify account exists & check authorization
+    const accRes = await query('SELECT id, owner_id FROM accounts WHERE id = $1', [accountId]);
+    if (accRes.rowCount === 0) {
+      return res.status(404).json({
+        error: 'Account not found.',
+        code: 'NOT_FOUND',
+      });
+    }
+
+    const account = accRes.rows[0];
+    if (req.user.role === 'holder' && account.owner_id !== req.user.id) {
+      return res.status(403).json({
+        error: 'Access denied: you do not have permission to view this account statement.',
+        code: 'FORBIDDEN',
+      });
+    }
+
+    const { limit, offset, order } = req.query;
+    const result = await getAccountStatement(accountId, { limit, offset, order });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /audit/verify
+ * Recomputes every cryptographic hash chain, checks global zero-sum conservation,
+ * and reconciles account balances against the journal.
+ * Authorized for: Admin and Auditor only.
+ */
+app.get('/audit/verify', authenticate, requireRole('admin', 'auditor'), async (req, res, next) => {
+  try {
+    const report = await verifySystemIntegrity();
+    return res.status(200).json(report);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /audit/duplicates
+ * Lists all recorded duplicate/replayed requests.
+ * Authorized for: Admin and Auditor only.
+ */
+app.get('/audit/duplicates', authenticate, requireRole('admin', 'auditor'), async (req, res, next) => {
+  try {
+    const { limit, offset } = req.query;
+    const result = await getDuplicateReplays({ limit, offset });
+    return res.status(200).json(result);
   } catch (error) {
     next(error);
   }
