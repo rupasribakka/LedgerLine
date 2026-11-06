@@ -1,24 +1,27 @@
 {
-  "name": "ledgerline-root",
+  "name": "ledgerline",
   "version": "1.0.0",
-  "description": "LedgerLine — Secure Financial Transaction and Ledger Management System",
-  "private": true,
+  "description": "LedgerLine — High-Integrity Financial Ledger Management System",
+  "main": "src/server.js",
+  "type": "module",
   "scripts": {
-    "dev:server": "cd server && npm run dev",
-    "dev:client": "cd client && npm run dev",
-    "start:server": "cd server && npm start",
-    "test:server": "cd server && npm test",
-    "build:client": "cd client && npm run build"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/migrate.js",
+    "seed": "node src/seed.js",
+    "test": "vitest run"
   },
-  "keywords": [
-    "fintech",
-    "ledger",
-    "double-entry",
-    "acid",
-    "postgresql",
-    "react",
-    "express"
-  ],
-  "author": "Snovasys Hackathon Team",
-  "license": "MIT"
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "embedded-postgres": "16.15.0-beta.19",
+    "supertest": "^7.0.0",
+    "vitest": "^3.0.7"
+  }
 }
