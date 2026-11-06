@@ -20,9 +20,21 @@ export async function initDbPool() {
 
   let connectionString = process.env.DATABASE_URL;
 
-  // If no external DATABASE_URL provided, boot embedded PostgreSQL on port 5433
+  // If no external DATABASE_URL provided, check if local postgres on 5433 is running or boot embedded
   if (!connectionString) {
-    if (!embeddedServer) {
+    connectionString = 'postgresql://postgres:password@localhost:5433/postgres';
+
+    let alreadyRunning = false;
+    try {
+      const testClient = new pg.Client({ connectionString, connectionTimeoutMillis: 1000 });
+      await testClient.connect();
+      await testClient.end();
+      alreadyRunning = true;
+    } catch (e) {
+      alreadyRunning = false;
+    }
+
+    if (!alreadyRunning && !embeddedServer) {
       console.log('[DB] No DATABASE_URL provided. Initializing local embedded PostgreSQL 16...');
       embeddedServer = new EmbeddedPostgres({
         port: 5433,
@@ -40,7 +52,6 @@ export async function initDbPool() {
       await embeddedServer.start();
       console.log('[DB] Embedded PostgreSQL ready on port 5433.');
     }
-    connectionString = 'postgresql://postgres:password@localhost:5433/postgres';
   }
 
   pool = new pg.Pool({
@@ -86,12 +97,12 @@ export async function withTransaction(callback) {
   }
 }
 
-export async function closeDb() {
+export async function closeDb(stopServer = false) {
   if (pool) {
     await pool.end();
     pool = null;
   }
-  if (embeddedServer) {
+  if (stopServer && embeddedServer) {
     try {
       await embeddedServer.stop();
     } catch (e) {
