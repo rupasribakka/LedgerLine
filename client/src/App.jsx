@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import CyberBackground from './components/CyberBackground';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import DashboardPage from './pages/DashboardPage';
@@ -25,7 +26,10 @@ export default function App() {
   }, [fetchHealth]);
 
   return (
-    <div className="flex min-h-screen bg-[#0B0F19] text-slate-100 font-sans antialiased">
+    <div className="relative flex min-h-screen bg-[#030712] text-slate-100 font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
+      {/* Full-viewport Animated Cybersecurity Background & Cursor Halo */}
+      <CyberBackground />
+
       {/* Sidebar Navigation */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -35,7 +39,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden relative z-10">
         <Navbar
           onMenuClick={() => setSidebarOpen(true)}
           backendHealth={{ ...backendHealth, checking: isCheckingHealth }}
