@@ -11,6 +11,10 @@ import {
   loginLimiter,
   loginRateLimitMiddleware,
 } from './auth.js';
+import {
+  postMovement,
+  getExternalAccountId,
+} from './ledger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -265,6 +269,130 @@ app.get('/accounts/:id', authenticate, async (req, res, next) => {
     return res.status(200).json({
       account,
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// -------------------------------------------------------------------------
+// MONEY MOVEMENT ROUTES (Phase 3 Core)
+// -------------------------------------------------------------------------
+
+/**
+ * POST /deposits
+ * Deposits money from system EXTERNAL clearing account into a recipient account.
+ * Follows Hard Rules 1-9.
+ */
+app.post('/deposits', authenticate, async (req, res, next) => {
+  const key = req.headers['idempotency-key'];
+  const { account_id, account_no, amount } = req.body || {};
+
+  try {
+    const extId = await getExternalAccountId();
+    let targetAccountId = account_id;
+
+    if (!targetAccountId && account_no) {
+      const accRes = await query('SELECT id FROM accounts WHERE account_no = $1', [account_no]);
+      if (accRes.rowCount === 0) {
+        return res.status(404).json({
+          error: `Target account ${account_no} not found.`,
+          code: 'ACCOUNT_NOT_FOUND',
+        });
+      }
+      targetAccountId = accRes.rows[0].id;
+    }
+
+    const result = await postMovement({
+      kind: 'deposit',
+      fromAccountId: extId,
+      toAccountId: targetAccountId,
+      amount,
+      key,
+      user: req.user,
+      body: req.body,
+    });
+
+    if (result.isReplay) {
+      res.setHeader('Idempotent-Replay', 'true');
+    }
+
+    return res.status(result.status).json(result.body);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /withdrawals
+ * Withdraws money from a source account to the system EXTERNAL clearing account.
+ * Follows Hard Rules 1-9.
+ */
+app.post('/withdrawals', authenticate, async (req, res, next) => {
+  const key = req.headers['idempotency-key'];
+  const { account_id, amount } = req.body || {};
+
+  try {
+    const extId = await getExternalAccountId();
+
+    const result = await postMovement({
+      kind: 'withdrawal',
+      fromAccountId: account_id,
+      toAccountId: extId,
+      amount,
+      key,
+      user: req.user,
+      body: req.body,
+    });
+
+    if (result.isReplay) {
+      res.setHeader('Idempotent-Replay', 'true');
+    }
+
+    return res.status(result.status).json(result.body);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /transfers
+ * Transfers money between two distinct user accounts.
+ * Follows Hard Rules 1-9.
+ */
+app.post('/transfers', authenticate, async (req, res, next) => {
+  const key = req.headers['idempotency-key'];
+  const { from_account_id, to_account_id, to_account_no, amount } = req.body || {};
+
+  try {
+    let resolvedToId = to_account_id;
+
+    // Support transferring to an account number (e.g. paying another user)
+    if (!resolvedToId && to_account_no) {
+      const targetRes = await query('SELECT id FROM accounts WHERE account_no = $1', [to_account_no.trim()]);
+      if (targetRes.rowCount === 0) {
+        return res.status(404).json({
+          error: `Recipient account ${to_account_no} not found.`,
+          code: 'RECIPIENT_NOT_FOUND',
+        });
+      }
+      resolvedToId = targetRes.rows[0].id;
+    }
+
+    const result = await postMovement({
+      kind: 'transfer',
+      fromAccountId: from_account_id,
+      toAccountId: resolvedToId,
+      amount,
+      key,
+      user: req.user,
+      body: req.body,
+    });
+
+    if (result.isReplay) {
+      res.setHeader('Idempotent-Replay', 'true');
+    }
+
+    return res.status(result.status).json(result.body);
   } catch (error) {
     next(error);
   }
