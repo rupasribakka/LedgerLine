@@ -1,50 +1,33 @@
 /**
  * LedgerLine API Client Service
  * 
- * Centralized service for communicating with the LedgerLine backend.
- * Handles JWT auth token persistence, automated Idempotency-Key generation,
- * currency conversion (Paise <-> Rupees), and robust error extraction.
+ * Communicates with the LedgerLine financial backend.
+ * Enforces in-memory-only JWT token storage, exact integer paise arithmetic (no floats),
+ * robust Idempotency-Key handling, and Idempotent-Replay detection.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-// Token and User session keys
-const TOKEN_KEY = 'ledgerline_jwt_token';
-const USER_KEY = 'ledgerline_user_data';
+// JWT and session state kept in memory only (page refresh returns to login)
+let inMemoryToken = null;
+let inMemoryUser = null;
 
 export function getStoredToken() {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
+  return inMemoryToken;
 }
 
 export function setStoredSession(token, user) {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
-  } catch (e) {
-    console.error('Failed to save session to localStorage:', e);
-  }
+  inMemoryToken = token || null;
+  inMemoryUser = user || null;
 }
 
 export function clearStoredSession() {
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-  } catch (e) {
-    console.error('Failed to clear session from localStorage:', e);
-  }
+  inMemoryToken = null;
+  inMemoryUser = null;
 }
 
 export function getStoredUser() {
-  try {
-    const raw = localStorage.getItem(USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return inMemoryUser;
 }
 
 /**
@@ -69,16 +52,55 @@ export function formatPaiseToRupees(paise) {
   if (paise === null || paise === undefined) return '₹0.00';
   const num = typeof paise === 'bigint' ? Number(paise) : Number(paise);
   if (isNaN(num)) return '₹0.00';
-  const rupees = (num / 100).toFixed(2);
-  return `₹${rupees.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  const isNegative = num < 0;
+  const abs = Math.abs(num);
+  const rupeesInt = Math.floor(abs / 100);
+  const paiseRem = String(abs % 100).padStart(2, '0');
+  const formattedInt = String(rupeesInt).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${isNegative ? '-' : ''}₹${formattedInt}.${paiseRem}`;
 }
 
+/**
+ * Pure string parsing for monetary inputs.
+ * Splits on dot, enforces max 2 decimal places, avoids parseFloat & Math.round.
+ * Returns positive integer paise, 0 for zero, or null for invalid input.
+ */
 export function parseRupeesToPaise(rupeesInput) {
-  if (!rupeesInput && rupeesInput !== 0) return 0;
-  const cleaned = String(rupeesInput).replace(/[^0-9.]/g, '');
-  const parsed = parseFloat(cleaned);
-  if (isNaN(parsed)) return 0;
-  return Math.round(parsed * 100);
+  if (rupeesInput === null || rupeesInput === undefined) return null;
+  const str = String(rupeesInput).trim();
+  if (!str) return null;
+
+  // Reject negative signs, scientific notation, and non-numeric characters
+  if (!/^\d*(\.\d*)?$/.test(str) || str === '.') {
+    return null;
+  }
+
+  const parts = str.split('.');
+  if (parts.length > 2) return null;
+
+  const wholeStr = parts[0] || '0';
+  const fracStr = parts.length === 2 ? parts[1] : '';
+
+  // Max 2 decimals allowed
+  if (fracStr.length > 2) return null;
+
+  // Pad fraction to 2 digits: "5" -> "50", "" -> "00", "05" -> "05"
+  const fracPadded = fracStr.padEnd(2, '0');
+
+  // Verify only digits
+  if (!/^\d+$/.test(wholeStr) || !/^\d{2}$/.test(fracPadded)) {
+    return null;
+  }
+
+  // Combine whole and fraction digits into whole integer paise
+  const combined = `${wholeStr}${fracPadded}`.replace(/^0+(?=\d)/, '');
+  const paise = Number(combined);
+
+  if (!Number.isSafeInteger(paise) || paise < 0) {
+    return null;
+  }
+
+  return paise;
 }
 
 /**
@@ -107,9 +129,12 @@ async function request(endpoint, options = {}) {
       headers,
     });
 
-    const isReplay = response.headers.get('X-Cache') === 'REPLAY';
-    let data = null;
+    // Detect replay from Idempotent-Replay: true or X-Cache: REPLAY
+    const idempHeader = response.headers.get('Idempotent-Replay') || response.headers.get('idempotent-replay');
+    const xCacheHeader = response.headers.get('X-Cache') || response.headers.get('x-cache');
+    const isReplay = idempHeader === 'true' || xCacheHeader === 'REPLAY';
 
+    let data = null;
     try {
       data = await response.json();
     } catch {
@@ -118,7 +143,6 @@ async function request(endpoint, options = {}) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Token expired or invalid
         clearStoredSession();
       }
       return {
@@ -135,6 +159,10 @@ async function request(endpoint, options = {}) {
       status: response.status,
       data,
       isReplay,
+      headers: {
+        idempotentReplay: idempHeader,
+        xCache: xCacheHeader,
+      },
     };
   } catch (err) {
     return {
@@ -183,12 +211,12 @@ export async function checkBackendHealth() {
 }
 
 /**
- * 2. Authentication API
+ * 2. Authentication API (Must send { email, password })
  */
-export async function loginUser(username, password) {
+export async function loginUser(email, password) {
   const res = await request('/api/auth/login', {
     method: 'POST',
-    body: { username, password },
+    body: { email, password },
   });
 
   if (res.ok && res.data?.token) {
@@ -197,15 +225,16 @@ export async function loginUser(username, password) {
   return res;
 }
 
-export async function registerUser({ username, password, role = 'holder', name }) {
-  return await request('/api/auth/register', {
-    method: 'POST',
-    body: { username, password, role, name },
-  });
+export async function logoutUser() {
+  try {
+    await request('/api/auth/logout', { method: 'POST' });
+  } finally {
+    clearStoredSession();
+  }
 }
 
 /**
- * 3. Accounts API
+ * 3. Accounts API (Fetches real balances from database)
  */
 export async function fetchAccounts() {
   return await request('/api/accounts', { method: 'GET' });
@@ -223,7 +252,10 @@ export async function executeDeposit({ accountId, amountPaise, idempotencyKey })
   return await request('/api/deposits', {
     method: 'POST',
     headers: { 'Idempotency-Key': key },
-    body: { accountId: Number(accountId), amountPaise: Number(amountPaise) },
+    body: {
+      account_id: Number(accountId),
+      amount: Number(amountPaise),
+    },
   });
 }
 
@@ -232,7 +264,10 @@ export async function executeWithdrawal({ accountId, amountPaise, idempotencyKey
   return await request('/api/withdrawals', {
     method: 'POST',
     headers: { 'Idempotency-Key': key },
-    body: { accountId: Number(accountId), amountPaise: Number(amountPaise) },
+    body: {
+      account_id: Number(accountId),
+      amount: Number(amountPaise),
+    },
   });
 }
 
@@ -242,18 +277,18 @@ export async function executeTransfer({ fromAccountId, toAccountId, amountPaise,
     method: 'POST',
     headers: { 'Idempotency-Key': key },
     body: {
-      fromAccountId: Number(fromAccountId),
-      toAccountId: Number(toAccountId),
-      amountPaise: Number(amountPaise),
+      from_account_id: Number(fromAccountId),
+      to_account_id: Number(toAccountId),
+      amount: Number(amountPaise),
     },
   });
 }
 
 /**
- * 5. Auditor & Verification API
+ * 5. Auditor & Verification API (Calls GET /api/ledger/verify)
  */
 export async function verifySystemIntegrity() {
-  return await request('/api/verify', { method: 'GET' });
+  return await request('/api/ledger/verify', { method: 'GET' });
 }
 
 export async function fetchAuditLogs() {

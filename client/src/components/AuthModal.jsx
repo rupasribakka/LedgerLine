@@ -1,55 +1,55 @@
 import React, { useState } from 'react';
-import { ShieldCheck, UserCheck, KeyRound, AlertCircle, Loader2, Sparkles, X } from 'lucide-react';
+import { UserCheck, KeyRound, AlertCircle, Loader2, Sparkles, X } from 'lucide-react';
 import { loginUser } from '../services/api';
 
 const DEMO_PRESETS = [
   {
     roleLabel: 'Account Holder 1',
-    username: 'holder1',
-    password: 'holder123',
-    badge: '₹100 SEED',
+    email: 'holder1@ledgerline.local',
+    password: 'Holder1Password123!',
+    roleBadge: 'HOLDER 1',
     badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    description: 'Primary transacting account (Acc #2)',
+    description: 'Primary customer transacting account',
   },
   {
     roleLabel: 'Account Holder 2',
-    username: 'holder2',
-    password: 'holder234',
-    badge: '₹50 SEED',
+    email: 'holder2@ledgerline.local',
+    password: 'Holder2Password123!',
+    roleBadge: 'HOLDER 2',
     badgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-    description: 'Counterparty transacting account (Acc #3)',
+    description: 'Counterparty customer account',
   },
   {
     roleLabel: 'System Administrator',
-    username: 'admin',
-    password: 'admin123',
-    badge: 'L3 ROOT',
+    email: 'admin@ledgerline.local',
+    password: 'AdminPassword123!',
+    roleBadge: 'ADMIN',
     badgeColor: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
-    description: 'System config & full account overview',
+    description: 'Full account overview & deposit administration',
   },
   {
     roleLabel: 'Compliance Auditor',
-    username: 'auditor',
-    password: 'auditor123',
-    badge: 'L2 AUDIT',
+    email: 'auditor@ledgerline.local',
+    password: 'AuditorPassword123!',
+    roleBadge: 'AUDITOR',
     badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    description: 'Zero-sum integrity verification & audit logs',
+    description: 'Zero-sum integrity verification & audit inspection',
   },
 ];
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   if (!isOpen) return null;
 
-  async function handleLogin(u = username, p = password) {
+  async function handleLogin(targetEmail = email, targetPassword = password) {
     setError(null);
     setLoading(true);
     try {
-      const result = await loginUser(u, p);
+      const result = await loginUser(targetEmail, targetPassword);
       if (result.ok) {
         onLoginSuccess(result.data.user);
         onClose();
@@ -64,9 +64,9 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   }
 
   function handlePresetClick(preset) {
-    setUsername(preset.username);
+    setEmail(preset.email);
     setPassword(preset.password);
-    handleLogin(preset.username, preset.password);
+    handleLogin(preset.email, preset.password);
   }
 
   return (
@@ -90,11 +90,11 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
             <h2 className="text-xl font-bold text-white font-mono flex items-center gap-2">
               Authentication Portal
               <span className="text-xs font-mono font-normal text-cyan-400/80 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                JWT Guard
+                JWT In-Memory
               </span>
             </h2>
             <p className="text-xs text-slate-400">
-              Sign in with your LedgerLine credentials or choose a pre-seeded demo profile.
+              Sign in with seed credentials or choose a pre-configured role.
             </p>
           </div>
         </div>
@@ -110,19 +110,19 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           </div>
         )}
 
-        {/* Quick Demo Selector */}
+        {/* Quick Demo Preset Selector */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-              One-Click Demo Profiles (Grading)
+              Real Seed Accounts
             </span>
-            <span className="text-[10px] text-cyan-400 font-mono">Instant Sign-In</span>
+            <span className="text-[10px] text-cyan-400 font-mono">Instant Login</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {DEMO_PRESETS.map((preset) => (
               <button
-                key={preset.username}
+                key={preset.email}
                 type="button"
                 disabled={loading}
                 onClick={() => handlePresetClick(preset)}
@@ -133,10 +133,13 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                     {preset.roleLabel}
                   </span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${preset.badgeColor}`}>
-                    {preset.badge}
+                    {preset.roleBadge}
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-400 group-hover:text-slate-300">
+                <span className="text-[11px] text-cyan-400/90 font-mono truncate w-full">
+                  {preset.email}
+                </span>
+                <span className="text-[11px] text-slate-400 group-hover:text-slate-300 mt-0.5">
                   {preset.description}
                 </span>
               </button>
@@ -147,7 +150,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
         <div className="relative my-4 flex items-center justify-center">
           <div className="w-full border-t border-slate-800"></div>
           <span className="absolute bg-[#0a1022] px-3 text-[11px] font-mono uppercase text-slate-500">
-            Or Manual Credentials
+            Or Manual Email &amp; Password
           </span>
         </div>
 
@@ -160,12 +163,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           className="space-y-4"
         >
           <div>
-            <label className="block text-xs font-mono text-slate-400 mb-1.5">Username</label>
+            <label className="block text-xs font-mono text-slate-400 mb-1.5">Email Address</label>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. holder1"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. holder1@ledgerline.local"
               required
               disabled={loading}
               className="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
@@ -178,7 +181,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="••••••••••••"
               required
               disabled={loading}
               className="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"

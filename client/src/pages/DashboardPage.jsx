@@ -57,7 +57,7 @@ export default function DashboardPage({
                 Authentication Required for Transactions
               </h3>
               <p className="text-xs text-slate-400">
-                Sign in with seeded demo accounts (<code>holder1</code>, <code>holder2</code>, <code>admin</code>, or <code>auditor</code>) to manage balances, execute transfers, and inspect ledger proofs.
+                Sign in with seeded demo accounts (<code>admin@ledgerline.local</code>, <code>holder1@...</code>, <code>holder2@...</code>, <code>auditor@...</code>) to manage balances, execute transfers, and inspect ledger proofs.
               </p>
             </div>
           </div>
@@ -210,7 +210,7 @@ export default function DashboardPage({
                       {Number(acc.balance_paise).toLocaleString()} Paise
                     </p>
                     <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-800">
-                      User ID: {acc.user_id} {acc.name ? `• ${acc.name}` : ''}
+                      Owner ID: {acc.owner_id || acc.user_id} {acc.name ? `• ${acc.name}` : ''} {acc.owner_email ? `(${acc.owner_email})` : ''}
                     </p>
                   </div>
                 ))}

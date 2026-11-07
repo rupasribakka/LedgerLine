@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, CheckCircle2, AlertTriangle, Loader2, RefreshCw, Lock, Database } from 'lucide-react';
-import { verifySystemIntegrity, formatPaiseToRupees } from '../services/api';
+import { verifySystemIntegrity } from '../services/api';
 
 export default function VerificationCard() {
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function VerificationCard() {
       if (res.ok) {
         setResult(res.data);
       } else {
-        setError(res.error || 'Verification query failed.');
+        setError(res.error || 'Verification query failed. Ensure you are signed in as an Admin or Auditor.');
       }
     } catch (err) {
       setError(err.message || 'Network error during verification.');
@@ -23,6 +23,10 @@ export default function VerificationCard() {
       setLoading(false);
     }
   }
+
+  const globalSum = result?.summary?.global_balance_sum_paise ?? result?.global_sum_paise ?? 0;
+  const rowsVerified = result?.summary?.ledger_rows_verified ?? result?.count ?? 0;
+  const hashChainStatus = result?.checks?.hash_chain?.status || (result?.verified ? 'PASSED' : 'CHECKING');
 
   return (
     <div className="rounded-2xl border border-cyan-500/25 bg-[#060b18]/90 p-5 sm:p-6 backdrop-blur-xl shadow-xl shadow-cyan-950/20">
@@ -57,7 +61,7 @@ export default function VerificationCard() {
           ) : (
             <>
               <RefreshCw className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Execute Verification (GET /api/verify)</span>
+              <span>Execute Verification (GET /api/ledger/verify)</span>
             </>
           )}
         </button>
@@ -74,7 +78,7 @@ export default function VerificationCard() {
                 <CheckCircle2 className="h-4 w-4 text-emerald-400" />
               </div>
               <p className="text-xl font-bold font-mono text-emerald-300">
-                {result.global_sum_paise ?? 0} PAISE
+                {globalSum} PAISE
               </p>
               <p className="text-[10px] text-emerald-400/80 mt-1 font-mono">
                 Invariant: SUM(all accounts) === 0
@@ -84,14 +88,14 @@ export default function VerificationCard() {
             {/* Total Ledger Entries */}
             <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3.5">
               <div className="flex items-center justify-between text-xs text-cyan-400 font-mono mb-1">
-                <span>SCANNED ENTRIES</span>
+                <span>VERIFIED ROWS</span>
                 <Database className="h-4 w-4 text-cyan-400" />
               </div>
               <p className="text-xl font-bold font-mono text-cyan-300">
-                {result.count ?? result.ledger_entries_count ?? 0} Rows
+                {rowsVerified} Rows
               </p>
               <p className="text-[10px] text-cyan-400/80 mt-1 font-mono">
-                Full table cryptographic audit
+                All ledger journal entries validated
               </p>
             </div>
 
@@ -102,7 +106,7 @@ export default function VerificationCard() {
                 <Lock className="h-4 w-4 text-violet-400" />
               </div>
               <p className="text-xl font-bold font-mono text-violet-300">
-                {result.verified ? '100% VALID' : 'MISMATCH'}
+                {hashChainStatus === 'PASSED' ? '100% VALID' : hashChainStatus}
               </p>
               <p className="text-[10px] text-violet-400/80 mt-1 font-mono">
                 SHA-256 Per-Account Integrity
@@ -121,7 +125,7 @@ export default function VerificationCard() {
       ) : (
         <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/40 p-4 text-center">
           <p className="text-xs text-slate-400 font-mono">
-            Click &quot;Execute Verification&quot; above to perform an on-demand audit check across all ledger entries and verify the zero-sum invariant.
+            Click &quot;Execute Verification (GET /api/ledger/verify)&quot; to perform an on-demand audit check across all ledger entries and verify the zero-sum invariant.
           </p>
         </div>
       )}

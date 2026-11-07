@@ -96,8 +96,8 @@ export default function Sidebar({
           <div className="flex items-center justify-between rounded-lg bg-slate-900/90 p-2.5 border border-slate-800">
             <div className="flex items-center space-x-2">
               <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-mono font-bold text-slate-200 uppercase">
-                {currentUser ? `${currentUser.username} (${role})` : 'Unauthenticated'}
+              <span className="text-xs font-mono font-bold text-slate-200 uppercase truncate max-w-[140px]" title={currentUser ? (currentUser.email || currentUser.username) : ''}>
+                {currentUser ? `${currentUser.email || currentUser.username} (${role})` : 'Unauthenticated'}
               </span>
             </div>
             <button

@@ -76,11 +76,11 @@ export default function Navbar({
           <div className="flex items-center space-x-2 pl-2 border-l border-slate-800/80">
             <div className="flex items-center space-x-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-tr from-cyan-600 to-blue-600 font-mono font-bold text-white text-xs ring-1 ring-cyan-400/50 shadow-md">
-                {currentUser.username ? currentUser.username[0].toUpperCase() : 'U'}
+                {(currentUser.email || currentUser.username || 'U')[0].toUpperCase()}
               </div>
               <div className="hidden sm:block text-left">
                 <p className="text-xs font-semibold text-slate-200 font-mono leading-none">
-                  {currentUser.name || currentUser.username}
+                  {currentUser.name || currentUser.email || currentUser.username}
                 </p>
                 <p className="text-[10px] text-cyan-400 font-mono uppercase tracking-wider mt-0.5">
                   {currentUser.role}

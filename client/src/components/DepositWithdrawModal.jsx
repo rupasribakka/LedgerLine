@@ -19,6 +19,7 @@ export default function DepositWithdrawModal({
   const [accountId, setAccountId] = useState('');
   const [rupeesAmount, setRupeesAmount] = useState('25.00');
   const [idempotencyKey, setIdempotencyKey] = useState('');
+  const [sendReplayRequest, setSendReplayRequest] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successResult, setSuccessResult] = useState(null);
@@ -38,9 +39,10 @@ export default function DepositWithdrawModal({
   if (!isOpen) return null;
 
   const paiseAmount = parseRupeesToPaise(rupeesAmount);
+  const isInvalidAmount = paiseAmount === null || paiseAmount <= 0;
   const selectedAccount = accounts.find((a) => String(a.id) === String(accountId));
   const availablePaise = selectedAccount ? Number(selectedAccount.balance_paise) : 0;
-  const isOverdraft = mode === 'withdraw' && paiseAmount > availablePaise;
+  const isOverdraft = mode === 'withdraw' && paiseAmount !== null && paiseAmount > availablePaise;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -51,32 +53,44 @@ export default function DepositWithdrawModal({
       setError('Please select an account.');
       return;
     }
-    if (paiseAmount <= 0) {
-      setError('Amount must be greater than zero.');
+    if (isInvalidAmount) {
+      setError('Invalid amount. Please enter a positive value with at most 2 decimal places (e.g. 25.00).');
       return;
     }
 
     setLoading(true);
     try {
       const fn = mode === 'deposit' ? executeDeposit : executeWithdrawal;
-      const res = await fn({
+      const res1 = await fn({
         accountId,
         amountPaise: paiseAmount,
         idempotencyKey,
       });
 
-      if (res.ok) {
-        setSuccessResult({
-          data: res.data,
-          isReplay: res.isReplay,
-          mode,
-          amountPaise: paiseAmount,
-        });
-        setIdempotencyKey(generateIdempotencyKey());
-        if (onSuccess) onSuccess();
-      } else {
-        setError(res.error || `${mode === 'deposit' ? 'Deposit' : 'Withdrawal'} failed.`);
+      if (!res1.ok) {
+        setError(res1.error || `${mode === 'deposit' ? 'Deposit' : 'Withdrawal'} failed.`);
+        setLoading(false);
+        return;
       }
+
+      let res2 = null;
+      if (sendReplayRequest) {
+        res2 = await fn({
+          accountId,
+          amountPaise: paiseAmount,
+          idempotencyKey,
+        });
+      }
+
+      setSuccessResult({
+        initial: res1,
+        replay: res2,
+        mode,
+        amountPaise,
+        keyUsed: idempotencyKey,
+      });
+      setIdempotencyKey(generateIdempotencyKey());
+      if (onSuccess) onSuccess();
     } catch (err) {
       setError(err.message || 'Network error occurred.');
     } finally {
@@ -159,7 +173,7 @@ export default function DepositWithdrawModal({
 
         {/* Success Banner */}
         {successResult && (
-          <div className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-300 space-y-1">
+          <div className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-300 space-y-1.5">
             <div className="flex items-center space-x-2 font-bold text-sm text-emerald-400">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               <span>
@@ -167,12 +181,12 @@ export default function DepositWithdrawModal({
               </span>
             </div>
             <p className="text-emerald-300/90 font-mono">
-              Tx ID: #{successResult.data?.transaction?.id || successResult.data?.id || 'OK'} | 
+              Tx ID: #{successResult.initial.data?.transaction?.id || successResult.initial.data?.id || 'OK'} | 
               Amount: {formatPaiseToRupees(successResult.amountPaise)} ({successResult.amountPaise} paise)
             </p>
-            {successResult.isReplay && (
-              <p className="text-[11px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                [X-Cache: REPLAY] Idempotent cache hit.
+            {successResult.replay && (
+              <p className="text-[11px] text-amber-300 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20 font-mono">
+                Real Replay Verified: Header [Idempotent-Replay: {String(successResult.replay.isReplay)}] Status: {successResult.replay.status}
               </p>
             )}
           </div>
@@ -202,7 +216,7 @@ export default function DepositWithdrawModal({
             >
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
-                  Account #{acc.id} ({acc.account_number || `User ${acc.user_id}`}) — Balance: {formatPaiseToRupees(acc.balance_paise)}
+                  Account #{acc.id} ({acc.account_no || `User ${acc.owner_id}`}) — Balance: {formatPaiseToRupees(acc.balance_paise)}
                 </option>
               ))}
             </select>
@@ -212,26 +226,27 @@ export default function DepositWithdrawModal({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-mono text-slate-400">Amount (₹)</label>
-              <span className={`text-xs font-mono ${isOverdraft ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
-                = {paiseAmount.toLocaleString()} Paise {isOverdraft ? '(Insufficient Balance!)' : ''}
+              <span className={`text-xs font-mono ${isInvalidAmount || isOverdraft ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
+                {isInvalidAmount
+                  ? 'Invalid Amount (Max 2 Decimals)'
+                  : `= ${paiseAmount.toLocaleString()} Paise ${isOverdraft ? '(Insufficient Balance!)' : ''}`}
               </span>
             </div>
             <div className="relative">
               <span className="absolute left-3.5 top-2.5 text-slate-400 font-mono">₹</span>
               <input
-                type="number"
-                min="0.01"
-                step="0.01"
+                type="text"
                 value={rupeesAmount}
                 onChange={(e) => setRupeesAmount(e.target.value)}
+                placeholder="25.00"
                 required
                 className="w-full rounded-xl border border-slate-800 bg-slate-900/80 pl-8 pr-3.5 py-2.5 text-sm text-white font-mono focus:border-cyan-500 focus:outline-none"
               />
             </div>
           </div>
 
-          {/* Idempotency Key Info */}
-          <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-3 space-y-1">
+          {/* Idempotency Key & Real Replay Toggle */}
+          <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
                 <Repeat className="h-3 w-3 text-cyan-400" />
@@ -248,12 +263,21 @@ export default function DepositWithdrawModal({
             <p className="font-mono text-[11px] text-slate-300 truncate bg-slate-900/80 px-2 py-1 rounded border border-slate-800">
               {idempotencyKey}
             </p>
+            <label className="flex items-start space-x-2 text-[11px] text-slate-300 cursor-pointer pt-1">
+              <input
+                type="checkbox"
+                checked={sendReplayRequest}
+                onChange={(e) => setSendReplayRequest(e.target.checked)}
+                className="mt-0.5 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0"
+              />
+              <span>Test Real Replay: Send duplicate request immediately with exact same key</span>
+            </label>
           </div>
 
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || isOverdraft}
+            disabled={loading || isOverdraft || isInvalidAmount}
             className={`w-full flex items-center justify-center space-x-2 rounded-xl py-2.5 px-4 text-sm font-semibold text-white shadow-lg transition-all disabled:opacity-50 ${
               mode === 'deposit'
                 ? 'bg-linear-to-r from-emerald-500 to-teal-600 shadow-emerald-950/40 hover:from-emerald-400 hover:to-teal-500'
@@ -268,12 +292,16 @@ export default function DepositWithdrawModal({
             ) : mode === 'deposit' ? (
               <>
                 <ArrowDownLeft className="h-4 w-4" />
-                <span>Execute Deposit ({formatPaiseToRupees(paiseAmount)})</span>
+                <span>
+                  Execute Deposit {paiseAmount !== null ? `(${formatPaiseToRupees(paiseAmount)})` : ''}
+                </span>
               </>
             ) : (
               <>
                 <ArrowUpRight className="h-4 w-4" />
-                <span>Execute Withdrawal ({formatPaiseToRupees(paiseAmount)})</span>
+                <span>
+                  Execute Withdrawal {paiseAmount !== null ? `(${formatPaiseToRupees(paiseAmount)})` : ''}
+                </span>
               </>
             )}
           </button>

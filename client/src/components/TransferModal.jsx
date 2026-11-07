@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftRight, CheckCircle2, AlertCircle, Loader2, Repeat, X, ShieldAlert } from 'lucide-react';
+import { ArrowLeftRight, CheckCircle2, AlertCircle, Loader2, Repeat, X, ShieldCheck } from 'lucide-react';
 import { executeTransfer, generateIdempotencyKey, formatPaiseToRupees, parseRupeesToPaise } from '../services/api';
 
 export default function TransferModal({ isOpen, onClose, accounts = [], onTransferSuccess }) {
@@ -7,7 +7,7 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
   const [destinationAccountId, setDestinationAccountId] = useState('');
   const [rupeesAmount, setRupeesAmount] = useState('10.00');
   const [idempotencyKey, setIdempotencyKey] = useState('');
-  const [keepSameKey, setKeepSameKey] = useState(false);
+  const [sendReplayRequest, setSendReplayRequest] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successResult, setSuccessResult] = useState(null);
@@ -18,9 +18,7 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
       if (accounts.length > 0 && !sourceAccountId) {
         setSourceAccountId(accounts[0].id);
       }
-      if (!keepSameKey || !idempotencyKey) {
-        setIdempotencyKey(generateIdempotencyKey());
-      }
+      setIdempotencyKey(generateIdempotencyKey());
       setError(null);
       setSuccessResult(null);
     }
@@ -29,9 +27,10 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
   if (!isOpen) return null;
 
   const paiseAmount = parseRupeesToPaise(rupeesAmount);
+  const isInvalidAmount = paiseAmount === null || paiseAmount <= 0;
   const selectedSource = accounts.find((a) => String(a.id) === String(sourceAccountId));
   const availablePaise = selectedSource ? Number(selectedSource.balance_paise) : 0;
-  const isOverdraft = paiseAmount > availablePaise;
+  const isOverdraft = paiseAmount !== null && paiseAmount > availablePaise;
 
   async function handleTransfer(e) {
     e.preventDefault();
@@ -50,33 +49,48 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
       setError('Source and destination accounts must be different.');
       return;
     }
-    if (paiseAmount <= 0) {
-      setError('Transfer amount must be greater than zero.');
+    if (isInvalidAmount) {
+      setError('Invalid amount. Please enter a positive value with at most 2 decimal places (e.g. 10.50).');
       return;
     }
 
     setLoading(true);
     try {
-      const res = await executeTransfer({
+      // 1. Send real first transfer request
+      const res1 = await executeTransfer({
         fromAccountId: sourceAccountId,
         toAccountId: destinationAccountId,
         amountPaise: paiseAmount,
         idempotencyKey,
       });
 
-      if (res.ok) {
-        setSuccessResult({
-          data: res.data,
-          isReplay: res.isReplay,
-          keyUsed: idempotencyKey,
-        });
-        if (!keepSameKey) {
-          setIdempotencyKey(generateIdempotencyKey());
-        }
-        if (onTransferSuccess) onTransferSuccess();
-      } else {
-        setError(res.error || 'Transfer failed.');
+      if (!res1.ok) {
+        setError(res1.error || 'Transfer failed.');
+        setLoading(false);
+        return;
       }
+
+      let res2 = null;
+      // 2. If replay toggle is active, send a REAL second request with the same Idempotency-Key
+      if (sendReplayRequest) {
+        res2 = await executeTransfer({
+          fromAccountId: sourceAccountId,
+          toAccountId: destinationAccountId,
+          amountPaise: paiseAmount,
+          idempotencyKey, // exact same key
+        });
+      }
+
+      setSuccessResult({
+        initial: res1,
+        replay: res2,
+        keyUsed: idempotencyKey,
+        amountPaise,
+      });
+
+      // Prepare fresh key for future transfers
+      setIdempotencyKey(generateIdempotencyKey());
+      if (onTransferSuccess) onTransferSuccess();
     } catch (err) {
       setError(err.message || 'Network transfer error occurred.');
     } finally {
@@ -105,7 +119,7 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
             <h2 className="text-xl font-bold text-white font-mono flex items-center gap-2">
               Atomic Ledger Transfer
               <span className="text-[11px] font-mono font-normal text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                Pessimistic Lock
+                Row Lock
               </span>
             </h2>
             <p className="text-xs text-slate-400">
@@ -116,21 +130,29 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
 
         {/* Success Banner */}
         {successResult && (
-          <div className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-300 space-y-1.5">
+          <div className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-300 space-y-2">
             <div className="flex items-center space-x-2 font-bold text-sm text-emerald-400">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>
-                {successResult.isReplay ? 'Idempotent Replay Verified!' : 'Transfer Settled Successfully!'}
-              </span>
+              <span>Initial Request Settled Successfully</span>
             </div>
             <p className="text-emerald-300/90 font-mono">
-              Tx ID: #{successResult.data?.transaction?.id || successResult.data?.id || 'OK'} | 
-              Amount: {formatPaiseToRupees(paiseAmount)} ({paiseAmount} paise)
+              Tx ID: #{successResult.initial.data?.transaction?.id || successResult.initial.data?.id || 'OK'} | 
+              Amount: {formatPaiseToRupees(successResult.amountPaise)} ({successResult.amountPaise} paise)
             </p>
-            {successResult.isReplay && (
-              <p className="text-[11px] text-amber-300 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">
-                Header [X-Cache: REPLAY] detected. Money moved exactly once on initial settlement.
-              </p>
+
+            {successResult.replay && (
+              <div className="mt-2 pt-2 border-t border-emerald-500/20 text-xs">
+                <div className="flex items-center space-x-1.5 font-bold text-amber-300 mb-1">
+                  <ShieldCheck className="h-4 w-4 text-amber-400" />
+                  <span>Real Second Request Replay Verified:</span>
+                </div>
+                <p className="font-mono text-amber-200/90 text-[11px]">
+                  Header: [Idempotent-Replay: {String(successResult.replay.isReplay)}] | Status: {successResult.replay.status}
+                </p>
+                <p className="text-slate-300 text-[11px] mt-0.5">
+                  Money moved exactly once. The backend idempotency engine returned the stored settlement.
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -158,7 +180,7 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
             >
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
-                  Account #{acc.id} ({acc.account_number || `User ${acc.user_id}`}) — Balance: {formatPaiseToRupees(acc.balance_paise)}
+                  Account #{acc.id} ({acc.account_no || `User ${acc.owner_id}`}) — Balance: {formatPaiseToRupees(acc.balance_paise)}
                 </option>
               ))}
             </select>
@@ -175,35 +197,36 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
               step="1"
               value={destinationAccountId}
               onChange={(e) => setDestinationAccountId(e.target.value)}
-              placeholder="e.g. 3 (Holder 2's account)"
+              placeholder="e.g. 3"
               required
               className="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none font-mono"
             />
           </div>
 
-          {/* Amount in Rupees & Paise */}
+          {/* Amount in Rupees */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-mono text-slate-400">Transfer Amount (₹)</label>
-              <span className={`text-xs font-mono ${isOverdraft ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
-                = {paiseAmount.toLocaleString()} Paise {isOverdraft ? '(Exceeds Balance!)' : ''}
+              <span className={`text-xs font-mono ${isInvalidAmount || isOverdraft ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
+                {isInvalidAmount
+                  ? 'Invalid Amount (Max 2 Decimals)'
+                  : `= ${paiseAmount.toLocaleString()} Paise ${isOverdraft ? '(Exceeds Balance!)' : ''}`}
               </span>
             </div>
             <div className="relative">
               <span className="absolute left-3.5 top-2.5 text-slate-400 font-mono">₹</span>
               <input
-                type="number"
-                min="0.01"
-                step="0.01"
+                type="text"
                 value={rupeesAmount}
                 onChange={(e) => setRupeesAmount(e.target.value)}
+                placeholder="10.00"
                 required
                 className="w-full rounded-xl border border-slate-800 bg-slate-900/80 pl-8 pr-3.5 py-2.5 text-sm text-white font-mono focus:border-cyan-500 focus:outline-none"
               />
             </div>
           </div>
 
-          {/* Idempotency Key & Test Replay Checkbox */}
+          {/* Idempotency Key & Real Replay Toggle */}
           <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
@@ -221,32 +244,36 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
             <p className="font-mono text-[11px] text-slate-300 truncate bg-slate-900/80 px-2 py-1 rounded border border-slate-800">
               {idempotencyKey}
             </p>
-            <label className="flex items-center space-x-2 text-[11px] text-slate-400 cursor-pointer pt-1">
+            <label className="flex items-start space-x-2 text-[11px] text-slate-300 cursor-pointer pt-1">
               <input
                 type="checkbox"
-                checked={keepSameKey}
-                onChange={(e) => setKeepSameKey(e.target.checked)}
-                className="rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0"
+                checked={sendReplayRequest}
+                onChange={(e) => setSendReplayRequest(e.target.checked)}
+                className="mt-0.5 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0"
               />
-              <span>Keep key on submit (Test replay cache &amp; duplicate detection)</span>
+              <span>
+                <strong>Test Real Replay</strong>: Send a real duplicate HTTP request immediately with the exact same Idempotency-Key to verify backend replay cache.
+              </span>
             </label>
           </div>
 
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || isOverdraft}
+            disabled={loading || isOverdraft || isInvalidAmount}
             className="w-full flex items-center justify-center space-x-2 rounded-xl bg-linear-to-r from-cyan-500 to-blue-600 py-2.5 px-4 text-sm font-semibold text-white shadow-lg shadow-cyan-900/40 hover:from-cyan-400 hover:to-blue-500 transition-all disabled:opacity-50"
           >
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Acquiring Lock &amp; Committing...</span>
+                <span>Acquiring Lock &amp; Executing...</span>
               </>
             ) : (
               <>
                 <ArrowLeftRight className="h-4 w-4" />
-                <span>Execute Transfer ({formatPaiseToRupees(paiseAmount)})</span>
+                <span>
+                  Execute Transfer {paiseAmount !== null ? `(${formatPaiseToRupees(paiseAmount)})` : ''}
+                </span>
               </>
             )}
           </button>
