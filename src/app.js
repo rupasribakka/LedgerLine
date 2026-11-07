@@ -673,7 +673,7 @@ const handleDeposit = async (req, res, next) => {
   }
 };
 
-app.post(['/api/transactions/deposit', '/deposits'], authenticate, moneyRateLimitMiddleware, handleDeposit);
+app.post(['/api/transactions/deposit', '/api/deposits', '/deposits'], authenticate, moneyRateLimitMiddleware, handleDeposit);
 
 /**
  * Withdrawal handler.
@@ -713,7 +713,7 @@ const handleWithdrawal = async (req, res, next) => {
   }
 };
 
-app.post(['/api/transactions/withdraw', '/withdrawals'], authenticate, moneyRateLimitMiddleware, handleWithdrawal);
+app.post(['/api/transactions/withdraw', '/api/withdrawals', '/withdrawals'], authenticate, moneyRateLimitMiddleware, handleWithdrawal);
 
 /**
  * Transfer handler.
@@ -799,7 +799,7 @@ const handleTransfer = async (req, res, next) => {
   }
 };
 
-app.post(['/api/transactions/transfer', '/transfers'], authenticate, moneyRateLimitMiddleware, handleTransfer);
+app.post(['/api/transactions/transfer', '/api/transfers', '/transfers'], authenticate, moneyRateLimitMiddleware, handleTransfer);
 
 /**
  * GET /api/transactions, /transactions

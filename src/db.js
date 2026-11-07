@@ -24,6 +24,28 @@ let testEmbeddedPort = null;
 let pool = null;
 let migrationPool = null;
 
+export function getEmbeddedServerDetails() {
+  return {
+    port: testEmbeddedPort,
+    password: testEmbeddedPassword,
+    databaseDir: embeddedDatabaseDir,
+  };
+}
+
+export function formatFatalBootError(error) {
+  if (!error) return 'code: N/A, message: unknown error, routine: N/A';
+
+  const code = error.code || 'N/A';
+  const routine = error.routine || 'N/A';
+  const rawMessage = error.message || String(error);
+
+  const sanitizedMessage = rawMessage
+    .replace(/postgres(?:ql)?:\/\/[^\s@]+@[^\s]+/gi, 'postgresql://[REDACTED]')
+    .replace(/password\s*=\s*['"]?[^\s'";]+['"]?/gi, 'password=[REDACTED]');
+
+  return `code: ${code}, message: ${sanitizedMessage}, routine: ${routine}`;
+}
+
 async function getTestEmbeddedPort() {
   if (testEmbeddedPort) return testEmbeddedPort;
 
@@ -220,8 +242,10 @@ export async function assertProductionRuntimeRole() {
 }
 
 /**
- * Ensures the restricted runtime role (ledgerline_runtime) exists with its own password in Neon/Postgres.
+ * Ensures the restricted runtime role (ledgerline_runtime) exists with LOGIN and its password.
  * Executed as the schema owner role using MIGRATION_DATABASE_URL.
+ * NOTE: Strictly role provisioning only (LOGIN and password). Does NOT touch tables or sequences,
+ * allowing this to run before migrations on empty databases.
  */
 export async function ensureRuntimeRole() {
   validateProductionDatabaseConfiguration();
@@ -236,7 +260,7 @@ export async function ensureRuntimeRole() {
 
   const migrationClient = await getMigrationClient();
   try {
-    console.log(`[PROD-INIT] Ensuring restricted runtime role '${runtimeUsername}' exists...`);
+    console.log(`[PROD-INIT] Ensuring restricted runtime role '${runtimeUsername}' exists (LOGIN & password only)...`);
 
     const escapedPassword = runtimePassword.replace(/'/g, "''");
     const escapedUsername = runtimeUsername.replace(/"/g, '""');
@@ -254,9 +278,37 @@ export async function ensureRuntimeRole() {
       $$;
     `);
 
-    // 2. Ensure schema usage and table privileges are granted
+    console.log(`[PROD-INIT] Restricted runtime role '${runtimeUsername}' provisioned.`);
+  } finally {
+    migrationClient.release();
+  }
+}
+
+/**
+ * Grants least-privilege permissions to the runtime role on schema objects.
+ * MUST be executed AFTER schema migrations have created all tables, columns, and sequences.
+ */
+export async function grantRuntimePrivileges() {
+  validateProductionDatabaseConfiguration();
+
+  const runtimeUrl = new URL(process.env.DATABASE_URL);
+  const runtimeUsername = decodeURIComponent(runtimeUrl.username);
+
+  if (!runtimeUsername) {
+    throw new Error('DATABASE_URL must include username for the runtime role.');
+  }
+
+  const migrationClient = await getMigrationClient();
+  try {
+    console.log(`[PROD-INIT] Granting least-privilege permissions to '${runtimeUsername}'...`);
+
+    const escapedUsername = runtimeUsername.replace(/"/g, '""');
+
+    // 1. Schema usage
+    await migrationClient.query(`GRANT USAGE ON SCHEMA public TO "${escapedUsername}";`);
+
+    // 2. Table & Column least-privilege permissions
     await migrationClient.query(`
-      GRANT USAGE ON SCHEMA public TO "${escapedUsername}";
       GRANT SELECT ON users TO "${escapedUsername}";
       GRANT SELECT, INSERT ON accounts TO "${escapedUsername}";
       GRANT UPDATE (balance_paise, status) ON accounts TO "${escapedUsername}";
@@ -267,10 +319,26 @@ export async function ensureRuntimeRole() {
       GRANT SELECT, INSERT ON transactions TO "${escapedUsername}";
       GRANT UPDATE (status, error_reason, updated_at) ON transactions TO "${escapedUsername}";
       GRANT SELECT, INSERT ON audit_logs TO "${escapedUsername}";
-      GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "${escapedUsername}";
     `);
 
-    console.log(`[PROD-INIT] Restricted runtime role '${runtimeUsername}' successfully configured.`);
+    // 3. Sequences: USAGE and SELECT on all sequences (for bigserial ledger ids, etc.)
+    await migrationClient.query(`
+      GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "${escapedUsername}";
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO "${escapedUsername}";
+    `);
+
+    // 4. Ensure membership in ledgerline_runtime group if runtime role name differs
+    await migrationClient.query(`
+      DO $$
+      BEGIN
+        IF '${escapedUsername}' <> 'ledgerline_runtime' AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ledgerline_runtime') THEN
+          GRANT ledgerline_runtime TO "${escapedUsername}";
+        END IF;
+      END
+      $$;
+    `);
+
+    console.log(`[PROD-INIT] Least-privilege permissions granted to '${runtimeUsername}'.`);
   } finally {
     migrationClient.release();
   }
