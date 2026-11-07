@@ -391,6 +391,52 @@ describe('Phase 6 - Complete Backend Specification & Security Suite', () => {
       expect(BigInt(sumRes.rows[0].total)).toBe(0n);
     });
 
+    it('high-concurrency race condition: multiple parallel requests and repeated rounds strictly prevent double spending', async () => {
+      // Multiple repeated rounds of parallel concurrent withdrawals
+      for (let round = 1; round <= 3; round++) {
+        // Create an account with exactly ₹1,000.00 (100,000 paise)
+        const accRes = await request(app)
+          .post('/api/accounts')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            name: `Concurrency Stress Round ${round} ${Date.now()}`,
+            owner_id: holder1User.id,
+            initial_balance_paise: 100_000,
+          });
+        const stressAccId = accRes.body.account.id;
+
+        // Fire 10 parallel withdrawal requests of 20,000 paise each
+        // Total attempted: 200,000 paise against an available balance of 100,000 paise
+        // Exactly 5 MUST succeed (5 * 20,000 = 100,000) and exactly 5 MUST fail (422)
+        const requests = Array.from({ length: 10 }, (_, i) =>
+          request(app)
+            .post('/api/transactions/withdraw')
+            .set('Authorization', `Bearer ${holder1Token}`)
+            .set('Idempotency-Key', `stress-r${round}-${i}-${uuidv4()}`)
+            .send({ account_id: stressAccId, amount: 20_000 })
+        );
+
+        const responses = await Promise.all(requests);
+        const successes = responses.filter((r) => r.status === 200);
+        const failures = responses.filter((r) => r.status === 422);
+
+        expect(successes.length).toBe(5);
+        expect(failures.length).toBe(5);
+
+        for (const f of failures) {
+          expect(f.body.code).toBe('INSUFFICIENT_FUNDS');
+        }
+
+        // Final balance must be exactly 0 paise, never negative
+        const checkRes = await query('SELECT balance_paise FROM accounts WHERE id = $1', [stressAccId]);
+        expect(Number(checkRes.rows[0].balance_paise)).toBe(0);
+
+        // Global conservation verified
+        const sumRes = await query('SELECT SUM(balance_paise) as total FROM accounts');
+        expect(BigInt(sumRes.rows[0].total)).toBe(0n);
+      }
+    });
+
     it('simultaneous circular transfers: both complete without deadlocking', async () => {
       // Create fresh dedicated accounts with sufficient funds for both transfers in either order
       const acc1Res = await request(app)
