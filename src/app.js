@@ -10,6 +10,9 @@ import {
   requireRole,
   loginLimiter,
   loginRateLimitMiddleware,
+  moneyLimiter,
+  moneyRateLimitMiddleware,
+  failedLoginAuditCap,
   registerUser,
 } from './auth.js';
 import {
@@ -19,6 +22,7 @@ import {
   getTransactions,
   getLedgerEntries,
   getLedgerByTransactionId,
+  isValidPositiveSafeInteger,
 } from './ledger.js';
 import {
   getAccountStatement,
@@ -34,20 +38,41 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Security: Enforce request size limit (15. Security Requirements)
-app.use(express.json({ limit: '50kb' }));
+// Security: Enforce 10kb body limit (Requirement 2.g)
+app.use(express.json({ limit: '10kb' }));
 
-// Security Headers Middleware (Helmet-equivalent standard headers)
+// Helmet & Security Headers Middleware (Requirement 2.g)
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Content-Security-Policy', "default-src 'self'");
-  // Safe CORS configuration
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('X-Download-Options', 'noopen');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('Origin-Agent-Cluster', '?1');
+
+  // CORS allow-list from env (Requirement 2.g)
+  const allowedOriginsEnv = process.env.CORS_ALLOWED_ORIGINS || process.env.CORS_ORIGIN || process.env.ALLOWED_ORIGINS;
+  const origin = req.headers.origin;
+
+  if (allowedOriginsEnv) {
+    const allowList = allowedOriginsEnv.split(',').map((o) => o.trim()).filter(Boolean);
+    if (allowList.includes('*') || (origin && allowList.includes(origin))) {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    }
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Idempotency-Key');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }
@@ -168,13 +193,15 @@ const handleLogin = async (req, res, next) => {
 
     if (userRes.rowCount === 0) {
       loginLimiter.recordAttempt(req.rateLimitKey);
-      await recordAuditLog({
-        action: 'AUTH_LOGIN_FAILED',
-        resource: 'users',
-        outcome: 'FAILURE',
-        metadata: { email: cleanEmail, reason: 'User not found' },
-        ipAddress: req.ip,
-      });
+      if (failedLoginAuditCap.shouldLog(req.rateLimitKey || cleanEmail)) {
+        await recordAuditLog({
+          action: 'AUTH_LOGIN_FAILED',
+          resource: 'users',
+          outcome: 'FAILURE',
+          metadata: { email: cleanEmail, reason: 'User not found' },
+          ipAddress: req.ip,
+        });
+      }
       return res.status(401).json({
         error: 'Invalid email or password.',
         code: 'INVALID_CREDENTIALS',
@@ -186,22 +213,25 @@ const handleLogin = async (req, res, next) => {
 
     if (!passwordValid) {
       loginLimiter.recordAttempt(req.rateLimitKey);
-      await recordAuditLog({
-        actorId: user.id,
-        action: 'AUTH_LOGIN_FAILED',
-        resource: `users/${user.id}`,
-        outcome: 'FAILURE',
-        metadata: { email: cleanEmail, reason: 'Password mismatch' },
-        ipAddress: req.ip,
-      });
+      if (failedLoginAuditCap.shouldLog(req.rateLimitKey || cleanEmail)) {
+        await recordAuditLog({
+          actorId: user.id,
+          action: 'AUTH_LOGIN_FAILED',
+          resource: `users/${user.id}`,
+          outcome: 'FAILURE',
+          metadata: { email: cleanEmail, reason: 'Password mismatch' },
+          ipAddress: req.ip,
+        });
+      }
       return res.status(401).json({
         error: 'Invalid email or password.',
         code: 'INVALID_CREDENTIALS',
       });
     }
 
-    // Reset rate limiter on successful authentication
+    // Reset rate limiter and audit log cap on successful authentication
     loginLimiter.reset(req.rateLimitKey);
+    failedLoginAuditCap.reset(req.rateLimitKey || cleanEmail);
 
     const token = signToken(user);
 
@@ -319,7 +349,7 @@ app.post(['/api/accounts', '/accounts'], authenticate, requireRole('admin'), asy
   }
 
   const parsedOwnerId = parseInt(owner_id, 10);
-  if (isNaN(parsedOwnerId) || parsedOwnerId <= 0) {
+  if (!isValidPositiveSafeInteger(owner_id)) {
     return res.status(400).json({
       error: 'Valid owner_id integer is required.',
       code: 'INVALID_INPUT',
@@ -413,13 +443,13 @@ app.post(['/api/accounts', '/accounts'], authenticate, requireRole('admin'), asy
  * Authorized for: Account Owner, Admin, Auditor.
  */
 app.get(['/api/accounts/:id', '/accounts/:id'], authenticate, async (req, res, next) => {
-  const accountId = parseInt(req.params.id, 10);
-  if (isNaN(accountId) || accountId <= 0) {
+  if (!isValidPositiveSafeInteger(req.params.id)) {
     return res.status(400).json({
       error: 'Invalid account id parameter.',
       code: 'INVALID_ID',
     });
   }
+  const accountId = Number(req.params.id);
 
   try {
     const accRes = await query(
@@ -463,13 +493,13 @@ app.get(['/api/accounts/:id', '/accounts/:id'], authenticate, async (req, res, n
  * Returns real-time settled balance and status for an authorized account.
  */
 app.get(['/api/accounts/:id/balance', '/accounts/:id/balance'], authenticate, async (req, res, next) => {
-  const accountId = parseInt(req.params.id, 10);
-  if (isNaN(accountId) || accountId <= 0) {
+  if (!isValidPositiveSafeInteger(req.params.id)) {
     return res.status(400).json({
       error: 'Invalid account id parameter.',
       code: 'INVALID_ID',
     });
   }
+  const accountId = Number(req.params.id);
 
   try {
     const accRes = await query(
@@ -513,15 +543,14 @@ app.get(['/api/accounts/:id/balance', '/accounts/:id/balance'], authenticate, as
  * Manages account lifecycle state (ACTIVE, FROZEN, CLOSED). Admin role required.
  */
 app.patch(['/api/accounts/:id/status', '/accounts/:id/status'], authenticate, requireRole('admin'), async (req, res, next) => {
-  const accountId = parseInt(req.params.id, 10);
-  const { status } = req.body || {};
-
-  if (isNaN(accountId) || accountId <= 0) {
+  if (!isValidPositiveSafeInteger(req.params.id)) {
     return res.status(400).json({
       error: 'Invalid account id parameter.',
       code: 'INVALID_ID',
     });
   }
+  const accountId = Number(req.params.id);
+  const { status } = req.body || {};
 
   const cleanStatus = status && typeof status === 'string' ? status.trim().toUpperCase() : null;
   if (!cleanStatus || !['ACTIVE', 'FROZEN', 'CLOSED'].includes(cleanStatus)) {
@@ -576,13 +605,13 @@ app.patch(['/api/accounts/:id/status', '/accounts/:id/status'], authenticate, re
  * Retrieves account transaction journal history.
  */
 app.get(['/api/accounts/:id/statement', '/accounts/:id/statement'], authenticate, async (req, res, next) => {
-  const accountId = parseInt(req.params.id, 10);
-  if (isNaN(accountId) || accountId <= 0) {
+  if (!isValidPositiveSafeInteger(req.params.id)) {
     return res.status(400).json({
       error: 'Invalid account ID parameter.',
       code: 'INVALID_ID',
     });
   }
+  const accountId = Number(req.params.id);
 
   try {
     const accRes = await query('SELECT id, owner_id FROM accounts WHERE id = $1', [accountId]);
@@ -622,6 +651,13 @@ const handleDeposit = async (req, res, next) => {
   const key = req.headers['idempotency-key'];
   const { account_id, account_no, amount } = req.body || {};
 
+  if (account_id !== undefined && account_id !== null && !isValidPositiveSafeInteger(account_id)) {
+    return res.status(400).json({
+      error: 'Invalid account ID. Account IDs must be positive safe integers.',
+      code: 'INVALID_ACCOUNT_ID',
+    });
+  }
+
   try {
     const extId = await getExternalAccountId();
     let targetAccountId = account_id;
@@ -657,7 +693,7 @@ const handleDeposit = async (req, res, next) => {
   }
 };
 
-app.post(['/api/transactions/deposit', '/deposits'], authenticate, handleDeposit);
+app.post(['/api/transactions/deposit', '/deposits'], authenticate, moneyRateLimitMiddleware, handleDeposit);
 
 /**
  * Withdrawal handler.
@@ -666,6 +702,13 @@ app.post(['/api/transactions/deposit', '/deposits'], authenticate, handleDeposit
 const handleWithdrawal = async (req, res, next) => {
   const key = req.headers['idempotency-key'];
   const { account_id, amount } = req.body || {};
+
+  if (!isValidPositiveSafeInteger(account_id)) {
+    return res.status(400).json({
+      error: 'Invalid account ID. Account IDs must be positive safe integers.',
+      code: 'INVALID_ACCOUNT_ID',
+    });
+  }
 
   try {
     const extId = await getExternalAccountId();
@@ -690,7 +733,7 @@ const handleWithdrawal = async (req, res, next) => {
   }
 };
 
-app.post(['/api/transactions/withdraw', '/withdrawals'], authenticate, handleWithdrawal);
+app.post(['/api/transactions/withdraw', '/withdrawals'], authenticate, moneyRateLimitMiddleware, handleWithdrawal);
 
 /**
  * Transfer handler.
@@ -700,7 +743,42 @@ const handleTransfer = async (req, res, next) => {
   const key = req.headers['idempotency-key'];
   const { from_account_id, to_account_id, to_account_no, amount } = req.body || {};
 
+  // Requirement 2.c: /transfers rejects ACC-EXTERNAL as source or destination
+  if (
+    from_account_id === 'ACC-EXTERNAL' ||
+    to_account_id === 'ACC-EXTERNAL' ||
+    to_account_no === 'ACC-EXTERNAL'
+  ) {
+    return res.status(400).json({
+      error: 'Transfers cannot use ACC-EXTERNAL as source or destination.',
+      code: 'EXTERNAL_TRANSFER_PROHIBITED',
+    });
+  }
+
+  // Requirement 2.b: Account IDs accept only positive safe integers ("2abc", 1.9, -1, 1e30 are rejected with 400)
+  if (!isValidPositiveSafeInteger(from_account_id)) {
+    return res.status(400).json({
+      error: 'Invalid source account ID. Account IDs must be positive safe integers.',
+      code: 'INVALID_ACCOUNT_ID',
+    });
+  }
+
+  if (to_account_id !== undefined && to_account_id !== null && !isValidPositiveSafeInteger(to_account_id)) {
+    return res.status(400).json({
+      error: 'Invalid destination account ID. Account IDs must be positive safe integers.',
+      code: 'INVALID_ACCOUNT_ID',
+    });
+  }
+
   try {
+    const extId = await getExternalAccountId();
+    if (Number(from_account_id) === extId) {
+      return res.status(400).json({
+        error: 'Transfers cannot use ACC-EXTERNAL as source or destination.',
+        code: 'EXTERNAL_TRANSFER_PROHIBITED',
+      });
+    }
+
     let resolvedToId = to_account_id;
 
     if (!resolvedToId && to_account_no) {
@@ -712,6 +790,13 @@ const handleTransfer = async (req, res, next) => {
         });
       }
       resolvedToId = targetRes.rows[0].id;
+    }
+
+    if (resolvedToId && Number(resolvedToId) === extId) {
+      return res.status(400).json({
+        error: 'Transfers cannot use ACC-EXTERNAL as source or destination.',
+        code: 'EXTERNAL_TRANSFER_PROHIBITED',
+      });
     }
 
     const result = await postMovement({
@@ -734,7 +819,7 @@ const handleTransfer = async (req, res, next) => {
   }
 };
 
-app.post(['/api/transactions/transfer', '/transfers'], authenticate, handleTransfer);
+app.post(['/api/transactions/transfer', '/transfers'], authenticate, moneyRateLimitMiddleware, handleTransfer);
 
 /**
  * GET /api/transactions, /transactions
@@ -743,6 +828,12 @@ app.post(['/api/transactions/transfer', '/transfers'], authenticate, handleTrans
 app.get(['/api/transactions', '/transactions'], authenticate, async (req, res, next) => {
   try {
     const { limit, offset, account_id, type, status } = req.query;
+    if (account_id !== undefined && account_id !== null && account_id !== '' && !isValidPositiveSafeInteger(account_id)) {
+      return res.status(400).json({
+        error: 'Invalid account ID query parameter.',
+        code: 'INVALID_ACCOUNT_ID',
+      });
+    }
     const result = await getTransactions({
       limit,
       offset,
@@ -793,6 +884,12 @@ app.get(['/api/transactions/:id', '/transactions/:id'], authenticate, async (req
 app.get(['/api/ledger', '/ledger'], authenticate, async (req, res, next) => {
   try {
     const { limit, offset, account_id, txn_id } = req.query;
+    if (account_id !== undefined && account_id !== null && account_id !== '' && !isValidPositiveSafeInteger(account_id)) {
+      return res.status(400).json({
+        error: 'Invalid account ID query parameter.',
+        code: 'INVALID_ACCOUNT_ID',
+      });
+    }
     const result = await getLedgerEntries({
       limit,
       offset,
@@ -849,10 +946,10 @@ app.get(['/api/ledger/:transactionId', '/ledger/:transactionId'], authenticate, 
 // -------------------------------------------------------------------------
 
 /**
- * GET /api/audit, /audit
+ * GET /api/audit, /audit, /api/audit/logs, /audit/logs
  * Paginated security and business audit logs. Authorized for Admin & Auditor.
  */
-app.get(['/api/audit', '/audit'], authenticate, requireRole('admin', 'auditor'), async (req, res, next) => {
+app.get(['/api/audit', '/audit', '/api/audit/logs', '/audit/logs'], authenticate, requireRole('admin', 'auditor'), async (req, res, next) => {
   try {
     const { limit, offset, action, outcome, actor_id } = req.query;
     const result = await getAuditLogs({
@@ -883,10 +980,10 @@ app.get(['/api/audit/duplicates', '/audit/duplicates'], authenticate, requireRol
 });
 
 /**
- * GET /api/audit/:id, /audit/:id
+ * GET /api/audit/:id, /audit/:id, /api/audit/logs/:id, /audit/logs/:id
  * Retrieve a specific audit log by ID.
  */
-app.get(['/api/audit/:id', '/audit/:id'], authenticate, requireRole('admin', 'auditor'), async (req, res, next) => {
+app.get(['/api/audit/:id', '/audit/:id', '/api/audit/logs/:id', '/audit/logs/:id'], authenticate, requireRole('admin', 'auditor'), async (req, res, next) => {
   try {
     const log = await getAuditLogById(req.params.id);
     if (!log) {
@@ -1006,10 +1103,34 @@ app.get(['/api/admin/overview', '/admin/overview'], authenticate, requireRole('a
 // -------------------------------------------------------------------------
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  // Hard Rule 11: Never leak stack traces or internal SQL in error responses
-  const statusCode = err.status || err.statusCode || 500;
-  const code = err.code && typeof err.code === 'string' ? err.code : 'INTERNAL_SERVER_ERROR';
-  const message = err.message && statusCode < 500 ? err.message : 'An unexpected server error occurred.';
+  // Requirement 2.h: errors return {error, code} with no stack trace or SQL text
+  const statusCode = err.status || err.statusCode || (err.type === 'entity.too.large' ? 413 : 500);
+
+  let code = 'INTERNAL_SERVER_ERROR';
+  if (err.type === 'entity.too.large') {
+    code = 'PAYLOAD_TOO_LARGE';
+  } else if (
+    err.code &&
+    typeof err.code === 'string' &&
+    !/^\d{5}$/.test(err.code) &&
+    !err.code.startsWith('PG_')
+  ) {
+    code = err.code;
+  }
+
+  let message = 'An unexpected server error occurred.';
+  if (err.type === 'entity.too.large') {
+    message = 'Request payload exceeds 10kb limit.';
+  } else if (
+    err.message &&
+    statusCode < 500 &&
+    !err.message.toLowerCase().includes('select') &&
+    !err.message.toLowerCase().includes('syntax error') &&
+    !err.message.toLowerCase().includes('relation') &&
+    !err.message.toLowerCase().includes('column')
+  ) {
+    message = err.message;
+  }
 
   res.status(statusCode).json({
     error: message,

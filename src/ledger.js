@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { withTransaction, query } from './db.js';
-import { GENESIS_HASH, computeLedgerHash } from './hash.js';
+import { GENESIS_HASH, computeLedgerHash, computeRequestHash } from './hash.js';
 import { recordAuditLog } from './audit.js';
 
 export const MAX_AMOUNT_PAISE = 10_000_000n; // 10,000,000 paise (₹100,000.00 max cap)
@@ -44,6 +44,24 @@ export function validatePaiseAmount(amount) {
   }
 
   return { valid: true, amountPaise: BigInt(amount) };
+}
+
+/**
+ * Validate that an account ID is a strictly positive safe integer.
+ * Requirement 2.b: Rejects "2abc", 1.9, -1, 1e30 with 400.
+ */
+export function isValidPositiveSafeInteger(val) {
+  if (val === null || val === undefined) return false;
+  if (typeof val === 'number') {
+    return Number.isSafeInteger(val) && val > 0;
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!/^[1-9]\d*$/.test(trimmed)) return false;
+    const num = Number(trimmed);
+    return Number.isSafeInteger(num) && num > 0;
+  }
+  return false;
 }
 
 /**
@@ -98,15 +116,17 @@ export async function postMovement({
   }
 
   const cleanKey = key.trim();
-  const parsedFromId = parseInt(fromAccountId, 10);
-  const parsedToId = parseInt(toAccountId, 10);
 
-  if (isNaN(parsedFromId) || isNaN(parsedToId)) {
+  // Requirement 2.b: Account IDs accept only positive safe integers ("2abc", 1.9, -1, 1e30 are rejected with 400)
+  if (!isValidPositiveSafeInteger(fromAccountId) || !isValidPositiveSafeInteger(toAccountId)) {
     return {
       status: 400,
-      body: { error: 'Invalid fromAccountId or toAccountId.', code: 'INVALID_ACCOUNT_ID' },
+      body: { error: 'Invalid fromAccountId or toAccountId. Account IDs must be positive safe integers.', code: 'INVALID_ACCOUNT_ID' },
     };
   }
+
+  const parsedFromId = Number(fromAccountId);
+  const parsedToId = Number(toAccountId);
 
   // Reject from == to
   if (parsedFromId === parsedToId) {
@@ -125,7 +145,14 @@ export async function postMovement({
   }
 
   const amountPaise = amountValidation.amountPaise;
-  const requestHash = crypto.createHash('sha256').update(JSON.stringify(body || {})).digest('hex');
+
+  // Requirement 2.a: requestHash is sha256 of canonical sorted-key JSON of {kind, fromAccountId, toAccountId, amount}
+  const requestHash = computeRequestHash({
+    kind,
+    fromAccountId: parsedFromId,
+    toAccountId: parsedToId,
+    amount: amountPaise,
+  });
 
   // --- 2. Execute within ONE DB Transaction ---
   const executeOperation = async (client) => {
@@ -204,6 +231,27 @@ export async function postMovement({
         [JSON.stringify(responseBody), user.id, cleanKey]
       );
       return { status: 404, body: responseBody };
+    }
+
+    // Requirement 2.c: /transfers rejects ACC-EXTERNAL as source or destination
+    if (
+      kind === 'transfer' &&
+      (fromAccount.is_external ||
+        toAccount.is_external ||
+        fromAccount.account_no === 'ACC-EXTERNAL' ||
+        toAccount.account_no === 'ACC-EXTERNAL')
+    ) {
+      const responseBody = {
+        error: 'Transfers cannot use ACC-EXTERNAL as source or destination.',
+        code: 'EXTERNAL_TRANSFER_PROHIBITED',
+      };
+      await client.query(
+        `UPDATE idempotency_keys
+         SET state = 'refused', response_status = 400, response_body = $1, updated_at = NOW()
+         WHERE user_id = $2 AND key = $3`,
+        [JSON.stringify(responseBody), user.id, cleanKey]
+      );
+      return { status: 400, body: responseBody };
     }
 
     // ---------------------------------------------------------------------

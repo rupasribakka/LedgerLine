@@ -31,6 +31,31 @@ export function canonicalLedgerString({
 }
 
 /**
+ * Hard Rule: requestHash is sha256 of canonical sorted-key JSON of {kind, fromAccountId, toAccountId, amount}.
+ */
+export function computeRequestHash({ kind, fromAccountId, toAccountId, amount }) {
+  const normAmount =
+    typeof amount === 'bigint'
+      ? Number(amount)
+      : typeof amount === 'string' && /^\d+$/.test(amount)
+        ? Number(amount)
+        : amount !== undefined
+          ? amount
+          : null;
+  const payload = {
+    amount: normAmount,
+    fromAccountId: fromAccountId !== undefined ? fromAccountId : null,
+    kind: kind !== undefined ? kind : null,
+    toAccountId: toAccountId !== undefined ? toAccountId : null,
+  };
+  const sorted = {};
+  for (const key of Object.keys(payload).sort()) {
+    sorted[key] = payload[key];
+  }
+  return crypto.createHash('sha256').update(JSON.stringify(sorted), 'utf8').digest('hex');
+}
+
+/**
  * Compute SHA256 cryptographic hash of the ledger row.
  */
 export function computeLedgerHash(prevHash, rowData) {

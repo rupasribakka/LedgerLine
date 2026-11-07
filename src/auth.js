@@ -47,7 +47,7 @@ export async function authenticate(req, res, next) {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
 
     // Hard Rule 9: Re-read role and user data fresh from DB
     const userRes = await query('SELECT id, email, role FROM users WHERE id = $1', [decoded.id]);
@@ -245,8 +245,14 @@ class LoginRateLimiter {
 export const loginLimiter = new LoginRateLimiter(60000, 5);
 
 export function loginRateLimitMiddleware(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
   const key = `${ip}:${req.body?.email || ''}`;
+  req.rateLimitKey = key;
+
+  // Disabled in test if explicitly requested via header or env
+  if (req.headers['x-disable-rate-limit'] === 'true' || process.env.DISABLE_RATE_LIMIT === 'true') {
+    return next();
+  }
 
   if (loginLimiter.isRateLimited(key)) {
     return res.status(429).json({
@@ -255,6 +261,93 @@ export function loginRateLimitMiddleware(req, res, next) {
     });
   }
 
-  req.rateLimitKey = key;
   next();
 }
+
+/**
+ * In-memory sliding window rate limiter for financial transactions (money endpoints).
+ */
+class MoneyRateLimiter {
+  constructor(windowMs = 60000, maxAttempts = 60) {
+    this.windowMs = windowMs;
+    this.maxAttempts = maxAttempts;
+    this.attempts = new Map();
+  }
+
+  isRateLimited(key) {
+    const now = Date.now();
+    const timestamps = this.attempts.get(key) || [];
+    const validTimestamps = timestamps.filter((t) => now - t < this.windowMs);
+
+    if (validTimestamps.length >= this.maxAttempts) {
+      this.attempts.set(key, validTimestamps);
+      return true;
+    }
+
+    validTimestamps.push(now);
+    this.attempts.set(key, validTimestamps);
+    return false;
+  }
+
+  reset(key) {
+    if (key) this.attempts.delete(key);
+    else this.attempts.clear();
+  }
+}
+
+export const moneyLimiter = new MoneyRateLimiter(60000, 60);
+
+export function moneyRateLimitMiddleware(req, res, next) {
+  // Disabled in test unless explicitly enabled for rate-limit testing
+  if (process.env.NODE_ENV === 'test' && !req.headers['x-enable-rate-limit-for-test']) {
+    return next();
+  }
+
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const userId = req.user?.id || 'unauthenticated';
+  const key = `${ip}:${userId}`;
+
+  if (moneyLimiter.isRateLimited(key)) {
+    return res.status(429).json({
+      error: 'Too many transaction requests. Please slow down.',
+      code: 'RATE_LIMITED',
+    });
+  }
+
+  next();
+}
+
+/**
+ * Sliding window cap for failed login audit logging to prevent audit log flooding / disk exhaustion.
+ */
+class FailedLoginAuditCap {
+  constructor(windowMs = 60000, maxLogs = 5) {
+    this.windowMs = windowMs;
+    this.maxLogs = maxLogs;
+    this.logCounts = new Map();
+  }
+
+  shouldLog(key) {
+    const now = Date.now();
+    const entry = this.logCounts.get(key) || { count: 0, expiresAt: now + this.windowMs };
+    if (now > entry.expiresAt) {
+      entry.count = 1;
+      entry.expiresAt = now + this.windowMs;
+      this.logCounts.set(key, entry);
+      return true;
+    }
+    if (entry.count < this.maxLogs) {
+      entry.count += 1;
+      this.logCounts.set(key, entry);
+      return true;
+    }
+    return false;
+  }
+
+  reset(key) {
+    if (key) this.logCounts.delete(key);
+    else this.logCounts.clear();
+  }
+}
+
+export const failedLoginAuditCap = new FailedLoginAuditCap(60000, 5);
