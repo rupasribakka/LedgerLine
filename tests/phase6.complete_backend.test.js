@@ -342,9 +342,29 @@ describe('Phase 6 - Complete Backend Specification & Security Suite', () => {
     });
 
     it('simultaneous circular transfers: both complete without deadlocking', async () => {
-      // Account 1 transfers ₹100.00 to Account 2
-      // Simultaneously Account 2 transfers ₹100.00 to Account 1
-      // Deadlock-free row locking (SELECT ... FOR UPDATE ORDER BY id ASC) ensures serialization
+      // Create fresh dedicated accounts with sufficient funds for both transfers in either order
+      const acc1Res = await request(app)
+        .post('/api/accounts')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Circular Transfer Account 1',
+          owner_id: holder1User.id,
+          initial_balance_paise: 50_000, // ₹500.00
+        });
+      const circularAcc1Id = acc1Res.body.account.id;
+
+      const acc2Res = await request(app)
+        .post('/api/accounts')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Circular Transfer Account 2',
+          owner_id: holder2User.id,
+          initial_balance_paise: 50_000, // ₹500.00
+        });
+      const circularAcc2Id = acc2Res.body.account.id;
+
+      // Both accounts start with 50,000 paise (well above the 10,000 paise transfer amount).
+      // This guarantees that whichever transfer acquires the lock first will find sufficient funds.
       const key1 = `circular-1-${uuidv4()}`;
       const key2 = `circular-2-${uuidv4()}`;
 
@@ -354,8 +374,8 @@ describe('Phase 6 - Complete Backend Specification & Security Suite', () => {
           .set('Authorization', `Bearer ${holder1Token}`)
           .set('Idempotency-Key', key1)
           .send({
-            from_account_id: h1Acc1Id,
-            to_account_id: h2Acc1Id,
+            from_account_id: circularAcc1Id,
+            to_account_id: circularAcc2Id,
             amount: 10_000,
           }),
         request(app)
@@ -363,8 +383,8 @@ describe('Phase 6 - Complete Backend Specification & Security Suite', () => {
           .set('Authorization', `Bearer ${holder2Token}`)
           .set('Idempotency-Key', key2)
           .send({
-            from_account_id: h2Acc1Id,
-            to_account_id: h1Acc1Id,
+            from_account_id: circularAcc2Id,
+            to_account_id: circularAcc1Id,
             amount: 10_000,
           }),
       ]);
@@ -373,6 +393,12 @@ describe('Phase 6 - Complete Backend Specification & Security Suite', () => {
       expect(res2.status).toBe(200);
       expect(res1.body.success).toBe(true);
       expect(res2.body.success).toBe(true);
+
+      // Verify final balances of both accounts: 50,000 - 10,000 + 10,000 = 50,000 paise
+      const b1Check = await query('SELECT balance_paise FROM accounts WHERE id = $1', [circularAcc1Id]);
+      const b2Check = await query('SELECT balance_paise FROM accounts WHERE id = $1', [circularAcc2Id]);
+      expect(Number(b1Check.rows[0].balance_paise)).toBe(50_000);
+      expect(Number(b2Check.rows[0].balance_paise)).toBe(50_000);
 
       // Verify global sum is still 0
       const sumRes = await query('SELECT SUM(balance_paise) as total FROM accounts');
