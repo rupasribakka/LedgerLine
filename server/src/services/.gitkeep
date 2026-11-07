@@ -1,7 +1,0 @@
-# Services folder
-# Reserved for Phase 2:
-# - auth.service.js
-# - account.service.js
-# - ledger.service.js
-# - idempotency.service.js
-# - audit.service.js
