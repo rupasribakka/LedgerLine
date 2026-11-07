@@ -1,6 +1,5 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
-import EmbeddedPostgres from 'embedded-postgres';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import net from 'node:net';
@@ -78,6 +77,7 @@ export async function initDbPool() {
 
     if (!alreadyRunning && !embeddedServer) {
       console.log('[DB] No DATABASE_URL provided. Initializing local embedded PostgreSQL 16...');
+      const { default: EmbeddedPostgres } = await import('embedded-postgres');
       embeddedDatabaseDir =
         process.env.NODE_ENV === 'test'
           ? fs.mkdtempSync(path.join(os.tmpdir(), 'ledgerline-test-postgres-'))
