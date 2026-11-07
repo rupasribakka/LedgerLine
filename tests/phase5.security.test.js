@@ -436,6 +436,8 @@ describe('Phase 5 - Security configuration and production defaults', () => {
 
     it('2.g: helmet, 10kb body limit, CORS allow-list from env', async () => {
       const res = await request(app).get('/api/health');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ status: 'ok' });
       expect(res.headers['x-content-type-options']).toBe('nosniff');
       expect(res.headers['x-frame-options']).toBe('DENY');
       expect(res.headers['strict-transport-security']).toBeDefined();

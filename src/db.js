@@ -105,6 +105,10 @@ export async function initDbPool() {
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
+    ssl:
+      connectionString.includes('sslmode=require') || connectionString.includes('neon.tech')
+        ? { rejectUnauthorized: false }
+        : undefined,
   });
 
   return pool;
@@ -127,6 +131,10 @@ export async function getMigrationClient() {
       max: 2,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
+      ssl:
+        migrationConnectionString.includes('sslmode=require') || migrationConnectionString.includes('neon.tech')
+          ? { rejectUnauthorized: false }
+          : undefined,
     });
   }
 
@@ -211,6 +219,63 @@ export async function assertProductionRuntimeRole() {
   }
 }
 
+/**
+ * Ensures the restricted runtime role (ledgerline_runtime) exists with its own password in Neon/Postgres.
+ * Executed as the schema owner role using MIGRATION_DATABASE_URL.
+ */
+export async function ensureRuntimeRole() {
+  validateProductionDatabaseConfiguration();
+
+  const runtimeUrl = new URL(process.env.DATABASE_URL);
+  const runtimeUsername = decodeURIComponent(runtimeUrl.username);
+  const runtimePassword = decodeURIComponent(runtimeUrl.password);
+
+  if (!runtimeUsername || !runtimePassword) {
+    throw new Error('DATABASE_URL must include both username and password for the runtime role.');
+  }
+
+  const migrationClient = await getMigrationClient();
+  try {
+    console.log(`[PROD-INIT] Ensuring restricted runtime role '${runtimeUsername}' exists...`);
+
+    const escapedPassword = runtimePassword.replace(/'/g, "''");
+    const escapedUsername = runtimeUsername.replace(/"/g, '""');
+
+    // 1. Create or update the runtime role with LOGIN and specified password
+    await migrationClient.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${escapedUsername}') THEN
+          CREATE ROLE "${escapedUsername}" WITH LOGIN PASSWORD '${escapedPassword}';
+        ELSE
+          ALTER ROLE "${escapedUsername}" WITH LOGIN PASSWORD '${escapedPassword}';
+        END IF;
+      END
+      $$;
+    `);
+
+    // 2. Ensure schema usage and table privileges are granted
+    await migrationClient.query(`
+      GRANT USAGE ON SCHEMA public TO "${escapedUsername}";
+      GRANT SELECT ON users TO "${escapedUsername}";
+      GRANT SELECT, INSERT ON accounts TO "${escapedUsername}";
+      GRANT UPDATE (balance_paise, status) ON accounts TO "${escapedUsername}";
+      GRANT SELECT, INSERT ON ledger TO "${escapedUsername}";
+      GRANT SELECT, INSERT ON idempotency_keys TO "${escapedUsername}";
+      GRANT UPDATE (state, response_status, response_body, updated_at) ON idempotency_keys TO "${escapedUsername}";
+      GRANT SELECT, INSERT ON idempotency_replays TO "${escapedUsername}";
+      GRANT SELECT, INSERT ON transactions TO "${escapedUsername}";
+      GRANT UPDATE (status, error_reason, updated_at) ON transactions TO "${escapedUsername}";
+      GRANT SELECT, INSERT ON audit_logs TO "${escapedUsername}";
+      GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "${escapedUsername}";
+    `);
+
+    console.log(`[PROD-INIT] Restricted runtime role '${runtimeUsername}' successfully configured.`);
+  } finally {
+    migrationClient.release();
+  }
+}
+
 export async function getClient() {
   const p = await initDbPool();
   return p.connect();
@@ -220,8 +285,9 @@ export async function getClient() {
  * Execute a callback within an isolated ACID database transaction.
  * Automatically handles BEGIN, COMMIT, and ROLLBACK.
  */
-export async function withTransaction(callback) {
-  const client = await getClient();
+export async function withTransaction(callback, existingClient = null) {
+  const client = existingClient || (await getClient());
+  const shouldRelease = !existingClient;
   try {
     await client.query('BEGIN');
     const result = await callback(client);
@@ -235,7 +301,9 @@ export async function withTransaction(callback) {
     }
     throw error;
   } finally {
-    client.release();
+    if (shouldRelease && client) {
+      client.release();
+    }
   }
 }
 

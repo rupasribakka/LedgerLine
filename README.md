@@ -100,10 +100,125 @@ LedgerLine/
 
 ### 3. Run Automated Tests
 
-Execute all 118 unit, integration, invariant, and concurrency tests:
+Execute all 131 unit, integration, invariant, and concurrency tests:
 ```bash
 npm test
 ```
+
+---
+
+## 🌐 Production Deployment Guide (Render + Neon PostgreSQL)
+
+This guide walks a first-time user through deploying LedgerLine on [Render](https://render.com) using a cloud-hosted [Neon PostgreSQL](https://neon.tech) database.
+
+---
+
+### Step 1: Create a Neon PostgreSQL Database
+
+1. Sign up or log in at [Neon Console](https://console.neon.tech).
+2. Click **Create Project**:
+   - **Project name**: `ledgerline-db`
+   - **Postgres version**: `16`
+3. Once created, Neon displays your connection string under **Connection Details**:
+   ```text
+   postgresql://neondb_owner:npg_SECRET_OWNER_KEY@ep-cool-fog-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+   Save this string. It is your **`MIGRATION_DATABASE_URL`**.
+
+---
+
+### Step 2: Build the Restricted Runtime Role Connection String (`DATABASE_URL`)
+
+LedgerLine enforces database least-privilege architecture. In production:
+- Schema migrations run as the owner role (`neondb_owner`).
+- The running API server connects **strictly** as a restricted runtime role (`ledgerline_runtime`), which cannot delete ledger records or drop tables.
+
+#### How to construct `DATABASE_URL`:
+1. Choose a strong, secret random password for the runtime role (at least 24 characters), e.g. `npg_runtime_k82Hs92Jd83Nm71Q`.
+2. Take your Neon connection string from Step 1:
+   ```text
+   postgresql://neondb_owner:npg_SECRET_OWNER_KEY@ep-cool-fog-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+3. Replace the username (`neondb_owner`) and password (`npg_SECRET_OWNER_KEY`) with:
+   - Username: `ledgerline_runtime`
+   - Password: `<YOUR_CHOSEN_RUNTIME_PASSWORD>`
+4. The resulting `DATABASE_URL` looks like:
+   ```text
+   postgresql://ledgerline_runtime:npg_runtime_k82Hs92Jd83Nm71Q@ep-cool-fog-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+> [!NOTE]
+> On first startup, `npm run start:prod` automatically connects as `MIGRATION_DATABASE_URL` (the owner), creates the `ledgerline_runtime` role with your specified password, grants all least-privilege permissions, runs migrations, and then boots the API connected as `DATABASE_URL`.
+
+---
+
+### Step 3: Deploy to Render
+
+#### Option A: 1-Click Blueprint Deploy (Recommended)
+1. Fork or push your clean LedgerLine repository to GitHub.
+2. Log in to [Render Dashboard](https://dashboard.render.com).
+3. Click **New +** -> **Blueprint**.
+4. Select your `LedgerLine` repository.
+5. Render detects [`render.yaml`](render.yaml) automatically.
+6. Provide the environment values when prompted:
+   - `MIGRATION_DATABASE_URL`: Your Neon owner connection string from Step 1.
+   - `DATABASE_URL`: Your constructed runtime connection string from Step 2.
+7. Click **Apply**. Render will build and deploy the service.
+
+#### Option B: Manual Web Service Deploy
+1. Click **New +** -> **Web Service**.
+2. Connect your GitHub repository.
+3. Configure the following fields:
+   - **Name**: `ledgerline-backend`
+   - **Region**: Same region as your Neon database (e.g. `Ohio (US East)` or `Oregon (US West)`)
+   - **Branch**: `main`
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm run start:prod`
+   - **Health Check Path**: `/api/health`
+4. Add the Environment Variables (see table below).
+5. Click **Create Web Service**.
+
+---
+
+### Step 4: Environment Variables Reference
+
+| Variable Name | Type | Value / Description |
+|---|---|---|
+| `NODE_ENV` | Plain | `production` |
+| `PORT` | Plain | `10000` (Render defaults to 10000) |
+| `JWT_SECRET` | **Secret** | Cryptographic secret for signing tokens. Must be at least 32 characters. |
+| `MIGRATION_DATABASE_URL` | **Secret** | Neon connection string with owner role (`neondb_owner`). |
+| `DATABASE_URL` | **Secret** | Neon connection string with restricted role (`ledgerline_runtime`). |
+| `LEDGERLINE_SEED_DEMO_USERS` | Plain | Set to `true` to seed the demo users and double-entry ledger transactions on first boot. |
+| `CORS_ALLOWED_ORIGINS` | Plain | `*` or comma-separated list of allowed frontend origins (e.g. `https://my-frontend.onrender.com`). |
+
+---
+
+### Step 5: Verify Your Deployment
+
+Once Render displays **Service is live**:
+
+1. **Verify Health Endpoint**:
+   ```bash
+   curl https://<your-render-subdomain>.onrender.com/api/health
+   # Response:
+   # {"status":"ok"}
+   ```
+
+2. **Verify Demo Login (if `LEDGERLINE_SEED_DEMO_USERS=true`)**:
+   ```bash
+   curl -X POST https://<your-render-subdomain>.onrender.com/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"admin@ledgerline.local","password":"AdminPassword123!"}'
+   ```
+
+3. **Verify Ledger Invariant & Cryptographic Audit**:
+   ```bash
+   curl https://<your-render-subdomain>.onrender.com/api/audit/verify \
+     -H "Authorization: Bearer <TOKEN_FROM_STEP_2>"
+   # Response:
+   # {"verified":true,"checks":{"global_conservation":{"status":"PASSED"},"hash_chain":{"status":"PASSED"},"balance_reconciliation":{"status":"PASSED"}}}
+   ```
 
 ---
 

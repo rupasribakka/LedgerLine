@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { fileURLToPath } from 'node:url';
-import { getClient, withTransaction, closeDb } from './db.js';
+import { getClient, getMigrationClient, withTransaction, closeDb } from './db.js';
 import { GENESIS_HASH, computeLedgerHash } from './hash.js';
 
 export const SEED_CREDENTIALS = [
@@ -165,19 +165,23 @@ async function postSeededDeposit(client, { fromAccountId, toAccountId, amountPai
 }
 
 export function isDemoSeedingEnabled(env = process.env) {
-  return (
-    (env.NODE_ENV === 'development' || env.NODE_ENV === 'test') &&
-    env.LEDGERLINE_SEED_DEMO_USERS === 'true'
-  );
+  if (env.LEDGERLINE_SEED_DEMO_USERS !== 'true') {
+    return false;
+  }
+  if (env.NODE_ENV === 'production' && env.LEDGERLINE_ALLOW_PROD_SEED !== 'true') {
+    return false;
+  }
+  return true;
 }
 
-export async function seedDatabase({ env = process.env } = {}) {
-  if (!isDemoSeedingEnabled(env)) {
+export async function seedDatabase({ env = process.env, dbClient = null, force = false } = {}) {
+  if (!force && !isDemoSeedingEnabled(env)) {
     console.log('[SEED] Demo seeding is disabled.');
     return { seeded: false };
   }
 
-  const client = await getClient();
+  const client = dbClient || (await getMigrationClient());
+  const shouldRelease = !dbClient;
   try {
     console.log('[SEED] Starting explicitly enabled development seed.');
 
@@ -283,7 +287,7 @@ export async function seedDatabase({ env = process.env } = {}) {
           adminUserId: adminUser.id,
           description: 'Initial Seed Deposit: INR 2,500.00 into Holder 1 Savings',
         });
-      });
+      }, client);
 
       console.log('[SEED] Seed deposits successfully posted through double-entry ledger.');
     } else {
@@ -305,7 +309,9 @@ export async function seedDatabase({ env = process.env } = {}) {
     console.error('[SEED] Seed failed:', error.code || 'database or seed operation failed.');
     throw error;
   } finally {
-    client.release();
+    if (shouldRelease && client) {
+      client.release();
+    }
   }
 }
 

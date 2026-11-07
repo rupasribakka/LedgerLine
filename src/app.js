@@ -88,31 +88,11 @@ app.use(express.static(publicDir));
 // -------------------------------------------------------------------------
 
 /**
- * GET /api/health
- * Returns DB liveness and system invariant declarations.
+ * GET /api/health, /health
+ * Requirement 5: Health probe returning strictly {"status":"ok"}.
  */
-app.get(['/api/health', '/health'], async (req, res) => {
-  try {
-    const dbRes = await query('SELECT NOW() as current_time');
-    res.status(200).json({
-      status: 'UP',
-      service: 'LedgerLine Core Financial API',
-      timestamp: dbRes.rows[0].current_time,
-      invariants: {
-        currencyPrecision: 'integer_paise',
-        doubleEntryEnforced: true,
-        rowLockingStrategy: 'pessimistic_select_for_update',
-        idempotencyEnforced: true,
-        aiAutonomousApproval: false,
-      },
-    });
-  } catch (err) {
-    res.status(503).json({
-      status: 'DOWN',
-      error: 'Database connection failed',
-      code: 'DB_UNAVAILABLE',
-    });
-  }
+app.get(['/api/health', '/health'], (req, res) => {
+  return res.status(200).json({ status: 'ok' });
 });
 
 // -------------------------------------------------------------------------

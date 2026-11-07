@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ledgerline-backend
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MIGRATION_DATABASE_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: LEDGERLINE_SEED_DEMO_USERS
+        value: "true"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "*"
