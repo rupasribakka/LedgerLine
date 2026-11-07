@@ -225,6 +225,13 @@ export async function loginUser(email, password) {
   return res;
 }
 
+export async function registerUser({ email, password, name, role = 'holder' }) {
+  return await request('/api/auth/register', {
+    method: 'POST',
+    body: { email, password, name, role },
+  });
+}
+
 export async function logoutUser() {
   try {
     await request('/api/auth/logout', { method: 'POST' });

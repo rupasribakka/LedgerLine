@@ -3,12 +3,18 @@
 @layer base {
   :root {
     color-scheme: dark;
-    --cyber-cyan: #06b6d4;
-    --cyber-blue: #3b82f6;
-    --cyber-violet: #8b5cf6;
-    --cyber-bg: #030712;
+    --color-bg: #020605;
+    --color-surface: #07110d;
+    --color-border: rgba(60, 255, 160, 0.14);
+    --color-border-hover: rgba(60, 255, 160, 0.35);
+    --color-accent: #2dff9a;
+    --color-accent-dim: rgba(45, 255, 154, 0.15);
+    --color-text: #eafff5;
+    --color-muted: #7ea594;
+    --color-danger: #ff5d7a;
+    --color-danger-dim: rgba(255, 93, 122, 0.15);
   }
-  
+
   * {
     margin: 0;
     padding: 0;
@@ -16,127 +22,103 @@
   }
 
   body {
-    background-color: #030712;
-    color: #e2e8f0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #020605;
+    color: #eafff5;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
     overflow-x: hidden;
   }
 
-  /* Custom high-tech scrollbar */
+  /* Custom emerald scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #060b18;
+    background: #020605;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1e293b;
+    background: #0d1e18;
     border-radius: 3px;
-    border: 1px solid rgba(6, 182, 212, 0.15);
+    border: 1px solid rgba(60, 255, 160, 0.14);
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #334155;
-    border-color: rgba(6, 182, 212, 0.4);
+    background: #143226;
+    border-color: rgba(60, 255, 160, 0.4);
   }
 }
 
-/* Cyber Command Center Glassmorphism & Visual Effects */
-.cyber-glass {
-  background: rgba(11, 18, 33, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(56, 189, 248, 0.12);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
-}
-
-.cyber-glass-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(10, 15, 30, 0.65) 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-}
-
-.cyber-glass-card:hover {
-  border-color: rgba(6, 182, 212, 0.35);
-  box-shadow: 0 8px 30px -4px rgba(6, 182, 212, 0.12), inset 0 1px 0 0 rgba(6, 182, 212, 0.2);
-}
-
-.cyber-glow-cyan {
-  text-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
-}
-
-.cyber-glow-blue {
-  text-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
-}
-
-.cyber-glow-violet {
-  text-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
-}
-
-/* Subtle digital circuit grid pattern */
-.cyber-grid-overlay {
-  background-image: 
-    linear-gradient(to right, rgba(14, 165, 233, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(14, 165, 233, 0.03) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
-
-/* Radar scanline animation */
-@keyframes radarSweep {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-radar-sweep {
-  animation: radarSweep 8s linear infinite;
-}
-
-@keyframes reverseRadarSweep {
-  from {
-    transform: rotate(360deg);
-  }
-  to {
-    transform: rotate(0deg);
-  }
-}
-
-.animate-reverse-radar {
-  animation: reverseRadarSweep 12s linear infinite;
-}
-
-@keyframes slowPulseGlow {
+/* Animations and Utilities */
+@keyframes ringPulse {
   0%, 100% {
-    opacity: 0.35;
-    transform: scale(1);
+    transform: scale(1) rotate(0deg);
+    opacity: 0.85;
   }
   50% {
-    opacity: 0.7;
-    transform: scale(1.04);
+    transform: scale(1.04) rotate(180deg);
+    opacity: 1;
   }
 }
 
-.animate-slow-pulse {
-  animation: slowPulseGlow 4s ease-in-out infinite;
-}
-
-@keyframes scanLineDrift {
+@keyframes ringCounterRotate {
   0% {
-    transform: translateY(-100%);
+    transform: rotate(360deg);
   }
   100% {
-    transform: translateY(1000%);
+    transform: rotate(0deg);
   }
 }
 
-.animate-scanline {
-  animation: scanLineDrift 10s linear infinite;
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-ring-pulse {
+  animation: ringPulse 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-ring-counter {
+  animation: ringCounterRotate 20s linear infinite;
+}
+
+.animate-float {
+  animation: floatGentle 5s ease-in-out infinite;
+}
+
+/* Shimmer utility */
+.shimmer-effect {
+  background: linear-gradient(
+    90deg,
+    rgba(60, 255, 160, 0) 0%,
+    rgba(60, 255, 160, 0.12) 50%,
+    rgba(60, 255, 160, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+
+/* Prefers-reduced-motion: animate only transform and opacity or disable long loops */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
