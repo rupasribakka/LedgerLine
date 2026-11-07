@@ -144,13 +144,42 @@ async function postSeededDeposit(client, { fromAccountId, toAccountId, amountPai
     ]
   );
 
+  // Record completed seeded transaction in transactions table
+  await client.query(
+    `INSERT INTO transactions (
+      id, type, status, amount_paise, from_account_id, to_account_id,
+      initiated_by, idempotency_key, description, error_reason
+    ) VALUES ($1, 'deposit', 'completed', $2, $3, $4, $5, $6, $7, NULL)`,
+    [
+      txnId,
+      moveAmount,
+      fromAccountId,
+      toAccountId,
+      adminUserId,
+      idempotencyKey,
+      description,
+    ]
+  );
+
   return { txnId, amountPaise };
 }
 
-export async function seedDatabase() {
+export function isDemoSeedingEnabled(env = process.env) {
+  return (
+    (env.NODE_ENV === 'development' || env.NODE_ENV === 'test') &&
+    env.LEDGERLINE_SEED_DEMO_USERS === 'true'
+  );
+}
+
+export async function seedDatabase({ env = process.env } = {}) {
+  if (!isDemoSeedingEnabled(env)) {
+    console.log('[SEED] Demo seeding is disabled.');
+    return { seeded: false };
+  }
+
   const client = await getClient();
   try {
-    console.log('[SEED] Starting database seed...');
+    console.log('[SEED] Starting explicitly enabled development seed.');
 
     // 1. Create or retrieve users
     const userMap = new Map();
@@ -271,33 +300,13 @@ export async function seedDatabase() {
 
     console.log('[SEED] Global balance invariant verified: SUM(balances) === 0 paise.');
 
-    // Print Credentials Table
-    printCredentials();
+    return { seeded: true };
   } catch (error) {
-    console.error('[SEED] Seed failed:', error.message);
+    console.error('[SEED] Seed failed:', error.code || 'database or seed operation failed.');
     throw error;
   } finally {
     client.release();
   }
-}
-
-export function printCredentials() {
-  console.log('\n================================================================');
-  console.log('              LEDGERLINE SEED CREDENTIALS                       ');
-  console.log('================================================================');
-  console.table(
-    SEED_CREDENTIALS.map((c) => ({
-      Role: c.role.toUpperCase(),
-      Email: c.email,
-      Password: c.password,
-    }))
-  );
-  console.log('Accounts:');
-  console.log('  ACC-EXTERNAL (External Clearing): allowed negative');
-  console.log('  ACC-H1-01    (Holder 1 Primary) : 500,000 paise (INR 5,000.00)');
-  console.log('  ACC-H1-02    (Holder 1 Savings) : 250,000 paise (INR 2,500.00)');
-  console.log('  ACC-H2-01    (Holder 2 Primary) : 0 paise');
-  console.log('================================================================\n');
 }
 
 // If executed directly from CLI: node src/seed.js

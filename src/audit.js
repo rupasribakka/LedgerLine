@@ -260,3 +260,165 @@ export async function getDuplicateReplays({ limit = 50, offset = 0 } = {}) {
     },
   };
 }
+
+/**
+ * Strips sensitive keys like passwords, tokens, and hashes from audit metadata.
+ */
+function sanitizeAuditMetadata(metadata) {
+  if (!metadata || typeof metadata !== 'object') return metadata;
+  const sanitized = Array.isArray(metadata) ? [...metadata] : { ...metadata };
+  const sensitiveKeys = ['password', 'password_hash', 'token', 'jwt', 'secret', 'authorization'];
+  for (const key of Object.keys(sanitized)) {
+    if (sensitiveKeys.some((s) => key.toLowerCase().includes(s))) {
+      sanitized[key] = '[REDACTED]';
+    } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+      sanitized[key] = sanitizeAuditMetadata(sanitized[key]);
+    }
+  }
+  return sanitized;
+}
+
+/**
+ * Record an immutable audit log entry.
+ * Never stores passwords, tokens, or raw secrets.
+ */
+export async function recordAuditLog(
+  {
+    actorId = null,
+    action,
+    resource,
+    correlationId = null,
+    outcome = 'SUCCESS',
+    metadata = null,
+    ipAddress = null,
+  },
+  dbClient = null
+) {
+  try {
+    const runQuery = dbClient ? dbClient.query.bind(dbClient) : query;
+    const sanitized = metadata ? sanitizeAuditMetadata(metadata) : null;
+    const res = await runQuery(
+      `INSERT INTO audit_logs (actor_id, action, resource, correlation_id, outcome, metadata, ip_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, created_at`,
+      [
+        actorId,
+        action,
+        resource,
+        correlationId,
+        outcome,
+        sanitized ? JSON.stringify(sanitized) : null,
+        ipAddress,
+      ]
+    );
+    return res.rows[0];
+  } catch (err) {
+    console.error('[AUDIT_LOG] Failed to record audit log:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Retrieve paginated audit logs with optional filters for action, outcome, or actor.
+ * Authorized for ADMIN and AUDITOR roles.
+ */
+export async function getAuditLogs({
+  limit = 50,
+  offset = 0,
+  action = null,
+  outcome = null,
+  actorId = null,
+} = {}) {
+  const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
+  const parsedOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
+  const conditions = [];
+  const params = [];
+
+  if (action) {
+    params.push(action);
+    conditions.push(`al.action = $${params.length}`);
+  }
+  if (outcome) {
+    params.push(outcome);
+    conditions.push(`al.outcome = $${params.length}`);
+  }
+  if (actorId) {
+    params.push(parseInt(actorId, 10));
+    conditions.push(`al.actor_id = $${params.length}`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const countRes = await query(`SELECT COUNT(*) FROM audit_logs al ${whereClause}`, params);
+  const total = parseInt(countRes.rows[0].count, 10);
+
+  params.push(parsedLimit, parsedOffset);
+  const logsRes = await query(
+    `SELECT al.id, al.actor_id, u.email as actor_email, u.name as actor_name, u.role as actor_role,
+            al.action, al.resource, al.correlation_id, al.outcome, al.metadata, al.ip_address, al.created_at
+     FROM audit_logs al
+     LEFT JOIN users u ON al.actor_id = u.id
+     ${whereClause}
+     ORDER BY al.id DESC
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+
+  return {
+    audit_logs: logsRes.rows.map((row) => ({
+      id: Number(row.id),
+      actor_id: row.actor_id,
+      actor_email: row.actor_email,
+      actor_name: row.actor_name,
+      actor_role: row.actor_role,
+      action: row.action,
+      resource: row.resource,
+      correlation_id: row.correlation_id,
+      outcome: row.outcome,
+      metadata: row.metadata,
+      ip_address: row.ip_address,
+      created_at: row.created_at,
+    })),
+    pagination: {
+      total,
+      limit: parsedLimit,
+      offset: parsedOffset,
+      pages: Math.ceil(total / parsedLimit),
+    },
+  };
+}
+
+/**
+ * Retrieve a specific audit log by ID.
+ */
+export async function getAuditLogById(id) {
+  const parsedId = parseInt(id, 10);
+  if (isNaN(parsedId) || parsedId <= 0) return null;
+
+  const res = await query(
+    `SELECT al.id, al.actor_id, u.email as actor_email, u.name as actor_name, u.role as actor_role,
+            al.action, al.resource, al.correlation_id, al.outcome, al.metadata, al.ip_address, al.created_at
+     FROM audit_logs al
+     LEFT JOIN users u ON al.actor_id = u.id
+     WHERE al.id = $1`,
+    [parsedId]
+  );
+
+  if (res.rowCount === 0) return null;
+  const row = res.rows[0];
+  return {
+    id: Number(row.id),
+    actor_id: row.actor_id,
+    actor_email: row.actor_email,
+    actor_name: row.actor_name,
+    actor_role: row.actor_role,
+    action: row.action,
+    resource: row.resource,
+    correlation_id: row.correlation_id,
+    outcome: row.outcome,
+    metadata: row.metadata,
+    ip_address: row.ip_address,
+    created_at: row.created_at,
+  };
+}

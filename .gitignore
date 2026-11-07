@@ -9,6 +9,7 @@ lerna-debug.log*
 
 # Environment files
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
@@ -17,6 +18,7 @@ lerna-debug.log*
 
 # Keep example env files
 !.env.example
+!**/.env.example
 
 # Build outputs
 dist/

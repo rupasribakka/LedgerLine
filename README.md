@@ -1,18 +1,18 @@
 # LedgerLine — Financial Transaction & Ledger Management System
 
 > **Snovasys Round 2 Hackathon Project**  
-> A high-integrity financial transaction engine and double-entry ledger system built with **React + Vite**, **Node.js + Express**, **PostgreSQL**, and **Prisma**.
+> A high-integrity financial transaction engine and double-entry ledger system built with **React + Vite**, **Node.js + Express ES modules**, and **PostgreSQL 16 using `pg` and raw SQL migrations**.
 
 ---
 
 ## 📌 Executive Summary
 
-**LedgerLine** is engineered to prevent the most critical flaws in financial software:
-1. **No Duplicate Payments**: Unique client-supplied idempotency keys prevent accidental double-billing.
-2. **No Race Conditions / Double Spending**: PostgreSQL row-level locks (`SELECT FOR UPDATE`) serialize concurrent transactions.
-3. **No Negative Balances**: Strict server-side balance validation guards against unauthorized overdrafts.
-4. **No Rounding Leakage**: All financial values are stored and calculated strictly as **integers in paise** (₹1.00 = 100 paise), avoiding IEEE 754 floating-point inaccuracies.
-5. **No Ledger Tampering**: All posted ledger records are append-only. Corrections require explicit offsetting reversal entries.
+**LedgerLine** is engineered to guarantee financial correctness, concurrency safety, robust idempotency, and auditability:
+1. **No Duplicate Payments**: Client-supplied idempotency keys ensure the same financial request never pays twice.
+2. **No Race Conditions / Double Spending**: Deterministic row-level locking (`SELECT ... FOR UPDATE ORDER BY id ASC`) serializes concurrent transactions and avoids deadlocks.
+3. **No Negative Balances**: Strict database check constraints (`chk_no_overdraft`) and atomic balance guards prevent unauthorized overdrafts.
+4. **No Rounding Leakage**: All monetary values are stored strictly as **integers in paise** (`₹1.00 = 100 paise`), avoiding IEEE 754 floating-point inaccuracies.
+5. **No Ledger Tampering**: Posted ledger and audit records are append-only. Database triggers block `UPDATE`, `DELETE`, and `TRUNCATE`. Every ledger entry is linked to its predecessor via SHA-256 cryptographic hashes.
 6. **No AI Autonomy**: AI assistants never independently initiate, sign, or approve monetary movements.
 
 ---
@@ -21,225 +21,126 @@
 
 | Layer | Technology | Details |
 |---|---|---|
-| **Frontend** | React 19 + Vite 8 | Fast, modern client SPA built with JavaScript |
-| **Styling** | Tailwind CSS v4 | Dark navy/charcoal fintech design with blue/violet accents |
-| **Icons** | Lucide React | Minimal, professional fintech iconography |
-| **Backend** | Node.js + Express | Modular, secure REST API engine |
-| **Security** | Helmet + CORS | Essential security headers and origin isolation |
-| **Database** | PostgreSQL | Relational ACID database engine with row-locking capabilities |
-| **ORM** | Prisma | Clean, type-safe schema definitions and migrations |
-| **Testing** | Jest + Supertest | Automated API test suite and invariant validation |
-| **Version Control** | Git + GitHub | Clean, atomic commit history |
+| **Backend** | Node.js + Express ES modules | Root `src/` REST API and financial transaction engine |
+| **Database** | PostgreSQL 16 + `pg` | Parameterized SQL, ACID transactions, and row-level locking |
+| **Security** | JWT + bcryptjs | Token authentication and fresh database role re-reading |
+| **Migrations** | Raw PostgreSQL SQL | Versioned schema migrations in `migrations/` |
+| **Testing** | Vitest + Supertest | 118 automated integration, invariant, and concurrency tests |
+| **Frontend** | React 19 + Vite 8 | Modern dashboard client in `client/` |
 
 ---
 
-## 📂 Project Directory Structure
+## 📂 Project Structure
 
 ```text
 LedgerLine/
-├── client/                     # Frontend React + Vite Application
-│   ├── src/
-│   │   ├── components/         # Reusable UI components
-│   │   │   ├── Sidebar.jsx     # Responsive navigation sidebar
-│   │   │   ├── Navbar.jsx      # Top status bar and active role pill
-│   │   │   ├── StatCard.jsx    # Metric cards with accent borders
-│   │   │   ├── SecurityPillars.jsx # Visual invariants display
-│   │   │   ├── SystemHealthCard.jsx# Live backend diagnostics card
-│   │   │   └── LedgerTableShell.jsx# Clear transaction journal table shell
-│   │   ├── pages/
-│   │   │   └── DashboardPage.jsx # Main fintech dashboard page
-│   │   ├── services/
-│   │   │   └── api.js          # Backend API client service
-│   │   ├── App.jsx             # Root layout and state management
-│   │   ├── index.css           # Tailwind CSS imports and dark theme setup
-│   │   └── main.jsx            # React DOM mounting
-│   ├── vite.config.js          # Vite config with Tailwind plugin & API proxy
-│   ├── .env.example            # Client environment template
-│   └── package.json            # Client dependencies and build scripts
-│
-├── server/                     # Backend Node.js + Express API
-│   ├── src/
-│   │   ├── controllers/        # Request handling logic
-│   │   │   └── health.controller.js # Health probe controller
-│   │   ├── routes/             # API routing
-│   │   │   ├── health.routes.js# Health check routes
-│   │   │   └── index.js        # Central API route aggregator
-│   │   ├── middleware/         # Custom Express middleware
-│   │   │   ├── errorHandler.js # Centralized safe error handler
-│   │   │   └── notFound.js     # 404 handler
-│   │   ├── services/           # Business logic layer (reserved for Phase 2)
-│   │   ├── utils/              # Helper utilities (reserved for Phase 2)
-│   │   ├── app.js              # Express app setup, Helmet, CORS, routing
-│   │   └── server.js           # Server bootstrap and port listening
-│   ├── prisma/
-│   │   └── schema.prisma       # Database schema and model definitions
-│   ├── tests/
-│   │   └── health.test.js      # Jest + Supertest test suite
-│   ├── .env.example            # Server environment template
-│   └── package.json            # Server dependencies and test scripts
-│
-├── .gitignore                  # Git exclusions for dependencies and secrets
-├── README.md                   # Project documentation & run guide
-├── THREATS.md                  # Comprehensive STRIDE threat model
-├── PROMPTS.md                  # AI development log and architectural prompts
-└── package.json                # Root convenience scripts
+├── migrations/                 # PostgreSQL SQL migrations (001 - 004)
+├── src/                        # Active Express ES-module backend
+│   ├── app.js                  # API routes, middleware, and error handling
+│   ├── auth.js                 # Authentication, bcrypt, registration, and RBAC
+│   ├── config.js               # Environment and production configuration guards
+│   ├── db.js                   # pg connection pool and transaction helper
+│   ├── hash.js                 # Cryptographic SHA-256 canonical hashing
+│   ├── ledger.js               # Core financial engine and double-entry journal
+│   ├── audit.js                # Immutable audit logging and reconciliation
+│   ├── migrate.js              # Database migration runner
+│   ├── seed.js                 # Controlled demo seed data
+│   └── server.js               # Server bootstrap and least-privilege checks
+├── tests/                      # 118 automated test suites across 6 phases
+│   ├── phase1.test.js          # Schema, triggers, and seed verification
+│   ├── phase2.test.js          # Authentication, rate limiting, and RBAC
+│   ├── phase3.test.js          # Financial operations and idempotency
+│   ├── phase4.test.js          # Statements, audit, and tamper detection
+│   ├── phase5.security.test.js # Production defaults and role security
+│   └── phase6.complete_backend.test.js # Registration, lifecycle, concurrency, and audit
+├── docs/                       # Comprehensive architectural documentation
+│   ├── ARCHITECTURE.md         # System architecture and invariant design
+│   ├── API.md                  # Complete REST API specifications
+│   ├── DATABASE.md             # PostgreSQL schema, indexes, and triggers
+│   ├── SECURITY.md             # Security policies, IDOR, and threat defenses
+│   ├── TESTING.md              # Test execution instructions and concurrency suite
+│   └── THREATS.md              # STRIDE threat model
+├── client/                     # React + Vite frontend
+├── BACKEND_COMPLETION_REPORT.md # Verification report and requirement matrix
+└── package.json                # Project dependencies and test scripts
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start Guide
 
-### Prerequisites
-
-Ensure you have installed:
-- **Node.js** (v18.0.0 or higher recommended, tested on Node v26)
+### 1. Prerequisites
+- **Node.js** (v18.0.0 or higher)
 - **npm** (v9.0.0 or higher)
-- **Git**
+- **PostgreSQL 16** (or use local embedded PostgreSQL for development)
 
----
+### 2. Backend Setup & Run
 
-### Step 1: Clone and Inspect
+1. Clone repository and install dependencies:
+   ```bash
+   git clone <repository-url>
+   cd LedgerLine
+   npm install
+   ```
+2. Configure `.env`:
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+   Set `JWT_SECRET` in `.env`. For local embedded database development, leave `DATABASE_URL` blank and configure `LEDGERLINE_EMBEDDED_DB_PASSWORD`.
+3. Run migrations and seed data:
+   ```bash
+   npm run migrate
+   npm run seed
+   ```
+4. Start development server:
+   ```bash
+   npm run dev
+   ```
+   The API will listen at `http://localhost:5000`. Probe health at `http://localhost:5000/api/health`.
 
+### 3. Run Automated Tests
+
+Execute all 118 unit, integration, invariant, and concurrency tests:
 ```bash
-git clone <repository-url>
-cd LedgerLine
+npm test
 ```
 
 ---
 
-### Step 2: Set Up the Backend Server
+## 📡 API Endpoint Overview
 
-1. Open a terminal and navigate to the `server` directory:
-   ```bash
-   cd server
-   ```
-
-2. Copy the environment configuration:
-   ```bash
-   cp .env.example .env
-   # On Windows PowerShell:
-   # Copy-Item .env.example .env
-   ```
-
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-4. Start the backend development server:
-   ```bash
-   npm run dev
-   ```
-
-   The server will start on **`http://localhost:5000`**.  
-   Verify it in your browser: `http://localhost:5000/api/health`
-
-5. Run the test suite:
-   ```bash
-   npm test
-   ```
+| Group | Method & Route | Description | Permissions |
+|---|---|---|---|
+| **Health** | `GET /api/health` | Health probe and system invariant declaration | Public |
+| **Auth** | `POST /api/auth/register` | Register new account holder | Public |
+| | `POST /api/auth/login` | Login with rate limiting and bcrypt | Public |
+| | `POST /api/auth/logout` | Session logout with audit event | Authenticated |
+| | `GET /api/auth/me` | Current user profile | Authenticated |
+| **Accounts** | `GET /api/accounts` | List permitted accounts | Scoped by role |
+| | `POST /api/accounts` | Create account (with double-entry opening balance) | `admin` |
+| | `GET /api/accounts/:id` | Get account details | Owner, `admin`, `auditor` |
+| | `GET /api/accounts/:id/balance` | Get account balance and status | Owner, `admin`, `auditor` |
+| | `PATCH /api/accounts/:id/status` | Manage account status (`ACTIVE`, `FROZEN`, `CLOSED`) | `admin` |
+| | `GET /api/accounts/:id/statement` | Account transaction journal with replay markers | Owner, `admin`, `auditor` |
+| **Transactions** | `POST /api/transactions/deposit` | Deposit from external clearing account | `admin` |
+| | `POST /api/transactions/withdraw` | Withdraw to external clearing account | Owner, `admin` |
+| | `POST /api/transactions/transfer` | Transfer between two accounts | Owner, `admin` |
+| | `GET /api/transactions` | Query transactions with filters | Scoped by role |
+| | `GET /api/transactions/:id` | Get transaction details and paired journal entries | Scoped by role |
+| **Ledger** | `GET /api/ledger` | Raw ledger entries with cryptographic hashes | Scoped by role |
+| | `GET /api/ledger/:transactionId` | Journal entries for transaction | Scoped by role |
+| | `GET /api/ledger/verify` | Cryptographic hash & zero-sum reconciliation | `admin`, `auditor` |
+| **Audit** | `GET /api/audit` | Query immutable audit log records | `admin`, `auditor` |
+| | `GET /api/audit/:id` | Get single audit log record | `admin`, `auditor` |
+| | `GET /api/audit/duplicates` | Query recorded duplicate request replays | `admin`, `auditor` |
+| **Admin** | `GET /api/admin/users` | List permitted registered users | `admin` |
+| | `GET /api/admin/overview` | Aggregated system metrics & reserve status | `admin`, `auditor` |
 
 ---
 
-### Step 3: Set Up the Frontend Client
+## 🔒 Financial Correctness & Verification
 
-1. Open a second terminal and navigate to the `client` directory:
-   ```bash
-   cd client
-   ```
-
-2. Copy the environment configuration:
-   ```bash
-   cp .env.example .env
-   # On Windows PowerShell:
-   # Copy-Item .env.example .env
-   ```
-
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-4. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-
-5. Open your browser and navigate to:
-   ```text
-   http://localhost:5173
-   ```
-
-You will see the **LedgerLine** dashboard shell with the live backend status indicator, architectural pillars, and transaction table shell.
-
----
-
-### Step 4: Root Convenience Commands
-
-From the project root directory, you can also run:
-
-| Command | Action |
-|---|---|
-| `npm run dev:server` | Starts the Express server with nodemon |
-| `npm run dev:client` | Starts the React + Vite dev server |
-| `npm run test:server` | Runs the backend Jest + Supertest test suite |
-| `npm run build:client` | Compiles the production frontend bundle |
-
----
-
-## 📡 API Endpoints (Phase 1)
-
-### `GET /api/health`
-Checks server uptime, health status, and active system invariants.
-
-**Sample Response (`200 OK`):**
-```json
-{
-  "status": "UP",
-  "service": "LedgerLine Financial Core API",
-  "phase": "Phase 1 - Project Setup",
-  "timestamp": "2026-11-06T01:10:00.000Z",
-  "uptime": 45.12,
-  "environment": "development",
-  "invariants": {
-    "currencyPrecision": "integer_paise",
-    "doubleEntryEnforced": true,
-    "rowLockingStrategy": "pessimistic_select_for_update",
-    "idempotencyEnforced": true,
-    "aiAutonomousApproval": false
-  }
-}
-```
-
----
-
-## 🔒 Security Architecture Highlights
-
-1. **Integer Arithmetic**: All values represented as integer paise (e.g. ₹500.25 is stored as `50025`).
-2. **Double-Entry Enforcement**: Ledger entries are paired debits and credits that sum to zero.
-3. **Pessimistic Locking**: `SELECT ... FOR UPDATE` prevents race conditions when reading account balances.
-4. **Idempotency Keys**: Requests send a unique UUID to prevent double execution on network retries.
-5. **No AI Autonomy**: Strict architectural rule prohibiting autonomous AI agents from initiating or approving transfers.
-
----
-
-## 🗺️ Project Phases
-
-- **Phase 1: Project Setup (Completed)** ✅
-  - Dual workspace setup (`client/` and `server/`).
-  - React 19 + Vite 8 + Tailwind CSS v4 dark fintech UI.
-  - Express backend with Helmet, CORS, and `/api/health`.
-  - Comprehensive STRIDE threat model (`THREATS.md`).
-  - Unit and integration tests with Jest and Supertest.
-- **Phase 2: Database Schema & Authentication (Upcoming)** ⏳
-  - PostgreSQL schema with Prisma ORM.
-  - User model with 3 roles: Administrator, Account Holder, Auditor.
-  - JWT authentication and bcrypt password hashing.
-  - Strict integer paise database constraints.
-- **Phase 3: Double-Entry Ledger & Transaction Engine (Upcoming)** ⏳
-  - Deposit, withdrawal, and transfer pipelines.
-  - Pessimistic row locking and ACID transactions.
-  - Idempotency key tracking.
-- **Phase 4: Full Frontend Integration & Auditing (Upcoming)** ⏳
-  - Role-based dashboard interfaces.
-  - Real-time ledger view and audit log viewer.
+- **Pessimistic Concurrency**: Tested with simultaneous ₹800 withdrawals against a ₹1,000 balance. Exactly one succeeds; the second receives `422 INSUFFICIENT_FUNDS`. The final balance is ₹200 and never negative.
+- **Deadlock Avoidance**: Simultaneous circular transfers ($A \to B$ and $B \to A$) serialize without deadlocks via deterministic `ORDER BY id ASC FOR UPDATE` locking.
+- **Append-Only Immutability**: Database triggers block `UPDATE`, `DELETE`, and `TRUNCATE` on both `ledger` and `audit_logs`.
+- **System Reconciliation**: `GET /api/ledger/verify` validates global balance conservation ($\sum \text{balances} = 0$), recomputes all SHA-256 chains, and reconciles account balances against the journal.

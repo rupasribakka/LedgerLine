@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getClient, closeDb } from './db.js';
+import { getMigrationClient, closeDb } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function runMigrations() {
-  const client = await getClient();
+  const client = await getMigrationClient();
   try {
     console.log('[MIGRATE] Running schema migrations...');
 

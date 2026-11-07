@@ -8,43 +8,30 @@ This document formalizes the security and architectural threat model for **Ledge
 
 | Threat ID | Threat Category | Description | Real-World Attack Scenario | LedgerLine Architectural Mitigation |
 |---|---|---|---|---|
-| **T-01** | **Tampering / Arithmetic Error** | Floating-point rounding inaccuracies in balance computations. | Accumulation of fractional cents/paise over thousands of transactions causing balance leakage (`0.1 + 0.2 !== 0.3`). | **Integer Paise Math**: Store and calculate all balances and transfer amounts strictly as integers in paise (`₹1.00 = 100 paise`). Floats are strictly prohibited. |
-| **T-02** | **Tampering / Race Condition** | Concurrent double spending across simultaneous requests. | An attacker fires two simultaneous ₹5,000 transfer requests with a balance of only ₹5,000. Both read the balance concurrently before either writes. | **Pessimistic Row Locking**: All balance checks and updates run inside a database transaction with `SELECT ... FOR UPDATE` row locks, forcing serialized execution. |
-| **T-03** | **Repudiation / Replay** | Network timeout causes duplicate payment submissions. | A network glitch causes client timeout after server debits account. User clicks "Pay" again, incurring a double charge. | **Idempotency Keys**: Every mutating operation requires a unique client-generated UUID idempotency key cached with its transaction outcome. Duplicate requests return the original response without re-executing. |
-| **T-04** | **Tampering / Accounting Invariant Violation** | Unbalanced financial movements creating or destroying money out of thin air. | A buggy or malicious deposit/transfer creates a debit entry without a matching credit entry, breaking accounting integrity. | **Double-Entry Bookkeeping**: Every transaction creates balanced credit and debit ledger entries. The sum of all debits must equal the sum of all credits ($\sum \text{Debits} = \sum \text{Credits}$). |
-| **T-05** | **Tampering / Ledger Alteration** | Direct modification or deletion of past financial records. | An insider or attacker updates a past ledger row to alter the historical transaction amount or erase a payment. | **Append-Only Ledger**: Database table rules and application logic prohibit `UPDATE` or `DELETE` statements on posted ledger records. Adjustments require compensating reversing entries. |
-| **T-06** | **Elevation of Privilege / Overdraft** | Negative balance generation. | An account holder issues a withdrawal larger than their settled available balance, causing an unauthorized credit line. | **Atomic Balance Guard**: Transactions enforce non-negative constraints `CHECK (balance_paise >= 0)` and abort immediately if `available_balance < transfer_amount`. |
-| **T-07** | **Elevation of Privilege / Auth Bypass** | Unauthorized account access across tenant boundaries. | User A alters the `accountId` in a payload to debit User B's account (Insecure Direct Object Reference / IDOR). | **Server-Side Authorization**: Every account mutation verifies cryptographic JWT identity and account ownership on the server side prior to querying or locking records. |
-| **T-08** | **Repudiation / Covert Attacks** | Unlogged rejected or suspicious transaction attempts. | An attacker probes the API with invalid credentials or bad balances, but leaves no trace for security teams. | **Comprehensive Audit Logging**: All rejected attempts (failed auth, insufficient funds, duplicate idempotency keys) are written to an immutable `AuditLog` table. |
+| **T-01** | **Tampering / Arithmetic Error** | Floating-point rounding inaccuracies in balance computations. | Accumulation of fractional cents/paise over thousands of transactions causing balance leakage (`0.1 + 0.2 !== 0.3`). | **Integer Paise Math**: Store and calculate all balances and transfer amounts strictly as integers in paise (`₹1.00 = 100 paise`). Floats, decimals, negative values, and strings are rejected. |
+| **T-02** | **Tampering / Race Condition** | Concurrent double spending across simultaneous requests. | An attacker fires two simultaneous ₹800 withdrawal requests with a balance of only ₹1,000. Both read the balance concurrently before either writes. | **Pessimistic Row Locking**: All balance checks and updates run inside a database transaction with `SELECT ... FOR UPDATE ORDER BY id ASC` row locks, serializing execution. Exactly one succeeds; the second receives 422 `INSUFFICIENT_FUNDS`. Balance remains ₹200. |
+| **T-03** | **Repudiation / Replay** | Network timeout causes duplicate payment submissions. | A network glitch causes client timeout after server debits account. User clicks "Pay" again, incurring a double charge. | **Idempotency Keys**: Every mutating operation requires a unique client-generated UUID idempotency key cached with its transaction outcome. Duplicate requests return the original response with `Idempotent-Replay: true` without re-executing. Reusing the same key with a different payload returns `HTTP 422`. |
+| **T-04** | **Tampering / Accounting Invariant Violation** | Unbalanced financial movements creating or destroying money out of thin air. | A buggy or malicious deposit/transfer creates a debit entry without a matching credit entry, breaking accounting integrity. | **Double-Entry Bookkeeping**: Every transaction creates balanced credit and debit ledger entries. The sum of all debits must equal the sum of all credits ($\sum \text{Debits} = \sum \text{Credits}$). Initial opening balances are funded via real double-entry entries from `ACC-EXTERNAL`. |
+| **T-05** | **Tampering / Ledger Alteration** | Direct modification or deletion of past financial records. | An insider or attacker updates a past ledger row to alter the historical transaction amount or erase a payment. | **Append-Only Triggers & SHA-256 Hash Chain**: Database triggers prohibit `UPDATE`, `DELETE`, and `TRUNCATE` operations on `ledger` and `audit_logs`. Each row includes a SHA-256 hash linked to the previous row. Tampering is flagged by `GET /api/ledger/verify`. |
+| **T-06** | **Elevation of Privilege / Overdraft** | Negative balance generation. | An account holder issues a withdrawal larger than their settled available balance, causing an unauthorized credit line. | **Atomic Balance Guard**: Transactions enforce non-negative constraints `CHECK (is_external OR balance_paise >= 0)` and abort immediately if `available_balance < transfer_amount`. |
+| **T-07** | **Elevation of Privilege / Auth Bypass & IDOR** | Unauthorized account access across tenant boundaries. | User A alters the `accountId` in a payload to debit User B's account (Insecure Direct Object Reference / IDOR). | **Server-Side Authorization**: Every account mutation verifies cryptographic JWT identity and account ownership on the server side (`canMoveFrom`) prior to querying or locking records. |
+| **T-08** | **Repudiation / Covert Attacks** | Unlogged rejected or suspicious transaction attempts. | An attacker probes the API with invalid credentials or bad balances, but leaves no trace for security teams. | **Immutable Audit Logging**: All sensitive actions (failed/successful logins, registrations, account creations, status changes, deposits, withdrawals, transfers, and refusals) are written to an append-only `audit_logs` table. |
 | **T-09** | **Autonomous AI Escalation** | AI agents autonomously initiating or authorizing money movement. | An autonomous LLM agent connected to an API initiates fund transfers without direct human approval or cryptographic signature. | **Zero AI Autonomy Invariant**: LedgerLine enforces a strict security policy: AI assistants may summarize and analyze, but must **never** independently sign, initiate, or approve money transfers. |
+| **T-10** | **Denial of Service / Deadlock** | Concurrent circular transfers causing database deadlocks. | User A transfers to User B while User B simultaneously transfers to User A, resulting in mutual lock waits and aborted transactions. | **Deterministic Lock Acquisition**: Accounts are locked in strict ascending primary key order (`ORDER BY id ASC`), eliminating cyclic wait conditions. |
+| **T-11** | **Elevation of Privilege / Account Lifecycle** | Transacting through frozen or closed accounts. | An account is frozen due to fraud investigation, but continuing requests still move money. | **Account Status Lifecycle**: `postMovement` validates that source and destination accounts are `ACTIVE`. Transfers involving `FROZEN` or `CLOSED` accounts are rejected with `HTTP 403`. |
 
 ---
 
-## 2. Invariants Enforced in Each Phase
+## 2. Invariants Enforced in the System
 
-### Phase 1 (Setup — Current)
-- [x] Strict security headers configured via `helmet`.
-- [x] CORS origin restriction configured.
-- [x] Clean separation of client and server boundaries.
-- [x] Health diagnostic probe with architectural invariant metadata (`/api/health`).
-- [x] Clear zero-mock policy (no fake balances, no simulated unverified transactions).
-
-### Phase 2 (Data Models & Database Engine)
-- [ ] PostgreSQL Prisma schema with integer paise fields (`BigInt` / `Int`).
-- [ ] PostgreSQL CHECK constraints ensuring `balance_paise >= 0`.
-- [ ] Pessimistic locking queries (`SELECT ... FOR UPDATE`).
-- [ ] Atomic database transaction wrappers (`prisma.$transaction`).
-- [ ] Double-entry ledger verification (`debits == credits`).
-- [ ] Append-only database triggers/rules on `LedgerEntry`.
-- [ ] Idempotency store with atomic claim-and-lock pattern.
-- [ ] Comprehensive audit trail on rejected requests.
-
----
-
-## 3. Role-Based Access Control (RBAC) Architecture
-
-| Role | Permissions | Limitations |
-|---|---|---|
-| **Account Holder** | View own accounts, view own transaction history, initiate transfers with own funds. | Cannot view other users' accounts, cannot access audit logs, cannot execute admin adjustments. |
-| **Administrator** | Manage user accounts, view system health, initiate system reconciliations. | Subject to double-entry rules; cannot arbitrarily overwrite ledger history without audit logs. |
-| **Auditor** | Read-only inspection of all ledger accounts, journals, audit trails, and invariants. | Zero mutation permissions. Read-only access to all financial records. |
+- [x] Strict security headers configured with standard helmet-equivalent headers.
+- [x] CORS origin restriction and size limiting (50 KB).
+- [x] PostgreSQL relational schema with integer paise fields (`BIGINT`).
+- [x] PostgreSQL CHECK constraints ensuring `balance_paise >= 0` (`chk_no_overdraft`).
+- [x] Pessimistic locking queries (`SELECT ... FOR UPDATE ORDER BY id ASC`).
+- [x] Atomic database transaction wrappers (`withTransaction`).
+- [x] Double-entry ledger verification ($\sum \text{debits} == \sum \text{credits}$).
+- [x] Append-only database triggers prohibiting `UPDATE`, `DELETE`, and `TRUNCATE` on `ledger` and `audit_logs`.
+- [x] Idempotency store with atomic claim-and-lock pattern and replay tracking.
+- [x] Comprehensive immutable audit trail (`audit_logs`) on sensitive and rejected requests.
+- [x] Account status lifecycle (`ACTIVE`, `FROZEN`, `CLOSED`).

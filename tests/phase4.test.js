@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
-import { initDbPool, closeDb, getPool } from '../src/db.js';
+import { initDbPool, closeDb, getClient } from '../src/db.js';
 import app from '../src/app.js';
 import { runMigrations } from '../src/migrate.js';
 import { seedDatabase } from '../src/seed.js';
@@ -85,7 +85,7 @@ beforeAll(async () => {
 }, 60000);
 
 afterAll(async () => {
-  await closeDb(true);
+  await closeDb();
 }, 30000);
 
 // ---------------------------------------------------------------------------
@@ -393,19 +393,18 @@ describe('GET /audit/verify — normal state', () => {
 describe('GET /audit/verify — tamper detection', () => {
   it('detects when a ledger row hash is directly mutated (owner-role tamper)', async () => {
     /**
-     * Hard Rule 6 states the app role (ledgerline_app) has only SELECT/INSERT
+     * Hard Rule 6 states the runtime role (ledgerline_runtime) has only SELECT/INSERT
      * on the ledger table — no UPDATE/DELETE. The migration owner role (which
      * embedded-postgres uses by default) can bypass that restriction.
      *
-     * We use the pool directly (which connects as the owner) to simulate an
+     * We use a database client directly (which connects as the owner) to simulate an
      * attacker with DB-level access who cannot be stopped by role grants alone.
      * This is the exact threat that the hash chain exists to detect.
      *
      * We also disable the trigger temporarily (requires owner role) to allow
      * the row mutation through, then re-enable it.
      */
-    const pool = getPool();
-    const client = await pool.connect();
+    const client = await getClient();
 
     try {
       // 1. Find the last ledger row for H1-Acc1
@@ -417,8 +416,8 @@ describe('GET /audit/verify — tamper detection', () => {
       const ledgerRowId = rowRes.rows[0].id;
 
       // 2. Disable the append-only trigger (owner role required)
-      await client.query('ALTER TABLE ledger DISABLE TRIGGER ledger_no_update');
-      await client.query('ALTER TABLE ledger DISABLE TRIGGER ledger_no_delete');
+      await client.query('ALTER TABLE ledger DISABLE TRIGGER trg_ledger_prevent_update');
+      await client.query('ALTER TABLE ledger DISABLE TRIGGER trg_ledger_prevent_delete');
 
       // 3. Tamper: overwrite the hash with a fake value
       await client.query("UPDATE ledger SET hash = 'deadbeef00000000000000000000000000000000000000000000000000000000' WHERE id = $1", [
@@ -426,8 +425,8 @@ describe('GET /audit/verify — tamper detection', () => {
       ]);
 
       // 4. Re-enable triggers
-      await client.query('ALTER TABLE ledger ENABLE TRIGGER ledger_no_update');
-      await client.query('ALTER TABLE ledger ENABLE TRIGGER ledger_no_delete');
+      await client.query('ALTER TABLE ledger ENABLE TRIGGER trg_ledger_prevent_update');
+      await client.query('ALTER TABLE ledger ENABLE TRIGGER trg_ledger_prevent_delete');
     } finally {
       client.release();
     }
@@ -445,10 +444,10 @@ describe('GET /audit/verify — tamper detection', () => {
     // 6. Restore: recompute the correct hash and put it back
     //    This is done so subsequent tests in later phases still pass.
     const { computeLedgerHash, GENESIS_HASH } = await import('../src/hash.js');
-    const restoreClient = await pool.connect();
+    const restoreClient = await getClient();
     try {
-      await restoreClient.query('ALTER TABLE ledger DISABLE TRIGGER ledger_no_update');
-      await restoreClient.query('ALTER TABLE ledger DISABLE TRIGGER ledger_no_delete');
+      await restoreClient.query('ALTER TABLE ledger DISABLE TRIGGER trg_ledger_prevent_update');
+      await restoreClient.query('ALTER TABLE ledger DISABLE TRIGGER trg_ledger_prevent_delete');
 
       // Re-read all rows for the account in order and recompute chain
       const allRows = await restoreClient.query(
@@ -476,8 +475,8 @@ describe('GET /audit/verify — tamper detection', () => {
         prevHash = correctHash;
       }
 
-      await restoreClient.query('ALTER TABLE ledger ENABLE TRIGGER ledger_no_update');
-      await restoreClient.query('ALTER TABLE ledger ENABLE TRIGGER ledger_no_delete');
+      await restoreClient.query('ALTER TABLE ledger ENABLE TRIGGER trg_ledger_prevent_update');
+      await restoreClient.query('ALTER TABLE ledger ENABLE TRIGGER trg_ledger_prevent_delete');
     } finally {
       restoreClient.release();
     }

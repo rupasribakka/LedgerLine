@@ -1,6 +1,12 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
 import EmbeddedPostgres from 'embedded-postgres';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import net from 'node:net';
+import os from 'node:os';
+import path from 'node:path';
+import { validateProductionDatabaseConfiguration } from './config.js';
 
 dotenv.config();
 
@@ -13,16 +19,52 @@ BigInt.prototype.toJSON = function () {
 };
 
 let embeddedServer = null;
+let embeddedDatabaseDir = null;
+let testEmbeddedPassword = null;
+let testEmbeddedPort = null;
 let pool = null;
+let migrationPool = null;
+
+async function getTestEmbeddedPort() {
+  if (testEmbeddedPort) return testEmbeddedPort;
+
+  const server = net.createServer();
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  testEmbeddedPort = server.address().port;
+  await new Promise((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()));
+  });
+
+  return testEmbeddedPort;
+}
 
 export async function initDbPool() {
   if (pool) return pool;
 
   let connectionString = process.env.DATABASE_URL;
 
-  // If no external DATABASE_URL provided, check if local postgres on 5433 is running or boot embedded
+  if (process.env.NODE_ENV === 'production' && !connectionString) {
+    throw new Error('DATABASE_URL is required in production.');
+  }
+
   if (!connectionString) {
-    connectionString = 'postgresql://postgres:password@localhost:5433/postgres';
+    const embeddedPassword =
+      process.env.NODE_ENV === 'test'
+        ? (testEmbeddedPassword ||= crypto.randomBytes(32).toString('hex'))
+        : process.env.LEDGERLINE_EMBEDDED_DB_PASSWORD;
+    if (!embeddedPassword) {
+      throw new Error(
+        'Set DATABASE_URL or configure LEDGERLINE_EMBEDDED_DB_PASSWORD for local embedded PostgreSQL.'
+      );
+    }
+
+    validateProductionDatabaseConfiguration();
+    const port =
+      process.env.NODE_ENV === 'test' ? await getTestEmbeddedPort() : 5433;
+    connectionString = `postgresql://postgres:${encodeURIComponent(embeddedPassword)}@localhost:${port}/postgres`;
 
     let alreadyRunning = false;
     try {
@@ -36,11 +78,15 @@ export async function initDbPool() {
 
     if (!alreadyRunning && !embeddedServer) {
       console.log('[DB] No DATABASE_URL provided. Initializing local embedded PostgreSQL 16...');
+      embeddedDatabaseDir =
+        process.env.NODE_ENV === 'test'
+          ? fs.mkdtempSync(path.join(os.tmpdir(), 'ledgerline-test-postgres-'))
+          : process.env.LEDGERLINE_EMBEDDED_DB_DIR || './.pgdata';
       embeddedServer = new EmbeddedPostgres({
-        port: 5433,
-        databaseDir: './.pgdata',
+        port,
+        databaseDir: embeddedDatabaseDir,
         user: 'postgres',
-        password: 'password',
+        password: embeddedPassword,
         persistent: true,
       });
 
@@ -50,7 +96,7 @@ export async function initDbPool() {
         // Already initialized
       }
       await embeddedServer.start();
-      console.log('[DB] Embedded PostgreSQL ready on port 5433.');
+      console.log(`[DB] Embedded PostgreSQL ready on port ${port}.`);
     }
   }
 
@@ -64,9 +110,105 @@ export async function initDbPool() {
   return pool;
 }
 
+export async function getMigrationClient() {
+  validateProductionDatabaseConfiguration();
+
+  const migrationConnectionString = process.env.MIGRATION_DATABASE_URL;
+  if (!migrationConnectionString) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('MIGRATION_DATABASE_URL is required in production.');
+    }
+    return getClient();
+  }
+
+  if (!migrationPool) {
+    migrationPool = new pg.Pool({
+      connectionString: migrationConnectionString,
+      max: 2,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+  }
+
+  return migrationPool.connect();
+}
+
 export async function query(text, params) {
   const p = await initDbPool();
   return p.query(text, params);
+}
+
+export async function assertProductionRuntimeRole() {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const result = await query(`
+    SELECT
+      role.rolsuper,
+      role.rolcreaterole,
+      role.rolcreatedb,
+      pg_has_role(current_user, 'ledgerline_runtime', 'MEMBER') AS runtime_member,
+      has_table_privilege(current_user, 'users', 'SELECT') AS users_select,
+      has_table_privilege(current_user, 'users', 'INSERT') AS users_insert,
+      has_table_privilege(current_user, 'users', 'UPDATE') AS users_update,
+      has_table_privilege(current_user, 'users', 'DELETE') AS users_delete,
+      has_table_privilege(current_user, 'accounts', 'SELECT') AS accounts_select,
+      has_table_privilege(current_user, 'accounts', 'INSERT') AS accounts_insert,
+      has_table_privilege(current_user, 'accounts', 'UPDATE') AS accounts_update,
+      has_table_privilege(current_user, 'accounts', 'DELETE') AS accounts_delete,
+      has_table_privilege(current_user, 'ledger', 'UPDATE') AS ledger_update,
+      has_table_privilege(current_user, 'ledger', 'DELETE') AS ledger_delete,
+      has_table_privilege(current_user, 'ledger', 'TRUNCATE') AS ledger_truncate,
+      has_table_privilege(current_user, 'ledger', 'SELECT') AS ledger_select,
+      has_table_privilege(current_user, 'ledger', 'INSERT') AS ledger_insert,
+      has_table_privilege(current_user, 'idempotency_keys', 'SELECT') AS idempotency_select,
+      has_table_privilege(current_user, 'idempotency_keys', 'INSERT') AS idempotency_insert,
+      has_table_privilege(current_user, 'idempotency_keys', 'UPDATE') AS idempotency_table_update,
+      has_table_privilege(current_user, 'idempotency_keys', 'DELETE') AS idempotency_delete,
+      has_table_privilege(current_user, 'idempotency_replays', 'SELECT') AS replays_select,
+      has_table_privilege(current_user, 'idempotency_replays', 'INSERT') AS replays_insert,
+      has_table_privilege(current_user, 'idempotency_replays', 'UPDATE') AS replays_update,
+      has_table_privilege(current_user, 'idempotency_replays', 'DELETE') AS replays_delete,
+      has_column_privilege(current_user, 'accounts', 'balance_paise', 'UPDATE') AS balance_update,
+      has_column_privilege(current_user, 'accounts', 'account_no', 'UPDATE') AS account_no_update,
+      has_column_privilege(current_user, 'idempotency_keys', 'state', 'UPDATE') AS idempotency_update
+    FROM pg_roles role
+    WHERE role.rolname = current_user
+  `);
+  const permissions = result.rows[0];
+
+  if (
+    !permissions ||
+    permissions.rolsuper ||
+    permissions.rolcreaterole ||
+    permissions.rolcreatedb ||
+    !permissions.runtime_member ||
+    !permissions.users_select ||
+    permissions.users_insert ||
+    permissions.users_update ||
+    permissions.users_delete ||
+    !permissions.accounts_select ||
+    !permissions.accounts_insert ||
+    permissions.accounts_update ||
+    permissions.accounts_delete ||
+    permissions.ledger_update ||
+    permissions.ledger_delete ||
+    permissions.ledger_truncate ||
+    !permissions.ledger_select ||
+    !permissions.ledger_insert ||
+    !permissions.idempotency_select ||
+    !permissions.idempotency_insert ||
+    permissions.idempotency_table_update ||
+    permissions.idempotency_delete ||
+    !permissions.replays_select ||
+    !permissions.replays_insert ||
+    permissions.replays_update ||
+    permissions.replays_delete ||
+    !permissions.balance_update ||
+    permissions.account_no_update ||
+    !permissions.idempotency_update
+  ) {
+    throw new Error('Production DATABASE_URL role does not meet LedgerLine runtime least-privilege requirements.');
+  }
 }
 
 export async function getClient() {
@@ -102,6 +244,10 @@ export async function closeDb(stopServer = false) {
     await pool.end();
     pool = null;
   }
+  if (migrationPool) {
+    await migrationPool.end();
+    migrationPool = null;
+  }
   if (stopServer && embeddedServer) {
     try {
       await embeddedServer.stop();
@@ -109,5 +255,11 @@ export async function closeDb(stopServer = false) {
       // Ignore stop errors on exit
     }
     embeddedServer = null;
+    if (process.env.NODE_ENV === 'test' && embeddedDatabaseDir) {
+      fs.rmSync(embeddedDatabaseDir, { recursive: true, force: true });
+    }
+    embeddedDatabaseDir = null;
+    testEmbeddedPassword = null;
+    testEmbeddedPort = null;
   }
 }

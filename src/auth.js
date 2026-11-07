@@ -1,15 +1,19 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import { query } from './db.js';
+import { getJwtSecret } from './config.js';
 
 dotenv.config();
 
-// Crash immediately if JWT_SECRET is missing from environment
-if (!process.env.JWT_SECRET) {
-  throw new Error('FATAL: JWT_SECRET environment variable is required.');
+export function normalizeRole(role) {
+  if (!role || typeof role !== 'string') return '';
+  const r = role.trim().toLowerCase();
+  if (r === 'account_holder') return 'holder';
+  return r;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = getJwtSecret();
 const JWT_EXPIRES_IN = '24h';
 
 /**
@@ -75,6 +79,7 @@ export async function authenticate(req, res, next) {
  * Hard Rule 10: Roles: admin, holder, auditor (403 on every write).
  */
 export function requireRole(...allowedRoles) {
+  const normalizedAllowed = allowedRoles.map(normalizeRole);
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -83,7 +88,8 @@ export function requireRole(...allowedRoles) {
       });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const userRole = normalizeRole(req.user.role);
+    if (!normalizedAllowed.includes(userRole)) {
       return res.status(403).json({
         error: `Access denied. Requires one of roles: ${allowedRoles.join(', ')}.`,
         code: 'FORBIDDEN',
@@ -109,8 +115,10 @@ export function requireRole(...allowedRoles) {
 export async function canMoveFrom(user, accountId, dbClient = null) {
   if (!user) return { allowed: false, reason: 'Unauthenticated user' };
 
+  const userRole = normalizeRole(user.role);
+
   // Auditor is strictly read-only on everything
-  if (user.role === 'auditor') {
+  if (userRole === 'auditor') {
     return { allowed: false, reason: 'Auditor role is strictly read-only' };
   }
 
@@ -127,12 +135,12 @@ export async function canMoveFrom(user, accountId, dbClient = null) {
   const account = res.rows[0];
 
   // Admin has authority over all accounts
-  if (user.role === 'admin') {
+  if (userRole === 'admin') {
     return { allowed: true, account };
   }
 
   // Account Holder can only move funds from accounts they own
-  if (user.role === 'holder') {
+  if (userRole === 'holder') {
     if (account.is_external) {
       return { allowed: false, reason: 'Holders cannot move funds from external clearing account' };
     }
@@ -143,6 +151,59 @@ export async function canMoveFrom(user, accountId, dbClient = null) {
   }
 
   return { allowed: false, reason: 'Unauthorized role' };
+}
+
+/**
+ * Register a new user in the system.
+ * By default creates 'holder' role. Role escalation to admin/auditor is rejected
+ * unless created by an authenticated admin.
+ */
+export async function registerUser({ email, password, name, role = 'holder', creator = null }) {
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return { error: 'Valid email address is required.', code: 'INVALID_EMAIL', status: 400 };
+  }
+
+  if (!password || typeof password !== 'string' || password.length < 8) {
+    return {
+      error: 'Password must be at least 8 characters long.',
+      code: 'WEAK_PASSWORD',
+      status: 400,
+    };
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanName = (name && typeof name === 'string' && name.trim()) || 'Account User';
+  const targetRole = normalizeRole(role) || 'holder';
+
+  if (!['admin', 'holder', 'auditor'].includes(targetRole)) {
+    return { error: `Invalid role: ${role}. Valid roles are admin, holder, auditor.`, code: 'INVALID_ROLE', status: 400 };
+  }
+
+  // Prevent unauthenticated or non-admin callers from creating admin or auditor users
+  if ((targetRole === 'admin' || targetRole === 'auditor') && (!creator || normalizeRole(creator.role) !== 'admin')) {
+    return {
+      error: 'Only administrators can create users with admin or auditor privileges.',
+      code: 'UNAUTHORIZED_ROLE_ESCALATION',
+      status: 403,
+    };
+  }
+
+  const existingRes = await query('SELECT id FROM users WHERE email = $1', [cleanEmail]);
+  if (existingRes.rowCount > 0) {
+    return {
+      error: 'A user with this email address already exists.',
+      code: 'EMAIL_ALREADY_EXISTS',
+      status: 409,
+    };
+  }
+
+  const passwordHash = bcrypt.hashSync(password, 10);
+  const insertRes = await query(
+    'INSERT INTO users (email, password_hash, role, name) VALUES ($1, $2, $3, $4) RETURNING id, email, role, name, created_at',
+    [cleanEmail, passwordHash, targetRole, cleanName]
+  );
+
+  return { user: insertRes.rows[0], status: 201 };
 }
 
 /**

@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
-import app from './app.js';
 import { runMigrations } from './migrate.js';
-import { seedDatabase } from './seed.js';
+import { isDemoSeedingEnabled, seedDatabase } from './seed.js';
+import { getJwtSecret, validateProductionDatabaseConfiguration } from './config.js';
+import { assertProductionRuntimeRole } from './db.js';
 
 dotenv.config();
 
@@ -9,10 +10,15 @@ const PORT = process.env.PORT || 5000;
 
 async function bootstrap() {
   try {
-    // Automatically apply migrations and seed on boot
+    validateProductionDatabaseConfiguration();
+    getJwtSecret();
     await runMigrations();
-    await seedDatabase();
+    await assertProductionRuntimeRole();
+    if (isDemoSeedingEnabled()) {
+      await seedDatabase();
+    }
 
+    const { default: app } = await import('./app.js');
     app.listen(PORT, () => {
       console.log(`=======================================================`);
       console.log(` LedgerLine Financial Core Service                     `);
@@ -22,7 +28,7 @@ async function bootstrap() {
       console.log(`=======================================================`);
     });
   } catch (error) {
-    console.error('Fatal boot error:', error);
+    console.error('Fatal boot error:', error.code || error.message);
     process.exit(1);
   }
 }

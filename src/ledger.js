@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { withTransaction, query } from './db.js';
 import { GENESIS_HASH, computeLedgerHash } from './hash.js';
+import { recordAuditLog } from './audit.js';
 
 export const MAX_AMOUNT_PAISE = 10_000_000n; // 10,000,000 paise (₹100,000.00 max cap)
 
@@ -180,7 +181,7 @@ export async function postMovement({
     // ---------------------------------------------------------------------
     const [firstId, secondId] = [parsedFromId, parsedToId].sort((a, b) => a - b);
     const accountsRes = await client.query(
-      `SELECT id, account_no, owner_id, balance_paise, is_external
+      `SELECT id, account_no, owner_id, balance_paise, is_external, status
        FROM accounts
        WHERE id IN ($1, $2)
        ORDER BY id ASC
@@ -205,11 +206,26 @@ export async function postMovement({
     }
 
     // ---------------------------------------------------------------------
-    // STEP C: SERVER-SIDE AUTHORISATION CHECK (Hard Rule 4, 9, 10)
+    // STEP C: SERVER-SIDE AUTHORISATION & ACCOUNT LIFECYCLE CHECK (Hard Rule 4, 9, 10)
     // ---------------------------------------------------------------------
     let authRefusalReason = null;
+    let authStatusCode = 403;
+    let authErrorCode = 'FORBIDDEN';
 
-    if (user.role === 'auditor') {
+    // Account status lifecycle validation
+    if (fromAccount.status === 'FROZEN') {
+      authRefusalReason = `Source account ${fromAccount.account_no} is FROZEN. Financial operations are prohibited.`;
+      authErrorCode = 'ACCOUNT_FROZEN';
+    } else if (fromAccount.status === 'CLOSED') {
+      authRefusalReason = `Source account ${fromAccount.account_no} is CLOSED. Closed accounts cannot send or receive money.`;
+      authErrorCode = 'ACCOUNT_CLOSED';
+    } else if (toAccount.status === 'CLOSED') {
+      authRefusalReason = `Recipient account ${toAccount.account_no} is CLOSED. Closed accounts cannot receive or send money.`;
+      authErrorCode = 'ACCOUNT_CLOSED';
+    } else if (toAccount.status === 'FROZEN' && kind !== 'deposit') {
+      authRefusalReason = `Recipient account ${toAccount.account_no} is FROZEN.`;
+      authErrorCode = 'ACCOUNT_FROZEN';
+    } else if (user.role === 'auditor') {
       authRefusalReason = 'Auditor role is strictly read-only on all financial transactions.';
     } else if (kind === 'deposit') {
       // Hard Rule 10: Default: holders cannot deposit; admin only
@@ -230,11 +246,13 @@ export async function postMovement({
     if (authRefusalReason) {
       return recordRefusal(client, {
         fromAccount,
+        toAccount,
+        kind,
         amountPaise,
         user,
         cleanKey,
-        statusCode: 403,
-        errorCode: 'FORBIDDEN',
+        statusCode: authStatusCode,
+        errorCode: authErrorCode,
         reason: authRefusalReason,
       });
     }
@@ -251,6 +269,8 @@ export async function postMovement({
       const reason = `Insufficient funds: balance ${currentFromBalance} paise is less than requested ${amountPaise} paise.`;
       return recordRefusal(client, {
         fromAccount,
+        toAccount,
+        kind,
         amountPaise,
         user,
         cleanKey,
@@ -355,6 +375,42 @@ export async function postMovement({
       ]
     );
 
+    // Record completed transaction
+    await client.query(
+      `INSERT INTO transactions (
+        id, type, status, amount_paise, from_account_id, to_account_id,
+        initiated_by, idempotency_key, description, error_reason
+      ) VALUES ($1, $2, 'completed', $3, $4, $5, $6, $7, $8, NULL)`,
+      [
+        txnId,
+        kind,
+        amountPaise,
+        fromAccount.id,
+        toAccount.id,
+        user.id,
+        cleanKey,
+        `${kind.toUpperCase()}: ${amountPaise} paise`,
+      ]
+    );
+
+    // Record audit event
+    await recordAuditLog(
+      {
+        actorId: user.id,
+        action: `${kind.toUpperCase()}_SUCCESS`,
+        resource: `transactions/${txnId}`,
+        correlationId: txnId,
+        outcome: 'SUCCESS',
+        metadata: {
+          fromAccountId: fromAccount.id,
+          toAccountId: toAccount.id,
+          amountPaise: Number(amountPaise),
+          key: cleanKey,
+        },
+      },
+      client
+    );
+
     // ---------------------------------------------------------------------
     // STEP H: COMMIT IDEMPOTENT RESPONSE (Hard Rule 5)
     // ---------------------------------------------------------------------
@@ -400,7 +456,10 @@ export async function postMovement({
  * Hard Rule 7: Refused attempts are written to the ledger as kind='refused'
  * with a reason and COMMITTED. A replayed refused request returns the same refusal.
  */
-async function recordRefusal(client, { fromAccount, amountPaise, user, cleanKey, statusCode, errorCode, reason }) {
+async function recordRefusal(
+  client,
+  { fromAccount, toAccount = null, kind = 'transfer', amountPaise, user, cleanKey, statusCode, errorCode, reason }
+) {
   const txnId = uuidv4();
   const currentBalance = BigInt(fromAccount.balance_paise);
 
@@ -440,6 +499,45 @@ async function recordRefusal(client, { fromAccount, amountPaise, user, cleanKey,
     ]
   );
 
+  // Record refused transaction entry
+  await client.query(
+    `INSERT INTO transactions (
+      id, type, status, amount_paise, from_account_id, to_account_id,
+      initiated_by, idempotency_key, description, error_reason
+    ) VALUES ($1, $2, 'refused', $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      txnId,
+      kind,
+      amountPaise,
+      fromAccount.id,
+      toAccount ? toAccount.id : null,
+      user.id,
+      cleanKey,
+      `Refused ${kind}`,
+      reason,
+    ]
+  );
+
+  // Record audit log
+  await recordAuditLog(
+    {
+      actorId: user.id,
+      action: `${kind.toUpperCase()}_REFUSED`,
+      resource: `accounts/${fromAccount.id}`,
+      correlationId: txnId,
+      outcome: 'REFUSED',
+      metadata: {
+        fromAccountId: fromAccount.id,
+        toAccountId: toAccount ? toAccount.id : null,
+        amountPaise: Number(amountPaise),
+        reason,
+        code: errorCode,
+        key: cleanKey,
+      },
+    },
+    client
+  );
+
   const responseBody = {
     error: reason,
     code: errorCode,
@@ -457,5 +555,302 @@ async function recordRefusal(client, { fromAccount, amountPaise, user, cleanKey,
     status: statusCode,
     body: responseBody,
     isReplay: false,
+  };
+}
+
+/**
+ * Fetch a transaction by ID along with its paired ledger entries and account metadata.
+ */
+export async function getTransactionById(txnId, user = null) {
+  const txnRes = await query(
+    `SELECT t.id, t.type, t.status, t.amount_paise, t.from_account_id, t.to_account_id,
+            t.initiated_by, t.idempotency_key, t.description, t.error_reason,
+            t.created_at, t.updated_at,
+            fa.account_no as from_account_no, fa.owner_id as from_owner_id,
+            ta.account_no as to_account_no, ta.owner_id as to_owner_id,
+            u.email as initiated_by_email, u.name as initiated_by_name
+     FROM transactions t
+     LEFT JOIN accounts fa ON t.from_account_id = fa.id
+     LEFT JOIN accounts ta ON t.to_account_id = ta.id
+     LEFT JOIN users u ON t.initiated_by = u.id
+     WHERE t.id = $1`,
+    [txnId]
+  );
+
+  if (txnRes.rowCount === 0) return null;
+  const txn = txnRes.rows[0];
+
+  // Role check: holders can only view transactions involving their own accounts
+  if (user && user.role === 'holder') {
+    if (txn.from_owner_id !== user.id && txn.to_owner_id !== user.id) {
+      return { forbidden: true };
+    }
+  }
+
+  // Fetch associated ledger entries
+  const entriesRes = await query(
+    `SELECT id, account_id, kind, amount_paise, balance_after_paise, prev_hash, hash, created_at
+     FROM ledger
+     WHERE txn_id = $1
+     ORDER BY id ASC`,
+    [txnId]
+  );
+
+  return {
+    transaction: {
+      id: txn.id,
+      type: txn.type,
+      status: txn.status,
+      amount_paise: Number(txn.amount_paise),
+      from_account: {
+        id: txn.from_account_id,
+        account_no: txn.from_account_no,
+      },
+      to_account: {
+        id: txn.to_account_id,
+        account_no: txn.to_account_no,
+      },
+      initiated_by: {
+        id: txn.initiated_by,
+        email: txn.initiated_by_email,
+        name: txn.initiated_by_name,
+      },
+      idempotency_key: txn.idempotency_key,
+      description: txn.description,
+      error_reason: txn.error_reason,
+      created_at: txn.created_at,
+      updated_at: txn.updated_at,
+    },
+    entries: entriesRes.rows.map((r) => ({
+      id: Number(r.id),
+      account_id: r.account_id,
+      kind: r.kind,
+      amount_paise: Number(r.amount_paise),
+      balance_after_paise: Number(r.balance_after_paise),
+      prev_hash: r.prev_hash,
+      hash: r.hash,
+      created_at: r.created_at,
+    })),
+  };
+}
+
+/**
+ * Fetch paginated list of transactions, scoped by role and permissions.
+ */
+export async function getTransactions({
+  limit = 50,
+  offset = 0,
+  accountId = null,
+  type = null,
+  status = null,
+  user = null,
+} = {}) {
+  const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
+  const parsedOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
+  const conditions = [];
+  const params = [];
+
+  if (user && user.role === 'holder') {
+    params.push(user.id);
+    conditions.push(`(fa.owner_id = $${params.length} OR ta.owner_id = $${params.length})`);
+  }
+
+  if (accountId) {
+    params.push(parseInt(accountId, 10));
+    conditions.push(`(t.from_account_id = $${params.length} OR t.to_account_id = $${params.length})`);
+  }
+
+  if (type) {
+    params.push(type);
+    conditions.push(`t.type = $${params.length}`);
+  }
+
+  if (status) {
+    params.push(status);
+    conditions.push(`t.status = $${params.length}`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const countRes = await query(
+    `SELECT COUNT(*) FROM transactions t
+     LEFT JOIN accounts fa ON t.from_account_id = fa.id
+     LEFT JOIN accounts ta ON t.to_account_id = ta.id
+     ${whereClause}`,
+    params
+  );
+  const total = parseInt(countRes.rows[0].count, 10);
+
+  params.push(parsedLimit, parsedOffset);
+  const txnsRes = await query(
+    `SELECT t.id, t.type, t.status, t.amount_paise, t.from_account_id, t.to_account_id,
+            t.initiated_by, t.idempotency_key, t.description, t.error_reason,
+            t.created_at, t.updated_at,
+            fa.account_no as from_account_no, ta.account_no as to_account_no,
+            u.email as initiated_by_email, u.name as initiated_by_name
+     FROM transactions t
+     LEFT JOIN accounts fa ON t.from_account_id = fa.id
+     LEFT JOIN accounts ta ON t.to_account_id = ta.id
+     LEFT JOIN users u ON t.initiated_by = u.id
+     ${whereClause}
+     ORDER BY t.created_at DESC
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+
+  return {
+    transactions: txnsRes.rows.map((txn) => ({
+      id: txn.id,
+      type: txn.type,
+      status: txn.status,
+      amount_paise: Number(txn.amount_paise),
+      from_account: {
+        id: txn.from_account_id,
+        account_no: txn.from_account_no,
+      },
+      to_account: {
+        id: txn.to_account_id,
+        account_no: txn.to_account_no,
+      },
+      initiated_by: {
+        id: txn.initiated_by,
+        email: txn.initiated_by_email,
+        name: txn.initiated_by_name,
+      },
+      idempotency_key: txn.idempotency_key,
+      description: txn.description,
+      error_reason: txn.error_reason,
+      created_at: txn.created_at,
+      updated_at: txn.updated_at,
+    })),
+    pagination: {
+      total,
+      limit: parsedLimit,
+      offset: parsedOffset,
+      pages: Math.ceil(total / parsedLimit),
+    },
+  };
+}
+
+/**
+ * Fetch paginated raw ledger entries, scoped by role.
+ */
+export async function getLedgerEntries({
+  limit = 50,
+  offset = 0,
+  accountId = null,
+  txnId = null,
+  user = null,
+} = {}) {
+  const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
+  const parsedOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
+  const conditions = [];
+  const params = [];
+
+  if (user && user.role === 'holder') {
+    params.push(user.id);
+    conditions.push(`a.owner_id = $${params.length}`);
+  }
+
+  if (accountId) {
+    params.push(parseInt(accountId, 10));
+    conditions.push(`l.account_id = $${params.length}`);
+  }
+
+  if (txnId) {
+    params.push(txnId);
+    conditions.push(`l.txn_id = $${params.length}`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const countRes = await query(
+    `SELECT COUNT(*) FROM ledger l
+     LEFT JOIN accounts a ON l.account_id = a.id
+     ${whereClause}`,
+    params
+  );
+  const total = parseInt(countRes.rows[0].count, 10);
+
+  params.push(parsedLimit, parsedOffset);
+  const entriesRes = await query(
+    `SELECT l.id, l.txn_id, l.account_id, a.account_no, l.kind,
+            l.amount_paise, l.balance_after_paise, l.initiated_by,
+            l.idempotency_key, l.reason, l.prev_hash, l.hash, l.created_at
+     FROM ledger l
+     LEFT JOIN accounts a ON l.account_id = a.id
+     ${whereClause}
+     ORDER BY l.id DESC
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+
+  return {
+    entries: entriesRes.rows.map((row) => ({
+      id: Number(row.id),
+      txn_id: row.txn_id,
+      account_id: row.account_id,
+      account_no: row.account_no,
+      kind: row.kind,
+      amount_paise: Number(row.amount_paise),
+      balance_after_paise: Number(row.balance_after_paise),
+      initiated_by: row.initiated_by,
+      idempotency_key: row.idempotency_key,
+      reason: row.reason,
+      prev_hash: row.prev_hash,
+      hash: row.hash,
+      created_at: row.created_at,
+    })),
+    pagination: {
+      total,
+      limit: parsedLimit,
+      offset: parsedOffset,
+      pages: Math.ceil(total / parsedLimit),
+    },
+  };
+}
+
+/**
+ * Fetch all ledger rows for a single transaction.
+ */
+export async function getLedgerByTransactionId(txnId, user = null) {
+  const rowsRes = await query(
+    `SELECT l.id, l.txn_id, l.account_id, a.account_no, a.owner_id, l.kind,
+            l.amount_paise, l.balance_after_paise, l.initiated_by,
+            l.idempotency_key, l.reason, l.prev_hash, l.hash, l.created_at
+     FROM ledger l
+     LEFT JOIN accounts a ON l.account_id = a.id
+     WHERE l.txn_id = $1
+     ORDER BY l.id ASC`,
+    [txnId]
+  );
+
+  if (rowsRes.rowCount === 0) return null;
+
+  if (user && user.role === 'holder') {
+    const hasOwnAccount = rowsRes.rows.some((r) => r.owner_id === user.id);
+    if (!hasOwnAccount) {
+      return { forbidden: true };
+    }
+  }
+
+  return {
+    txn_id: txnId,
+    entries: rowsRes.rows.map((row) => ({
+      id: Number(row.id),
+      account_id: row.account_id,
+      account_no: row.account_no,
+      kind: row.kind,
+      amount_paise: Number(row.amount_paise),
+      balance_after_paise: Number(row.balance_after_paise),
+      initiated_by: row.initiated_by,
+      idempotency_key: row.idempotency_key,
+      reason: row.reason,
+      prev_hash: row.prev_hash,
+      hash: row.hash,
+      created_at: row.created_at,
+    })),
   };
 }

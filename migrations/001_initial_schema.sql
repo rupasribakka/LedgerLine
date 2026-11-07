@@ -122,29 +122,4 @@ BEFORE TRUNCATE ON ledger
 FOR EACH STATEMENT
 EXECUTE FUNCTION prevent_ledger_truncate();
 
--- 8. Restricted Role Provisioning
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ledgerline_app') THEN
-        CREATE ROLE ledgerline_app WITH LOGIN PASSWORD 'app_secure_password';
-    END IF;
-EXCEPTION
-    WHEN insufficient_privilege THEN
-        RAISE NOTICE 'Insufficient privilege to create role ledgerline_app (managed cloud DB environment)';
-    WHEN OTHERS THEN
-        RAISE NOTICE 'Skipping role creation: %', SQLERRM;
-END
-$$;
-
-DO $$
-BEGIN
-    GRANT USAGE ON SCHEMA public TO ledgerline_app;
-    GRANT SELECT, INSERT, UPDATE ON users, accounts, idempotency_keys, idempotency_replays, audit_flags TO ledgerline_app;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ledgerline_app;
-    -- For ledger table: ONLY SELECT and INSERT, NEVER UPDATE, DELETE, TRUNCATE!
-    GRANT SELECT, INSERT ON ledger TO ledgerline_app;
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE NOTICE 'Skipping grant statements for ledgerline_app: %', SQLERRM;
-END
-$$;
+-- Runtime privileges are provisioned by migration 003 without embedded credentials.
