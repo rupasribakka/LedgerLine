@@ -8,6 +8,7 @@ import {
   grantRuntimePrivileges,
   getMigrationClient,
   formatFatalBootError,
+  logConnectionTargets,
 } from './db.js';
 
 dotenv.config();
@@ -18,6 +19,10 @@ export async function bootstrap({ port = PORT } = {}) {
   try {
     validateProductionDatabaseConfiguration();
     getJwtSecret();
+
+    if (process.env.NODE_ENV === 'production') {
+      logConnectionTargets();
+    }
 
     // 1. Create or update the ledgerline_runtime role (LOGIN and password only) first
     if (process.env.NODE_ENV === 'production') {

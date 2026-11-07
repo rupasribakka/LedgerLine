@@ -146,6 +146,10 @@ LedgerLine enforces database least-privilege architecture. In production:
    ```text
    postgresql://ledgerline_runtime:npg_runtime_k82Hs92Jd83Nm71Q@ep-cool-fog-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
    ```
+> [!IMPORTANT]
+> **Use Direct Compute Connection Strings (not pooled):**
+> Neon provides both Direct (`ep-cool-fog-123456...`) and Pooled (`ep-cool-fog-123456-pooler...`) hostnames. Always use the **Direct** connection string (ensure **Connection pooling** is disabled in the Neon Console when copying). The application automatically detects and routes `-pooler` hostnames to the direct compute endpoint to ensure SQL-provisioned runtime credentials authenticate seamlessly.
+
 > [!NOTE]
 > On first startup, `npm run start:prod` automatically connects as `MIGRATION_DATABASE_URL` (the owner), creates the `ledgerline_runtime` role with your specified password, grants all least-privilege permissions, runs migrations, and then boots the API connected as `DATABASE_URL`.
 

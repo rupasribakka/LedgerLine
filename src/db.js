@@ -46,6 +46,65 @@ export function formatFatalBootError(error) {
   return `code: ${code}, message: ${sanitizedMessage}, routine: ${routine}`;
 }
 
+/**
+ * Normalizes connection URLs for Neon PostgreSQL.
+ * If connecting to Neon through the PgBouncer pooler (-pooler), custom SQL-created roles
+ * cannot authenticate through the pooler edge cache. This helper automatically routes to the
+ * direct compute endpoint.
+ */
+export function normalizeDatabaseUrl(rawUrl, { logDirectFallback = true } = {}) {
+  if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
+
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.hostname.includes('.neon.tech') && parsed.hostname.includes('-pooler')) {
+      const originalHost = parsed.hostname;
+      parsed.hostname = parsed.hostname.replace(/-pooler(?=\.)/, '');
+      parsed.host = parsed.port ? `${parsed.hostname}:${parsed.port}` : parsed.hostname;
+      const directUrl = parsed.toString();
+      if (logDirectFallback) {
+        console.log(`[DB] Neon pooler host detected ('${originalHost}'). Routed to direct compute endpoint ('${parsed.hostname}') for custom SQL role authentication.`);
+      }
+      return directUrl;
+    }
+  } catch {
+    // If URL parsing fails, return raw string
+  }
+  return rawUrl;
+}
+
+/**
+ * Logs production connection targets for diagnostics without leaking credentials.
+ */
+export function logConnectionTargets(env = process.env) {
+  try {
+    if (env.MIGRATION_DATABASE_URL) {
+      const mig = new URL(env.MIGRATION_DATABASE_URL);
+      console.log(`[PROD-INIT] Migration connection target: username='${mig.username}', host='${mig.host}', database='${mig.pathname.replace(/^\//, '')}'`);
+    }
+    if (env.DATABASE_URL) {
+      const run = new URL(env.DATABASE_URL);
+      console.log(`[PROD-INIT] Runtime connection target: username='${run.username}', host='${run.host}', database='${run.pathname.replace(/^\//, '')}'`);
+
+      if (env.MIGRATION_DATABASE_URL) {
+        const mig = new URL(env.MIGRATION_DATABASE_URL);
+        const migDb = mig.pathname.replace(/^\//, '');
+        const runDb = run.pathname.replace(/^\//, '');
+        if (migDb && runDb && migDb !== runDb) {
+          console.warn(`[PROD-INIT] WARNING: Database mismatch! Migration database is '${migDb}', but runtime database is '${runDb}'.`);
+        }
+        const migHostNorm = mig.hostname.replace(/-pooler(?=\.)/, '');
+        const runHostNorm = run.hostname.replace(/-pooler(?=\.)/, '');
+        if (migHostNorm !== runHostNorm) {
+          console.warn(`[PROD-INIT] WARNING: Endpoint mismatch! Migration endpoint is '${mig.hostname}', but runtime endpoint is '${run.hostname}'.`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[PROD-INIT] Failed to parse connection target URLs:', err.message);
+  }
+}
+
 async function getTestEmbeddedPort() {
   if (testEmbeddedPort) return testEmbeddedPort;
 
@@ -65,7 +124,7 @@ async function getTestEmbeddedPort() {
 export async function initDbPool() {
   if (pool) return pool;
 
-  let connectionString = process.env.DATABASE_URL;
+  let connectionString = normalizeDatabaseUrl(process.env.DATABASE_URL);
 
   if (process.env.NODE_ENV === 'production' && !connectionString) {
     throw new Error('DATABASE_URL is required in production.');
@@ -139,7 +198,7 @@ export async function initDbPool() {
 export async function getMigrationClient() {
   validateProductionDatabaseConfiguration();
 
-  const migrationConnectionString = process.env.MIGRATION_DATABASE_URL;
+  const migrationConnectionString = normalizeDatabaseUrl(process.env.MIGRATION_DATABASE_URL);
   if (!migrationConnectionString) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('MIGRATION_DATABASE_URL is required in production.');
@@ -250,7 +309,8 @@ export async function assertProductionRuntimeRole() {
 export async function ensureRuntimeRole() {
   validateProductionDatabaseConfiguration();
 
-  const runtimeUrl = new URL(process.env.DATABASE_URL);
+  const normalizedRuntimeUrl = normalizeDatabaseUrl(process.env.DATABASE_URL, { logDirectFallback: false });
+  const runtimeUrl = new URL(normalizedRuntimeUrl);
   const runtimeUsername = decodeURIComponent(runtimeUrl.username);
   const runtimePassword = decodeURIComponent(runtimeUrl.password);
 
@@ -291,7 +351,8 @@ export async function ensureRuntimeRole() {
 export async function grantRuntimePrivileges() {
   validateProductionDatabaseConfiguration();
 
-  const runtimeUrl = new URL(process.env.DATABASE_URL);
+  const normalizedRuntimeUrl = normalizeDatabaseUrl(process.env.DATABASE_URL, { logDirectFallback: false });
+  const runtimeUrl = new URL(normalizedRuntimeUrl);
   const runtimeUsername = decodeURIComponent(runtimeUrl.username);
 
   if (!runtimeUsername) {
@@ -304,7 +365,11 @@ export async function grantRuntimePrivileges() {
 
     const escapedUsername = runtimeUsername.replace(/"/g, '""');
 
-    // 1. Schema usage
+    // 1. Database and Schema usage
+    const dbName = runtimeUrl.pathname.replace(/^\//, '');
+    if (dbName) {
+      await migrationClient.query(`GRANT CONNECT ON DATABASE "${dbName}" TO "${escapedUsername}";`);
+    }
     await migrationClient.query(`GRANT USAGE ON SCHEMA public TO "${escapedUsername}";`);
 
     // 2. Table & Column least-privilege permissions

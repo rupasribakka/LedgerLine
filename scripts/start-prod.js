@@ -20,6 +20,7 @@ import {
   assertProductionRuntimeRole,
   getMigrationClient,
   formatFatalBootError,
+  logConnectionTargets,
 } from '../src/db.js';
 
 dotenv.config();
@@ -29,6 +30,7 @@ export async function bootProductionServer({ port = process.env.PORT || 5000 } =
   try {
     validateProductionDatabaseConfiguration();
     getJwtSecret();
+    logConnectionTargets();
 
     // 1. Create or update the ledgerline_runtime role (LOGIN and password only) first
     await ensureRuntimeRole();
