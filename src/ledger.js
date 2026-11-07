@@ -80,6 +80,7 @@ export async function postMovement({
   key,
   user,
   body,
+  dbClient = null,
 }) {
   // --- 1. Validation (Hard Rule 1 & Requirements) ---
   if (!key || typeof key !== 'string' || key.trim().length === 0) {
@@ -127,7 +128,7 @@ export async function postMovement({
   const requestHash = crypto.createHash('sha256').update(JSON.stringify(body || {})).digest('hex');
 
   // --- 2. Execute within ONE DB Transaction ---
-  return withTransaction(async (client) => {
+  const executeOperation = async (client) => {
     // ---------------------------------------------------------------------
     // STEP A: IDEMPOTENCY KEY ROW LOCK (Hard Rule 5)
     // ---------------------------------------------------------------------
@@ -448,7 +449,12 @@ export async function postMovement({
       body: successResponse,
       isReplay: false,
     };
-  });
+  };
+
+  if (dbClient) {
+    return executeOperation(dbClient);
+  }
+  return withTransaction(executeOperation);
 }
 
 /**

@@ -156,7 +156,7 @@ describe('Phase 6 - Complete Backend Specification & Security Suite', () => {
   describe('2. Account Management & Status Lifecycle (Section 7)', () => {
     let newManagedAccountId;
 
-    it('POST /api/accounts: creates account with properly recorded opening balance entry', async () => {
+    it('POST /api/accounts: creates account with properly recorded opening balance entry in ONE transaction', async () => {
       const initialDepositPaise = 50_000; // ₹500.00
       const res = await request(app)
         .post('/api/accounts')
@@ -173,17 +173,34 @@ describe('Phase 6 - Complete Backend Specification & Security Suite', () => {
       expect(res.body.account.status).toBe('ACTIVE');
       newManagedAccountId = res.body.account.id;
 
-      // Verify double-entry opening record in ledger
-      const ledgerRes = await query(
+      // (1) The sum of all account balances is still 0
+      const sumRes = await query('SELECT SUM(balance_paise) as total FROM accounts');
+      expect(BigInt(sumRes.rows[0].total)).toBe(0n);
+
+      // (2) The new account has a ledger credit row for the opening amount
+      const creditRes = await query(
         'SELECT * FROM ledger WHERE account_id = $1 AND kind = $2',
         [newManagedAccountId, 'credit']
       );
-      expect(ledgerRes.rowCount).toBe(1);
-      expect(BigInt(ledgerRes.rows[0].amount_paise)).toBe(BigInt(initialDepositPaise));
+      expect(creditRes.rowCount).toBe(1);
+      expect(BigInt(creditRes.rows[0].amount_paise)).toBe(BigInt(initialDepositPaise));
+      const openTxnId = creditRes.rows[0].txn_id;
 
-      // Global sum conservation verified
-      const sumRes = await query('SELECT SUM(balance_paise) as total FROM accounts');
-      expect(BigInt(sumRes.rows[0].total)).toBe(0n);
+      // (3) ACC-EXTERNAL has the matching debit row
+      const debitRes = await query(
+        'SELECT * FROM ledger WHERE txn_id = $1 AND account_id = $2 AND kind = $3',
+        [openTxnId, extAccId, 'debit']
+      );
+      expect(debitRes.rowCount).toBe(1);
+      expect(BigInt(debitRes.rows[0].amount_paise)).toBe(BigInt(initialDepositPaise));
+
+      // (4) GET /audit/verify passes
+      const auditRes = await request(app)
+        .get('/audit/verify')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(auditRes.status).toBe(200);
+      expect(auditRes.body.verified).toBe(true);
+      expect(auditRes.body.checks.global_conservation.status).toBe('PASSED');
     });
 
     it('GET /api/accounts/:id/balance: returns balance and status for account owner', async () => {

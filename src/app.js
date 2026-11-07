@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { query } from './db.js';
+import { query, withTransaction } from './db.js';
 import {
   signToken,
   authenticate,
@@ -345,45 +345,59 @@ app.post(['/api/accounts', '/accounts'], authenticate, requireRole('admin'), asy
 
     const uniqueSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
     const accountNo = `ACC-H${parsedOwnerId}-${uniqueSuffix}`;
-
-    const insRes = await query(
-      `INSERT INTO accounts (account_no, owner_id, name, balance_paise, status, is_external)
-       VALUES ($1, $2, $3, 0, 'ACTIVE', FALSE)
-       RETURNING id, account_no, owner_id, name, balance_paise, status, is_external, created_at`,
-      [accountNo, parsedOwnerId, name.trim()]
-    );
-
-    const newAccount = insRes.rows[0];
-
-    // Audit log account creation
-    await recordAuditLog({
-      actorId: req.user.id,
-      action: 'ACCOUNT_CREATE',
-      resource: `accounts/${newAccount.id}`,
-      outcome: 'SUCCESS',
-      metadata: { accountNo: newAccount.account_no, ownerId: parsedOwnerId, name: newAccount.name },
-      ipAddress: req.ip,
-    });
-
-    // Handle initial opening balance through a recorded double-entry deposit (Requirement 7)
     const rawOpening = initial_balance_paise ?? initial_balance;
-    if (rawOpening !== undefined && rawOpening !== null && Number(rawOpening) > 0) {
-      const extId = await getExternalAccountId();
-      const openKey = req.headers['idempotency-key'] || `opening-dep-${newAccount.id}-${crypto.randomUUID()}`;
-      const moveResult = await postMovement({
-        kind: 'deposit',
-        fromAccountId: extId,
-        toAccountId: newAccount.id,
-        amount: Number(rawOpening),
-        key: openKey,
-        user: req.user,
-        body: { account_id: newAccount.id, amount: Number(rawOpening) },
-      });
+    const openingPaise = rawOpening !== undefined && rawOpening !== null ? Number(rawOpening) : 0;
 
-      if (moveResult.status === 200 && moveResult.body?.to_account) {
-        newAccount.balance_paise = moveResult.body.to_account.balance_after_paise;
+    const newAccount = await withTransaction(async (txClient) => {
+      const insRes = await txClient.query(
+        `INSERT INTO accounts (account_no, owner_id, name, balance_paise, status, is_external)
+         VALUES ($1, $2, $3, 0, 'ACTIVE', FALSE)
+         RETURNING id, account_no, owner_id, name, balance_paise, status, is_external, created_at`,
+        [accountNo, parsedOwnerId, name.trim()]
+      );
+
+      const createdAccount = insRes.rows[0];
+
+      // Audit log account creation within same transaction
+      await recordAuditLog(
+        {
+          actorId: req.user.id,
+          action: 'ACCOUNT_CREATE',
+          resource: `accounts/${createdAccount.id}`,
+          outcome: 'SUCCESS',
+          metadata: { accountNo: createdAccount.account_no, ownerId: parsedOwnerId, name: createdAccount.name },
+          ipAddress: req.ip,
+        },
+        txClient
+      );
+
+      // Post opening amount through postMovement logic in ONE transaction using unique internal key
+      if (openingPaise > 0) {
+        const extId = await getExternalAccountId(txClient);
+        const openKey = req.headers['idempotency-key'] || `opening-dep-${createdAccount.id}-${crypto.randomUUID()}`;
+        const moveResult = await postMovement({
+          kind: 'deposit',
+          fromAccountId: extId,
+          toAccountId: createdAccount.id,
+          amount: openingPaise,
+          key: openKey,
+          user: req.user,
+          body: { account_id: createdAccount.id, amount: openingPaise },
+          dbClient: txClient,
+        });
+
+        if (moveResult.status !== 200 || !moveResult.body?.to_account) {
+          const err = new Error(moveResult.body?.error || 'Failed to deposit opening balance');
+          err.status = moveResult.status || 400;
+          err.code = moveResult.body?.code || 'OPENING_BALANCE_FAILED';
+          throw err;
+        }
+
+        createdAccount.balance_paise = moveResult.body.to_account.balance_after_paise;
       }
-    }
+
+      return createdAccount;
+    });
 
     return res.status(201).json({
       account: newAccount,
