@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { query, withTransaction } from './db.js';
@@ -47,7 +48,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  res.setHeader('Content-Security-Policy', "default-src 'self'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' *");
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Referrer-Policy', 'no-referrer');
@@ -1077,6 +1078,29 @@ app.get(['/api/admin/overview', '/admin/overview'], authenticate, requireRole('a
     next(error);
   }
 });
+
+// -------------------------------------------------------------------------
+// STATIC CLIENT SERVING (Production & Local Built UI)
+// -------------------------------------------------------------------------
+const clientDistPath = path.resolve(__dirname, '../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    // Never intercept API routes, let them pass to 404/error handling
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/auth') ||
+      req.path.startsWith('/accounts') ||
+      req.path.startsWith('/deposits') ||
+      req.path.startsWith('/withdrawals') ||
+      req.path.startsWith('/transfers') ||
+      req.path.startsWith('/audit')
+    ) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 // -------------------------------------------------------------------------
 // CENTRALIZED ERROR HANDLING (Hard Rule 11)

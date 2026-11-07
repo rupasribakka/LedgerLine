@@ -6,28 +6,37 @@ import {
   BookOpen,
   ShieldAlert,
   FileText,
-  Settings,
   ShieldCheck,
   X,
-  Radio
+  Radio,
+  UserCheck,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard, active: true },
-  { id: 'accounts', label: 'Accounts', icon: Wallet },
-  { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { id: 'ledger', label: 'Ledger', icon: BookOpen },
-  { id: 'security', label: 'Security Center', icon: ShieldAlert },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'accounts', label: 'Accounts & Balances', icon: Wallet },
+  { id: 'transactions', label: 'Transfers & Actions', icon: ArrowLeftRight },
+  { id: 'ledger', label: 'Journal Stream', icon: BookOpen },
+  { id: 'security', label: 'Auditor Verification', icon: ShieldAlert },
+  { id: 'audit', label: 'Audit Security Logs', icon: FileText },
 ];
 
-export default function Sidebar({ isOpen, onClose, currentRole, onRoleChange }) {
+export default function Sidebar({
+  isOpen,
+  onClose,
+  activeTab = 'overview',
+  onTabChange,
+  currentUser,
+  onOpenAuth,
+}) {
   const getClearanceLevel = (role) => {
-    if (role === 'Admin') return 'L3 — ROOT CLEARANCE';
-    if (role === 'Auditor') return 'L2 — READ AUDIT CLEARANCE';
+    const r = (role || '').toLowerCase();
+    if (r === 'admin') return 'L3 — ROOT CLEARANCE';
+    if (r === 'auditor') return 'L2 — READ AUDIT CLEARANCE';
     return 'L1 — STANDARD HOLDER';
   };
+
+  const role = currentUser?.role || 'Guest';
 
   return (
     <>
@@ -59,7 +68,7 @@ export default function Sidebar({ isOpen, onClose, currentRole, onRoleChange }) 
                 </span>
               </div>
               <p className="text-[10px] font-mono tracking-widest text-cyan-400/80 uppercase">
-                Secure Financial Operations
+                Secure Financial System
               </p>
             </div>
           </div>
@@ -75,33 +84,28 @@ export default function Sidebar({ isOpen, onClose, currentRole, onRoleChange }) 
 
         {/* Role & Access Clearance Preview */}
         <div className="px-5 py-4 border-b border-slate-800/80 bg-slate-950/40">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1.5">
             <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
               Access Clearance
             </label>
             <span className="text-[9px] font-mono text-cyan-400 tracking-wider">
-              {getClearanceLevel(currentRole)}
+              {getClearanceLevel(role)}
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-1 rounded-lg bg-slate-900/90 p-1 border border-slate-800">
-            {['Account Holder', 'Admin', 'Auditor'].map((role) => {
-              const isSelected = currentRole === role;
-              return (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => onRoleChange(role)}
-                  className={`rounded px-2 py-1.5 text-[11px] font-mono font-medium transition-all ${
-                    isSelected
-                      ? 'bg-linear-to-r from-cyan-600 to-blue-600 text-white shadow-sm shadow-cyan-900/40 font-semibold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                  }`}
-                >
-                  {role.split(' ')[0]}
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between rounded-lg bg-slate-900/90 p-2.5 border border-slate-800">
+            <div className="flex items-center space-x-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-mono font-bold text-slate-200 uppercase">
+                {currentUser ? `${currentUser.username} (${role})` : 'Unauthenticated'}
+              </span>
+            </div>
+            <button
+              onClick={onOpenAuth}
+              className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 underline"
+            >
+              {currentUser ? 'Switch' : 'Login'}
+            </button>
           </div>
         </div>
 
@@ -112,11 +116,17 @@ export default function Sidebar({ isOpen, onClose, currentRole, onRoleChange }) 
           </div>
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
+            const isActive = activeTab === item.id;
             return (
-              <div
+              <button
                 key={item.id}
-                className={`group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all cursor-pointer ${
-                  item.active
+                type="button"
+                onClick={() => {
+                  onTabChange(item.id);
+                  if (onClose) onClose();
+                }}
+                className={`w-full group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all text-left ${
+                  isActive
                     ? 'bg-linear-to-r from-cyan-500/15 via-blue-500/10 to-transparent text-cyan-300 border border-cyan-500/30 font-semibold shadow-[0_0_15px_rgba(6,182,212,0.1)]'
                     : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 hover:border hover:border-slate-800'
                 }`}
@@ -124,15 +134,15 @@ export default function Sidebar({ isOpen, onClose, currentRole, onRoleChange }) 
                 <div className="flex items-center space-x-3">
                   <Icon
                     className={`h-4.5 w-4.5 transition-colors ${
-                      item.active ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'
+                      isActive ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'
                     }`}
                   />
                   <span>{item.label}</span>
                 </div>
-                {item.active && (
+                {isActive && (
                   <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#06b6d4]" />
                 )}
-              </div>
+              </button>
             );
           })}
         </nav>
@@ -146,11 +156,11 @@ export default function Sidebar({ isOpen, onClose, currentRole, onRoleChange }) 
               </span>
               <span className="inline-flex items-center space-x-1 rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-mono font-semibold text-cyan-400 border border-cyan-500/30">
                 <Radio className="h-2.5 w-2.5 animate-pulse" />
-                <span>ACTIVE</span>
+                <span>ONLINE</span>
               </span>
             </div>
             <p className="mt-1 text-[11px] text-slate-400 font-mono leading-relaxed">
-              Double-Entry Engine • Integer Paise • Row Locks Active
+              Double-Entry • Integer Paise • Row Locks Active
             </p>
           </div>
         </div>

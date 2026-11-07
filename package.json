@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "start:prod": "node scripts/start-prod.js",
+    "build:client": "npm run build --prefix client",
+    "build": "npm run build --prefix client",
     "dev": "node --watch src/server.js",
     "migrate": "node src/migrate.js",
     "seed": "node src/seed.js",
