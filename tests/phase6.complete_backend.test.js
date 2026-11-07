@@ -203,6 +203,39 @@ describe('Phase 6 - Complete Backend Specification & Security Suite', () => {
       expect(auditRes.body.checks.global_conservation.status).toBe('PASSED');
     });
 
+    it('POST /accounts with invalid opening balance rolls back atomically: no account, no ledger rows', async () => {
+      const excessiveDepositPaise = 15_000_000; // Above 10,000,000 paise MAX_AMOUNT_PAISE cap
+      const uniqueAccountName = `Atomic Rollback Test ${Date.now()}`;
+
+      const res = await request(app)
+        .post('/accounts')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: uniqueAccountName,
+          owner_id: holder1User.id,
+          initial_balance_paise: excessiveDepositPaise,
+        });
+
+      // 1. Assert response is an error
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(res.body).toHaveProperty('error');
+
+      // 2. Assert no account row was created in the database
+      const accCheck = await query('SELECT * FROM accounts WHERE name = $1', [uniqueAccountName]);
+      expect(accCheck.rowCount).toBe(0);
+
+      // 3. Assert no ledger rows were written for this attempted account
+      const ledgerCheck = await query(
+        'SELECT * FROM ledger WHERE amount_paise = $1',
+        [excessiveDepositPaise]
+      );
+      expect(ledgerCheck.rowCount).toBe(0);
+
+      // 4. Assert sum of all account balances is still 0
+      const sumRes = await query('SELECT SUM(balance_paise) as total FROM accounts');
+      expect(BigInt(sumRes.rows[0].total)).toBe(0n);
+    });
+
     it('GET /api/accounts/:id/balance: returns balance and status for account owner', async () => {
       const res = await request(app)
         .get(`/api/accounts/${newManagedAccountId}/balance`)
