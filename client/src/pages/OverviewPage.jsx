@@ -19,6 +19,7 @@ import GlowCard from '../components/ui/GlowCard';
 import GlowButton from '../components/ui/GlowButton';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
+import SmoothPaiseCounter from '../components/ui/SmoothPaiseCounter';
 
 export default function OverviewPage() {
   const { user } = useAuth();
@@ -110,7 +111,7 @@ export default function OverviewPage() {
             <Wallet className="h-4 w-4 text-[#2dff9a]" />
           </div>
           <p className="text-2xl sm:text-3xl font-bold font-mono text-[#eafff5]">
-            {loading ? <Skeleton className="h-8 w-28" /> : formatPaiseToRupees(totalPaise)}
+            {loading ? <Skeleton className="h-8 w-28" /> : <SmoothPaiseCounter paise={totalPaise} />}
           </p>
           <p className="text-[11px] font-mono text-[#7ea594]">
             Across {accounts.length} active account{accounts.length === 1 ? '' : 's'}
@@ -209,7 +210,7 @@ export default function OverviewPage() {
                 <div>
                   <span className="text-[11px] font-mono text-[#7ea594]">Settled Balance</span>
                   <p className="text-xl font-bold font-mono text-[#2dff9a]">
-                    {formatPaiseToRupees(acc.balance_paise)}
+                    <SmoothPaiseCounter paise={acc.balance_paise} />
                   </p>
                 </div>
 

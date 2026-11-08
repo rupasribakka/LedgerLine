@@ -16,6 +16,7 @@ import GlowCard from '../components/ui/GlowCard';
 import GlowButton from '../components/ui/GlowButton';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
+import SmoothPaiseCounter from '../components/ui/SmoothPaiseCounter';
 
 export default function AccountsPage() {
   const { user } = useAuth();
@@ -155,7 +156,7 @@ export default function AccountsPage() {
                   </span>
                   <div className="flex items-baseline justify-between">
                     <p className="text-2xl font-bold font-mono text-[#2dff9a]">
-                      {formatPaiseToRupees(acc.balance_paise)}
+                      <SmoothPaiseCounter paise={acc.balance_paise} />
                     </p>
                     <span className="text-[10px] font-mono text-[#7ea594]">
                       {acc.balance_paise} paise
