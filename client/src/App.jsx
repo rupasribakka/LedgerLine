@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
@@ -18,6 +18,16 @@ import AttackLabPage from './pages/AttackLabPage';
 import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
 
+/**
+ * RootRoute:
+ * - Everyone who is NOT logged in sees the Landing page.
+ * - Any logged-in user opening "/" is redirected to "/app".
+ */
+function RootRoute() {
+  const { user } = useAuth();
+  return user ? <Navigate to="/app" replace /> : <LandingPage />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -26,7 +36,7 @@ export default function App() {
           <CustomCursor />
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
 

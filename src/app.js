@@ -80,9 +80,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static vanilla HTML/CSS/JS frontend from public/
+// Serve static client assets from client/dist (or public/ if present)
+const clientDistDir = path.resolve(__dirname, '../client/dist');
 const publicDir = path.resolve(__dirname, '../public');
-app.use(express.static(publicDir));
+if (fs.existsSync(clientDistDir)) {
+  app.use(express.static(clientDistDir));
+} else if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+}
 
 // -------------------------------------------------------------------------
 // SYSTEM HEALTH
@@ -1080,27 +1085,23 @@ app.get(['/api/admin/overview', '/admin/overview'], authenticate, requireRole('a
 });
 
 // -------------------------------------------------------------------------
-// STATIC CLIENT SERVING (Production & Local Built UI)
+// STATIC CLIENT SERVING & SPA FALLBACK (Production & Local Built UI)
 // -------------------------------------------------------------------------
 const clientDistPath = path.resolve(__dirname, '../client/dist');
-if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
-  app.get('*', (req, res, next) => {
-    // Never intercept API routes, let them pass to 404/error handling
-    if (
-      req.path.startsWith('/api') ||
-      req.path.startsWith('/auth') ||
-      req.path.startsWith('/accounts') ||
-      req.path.startsWith('/deposits') ||
-      req.path.startsWith('/withdrawals') ||
-      req.path.startsWith('/transfers') ||
-      req.path.startsWith('/audit')
-    ) {
-      return next();
-    }
-    res.sendFile(path.join(clientDistPath, 'index.html'));
-  });
-}
+const clientIndexHtml = path.join(clientDistPath, 'index.html');
+
+app.use(express.static(clientDistPath));
+
+app.get('*', (req, res, next) => {
+  // Never intercept API routes or health probe; let them pass to API/404 handling
+  if (req.path.startsWith('/api') || req.path === '/health') {
+    return next();
+  }
+  if (fs.existsSync(clientIndexHtml)) {
+    return res.sendFile(clientIndexHtml);
+  }
+  next();
+});
 
 // -------------------------------------------------------------------------
 // CENTRALIZED ERROR HANDLING (Hard Rule 11)

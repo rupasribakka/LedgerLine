@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, User, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, User, Mail, Lock, ArrowRight, ArrowLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
 import RingOrb from '../components/ui/RingOrb';
 import GlowButton from '../components/ui/GlowButton';
 import Input from '../components/ui/Input';
@@ -96,12 +96,23 @@ export default function SignupPage() {
         {/* Right: Registration Form Side */}
         <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
+            {/* Back to Home Link */}
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-[#7ea594] hover:text-[#2dff9a] transition-colors mb-6 group"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
+              <span>Back to home</span>
+            </Link>
+
             {/* Header */}
             <div className="mb-8">
-              <div className="flex items-center gap-2 mb-2 lg:hidden">
+              <Link to="/" className="flex items-center gap-2 mb-3 lg:hidden group">
                 <ShieldCheck className="h-6 w-6 text-[#2dff9a]" />
-                <span className="text-base font-bold font-mono text-[#eafff5]">LedgerLine</span>
-              </div>
+                <span className="text-base font-bold font-mono text-[#eafff5] group-hover:text-[#2dff9a] transition-colors">
+                  LedgerLine
+                </span>
+              </Link>
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#eafff5]">
                   Open an Account
@@ -188,14 +199,25 @@ export default function SignupPage() {
             </form>
 
             {/* Footer Navigation */}
-            <div className="mt-8 text-center text-xs text-[#7ea594]">
-              <span>Already registered? </span>
-              <Link
-                to="/login"
-                className="text-[#2dff9a] font-semibold hover:underline cursor-pointer"
-              >
-                Sign in to your account
-              </Link>
+            <div className="mt-8 text-center text-xs text-[#7ea594] space-y-2.5">
+              <div>
+                <span>Already registered? </span>
+                <Link
+                  to="/login"
+                  className="text-[#2dff9a] font-semibold hover:underline cursor-pointer"
+                >
+                  Sign in to your account
+                </Link>
+              </div>
+              <div>
+                <Link
+                  to="/"
+                  className="inline-flex items-center gap-1 text-[#7ea594] hover:text-[#2dff9a] transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="h-3 w-3" />
+                  <span>Back to home</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
