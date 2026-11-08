@@ -26,6 +26,39 @@ import { useAuth } from '../context/AuthContext';
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('exactly-once');
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [beamAngle, setBeamAngle] = useState(0);
+
+  React.useEffect(() => {
+    const isTouch =
+      window.matchMedia('(pointer: coarse)').matches ||
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0;
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
+
+    if (isTouch || prefersReducedMotion) return;
+
+    const handleMouseMove = (e) => {
+      const { innerWidth, innerHeight } = window;
+      const normX = (e.clientX - innerWidth / 2) / (innerWidth / 2);
+      const normY = (e.clientY - innerHeight / 2) / (innerHeight / 2);
+
+      // Card tilt: perspective, max 8 degrees
+      const rotX = Math.max(-8, Math.min(8, -normY * 8));
+      const rotY = Math.max(-8, Math.min(8, normX * 8));
+
+      // Beam angle follow
+      const beamRot = Math.max(-6, Math.min(6, normX * 5));
+
+      setTilt({ x: rotX, y: rotY });
+      setBeamAngle(beamRot);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#020605] text-[#eafff5] font-sans selection:bg-[#2dff9a]/30 selection:text-[#2dff9a] overflow-x-hidden">
@@ -82,13 +115,15 @@ export default function LandingPage() {
 
         {/* Light Beam Coming Down From the Top */}
         <div
-          className="beam-container absolute top-0 left-1/2 -translate-x-1/2 w-[540px] sm:w-[720px] h-[550px] pointer-events-none z-0"
+          className="beam-container absolute top-0 left-1/2 w-[540px] sm:w-[720px] h-[550px] pointer-events-none z-0 transition-transform duration-100 ease-out will-change-transform"
           style={{
             background:
               'conic-gradient(from 180deg at 50% 0%, transparent 68deg, rgba(45, 255, 154, 0.22) 88deg, rgba(45, 255, 154, 0.35) 90deg, rgba(45, 255, 154, 0.22) 92deg, transparent 112deg)',
             clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
             filter: 'blur(1px)',
             opacity: 0.85,
+            transform: `translateX(-50%) rotate(${beamAngle}deg)`,
+            transformOrigin: 'top center',
           }}
         />
 
@@ -108,22 +143,24 @@ export default function LandingPage() {
 
           {/* Split Headline on Both Sides of the Card */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left Headline Column */}
+            {/* Left Headline Column with Mask Reveal */}
             <div className="lg:col-span-3 text-center lg:text-right space-y-3">
-              <h1 className="headline-reveal text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight font-mono text-[#eafff5] leading-[1.08]">
-                Money moves once.
-              </h1>
+              <div className="overflow-hidden">
+                <h1 className="headline-reveal text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight font-mono text-[#eafff5] leading-[1.08]">
+                  Money moves once.
+                </h1>
+              </div>
               <p className="text-xs sm:text-sm text-[#7ea594] font-mono leading-relaxed">
                 Atomic state machine with integer paise precision and row locks.
               </p>
             </div>
 
-            {/* Centred Glass Card Rising Out of the Beam */}
+            {/* Centred Glass Card Rising Out of the Beam with Tilt */}
             <div className="lg:col-span-6 flex justify-center">
               <div
-                className="hero-ledger-card relative w-full max-w-md rounded-3xl border border-[#2dff9a]/40 bg-[#06140c]/85 p-6 sm:p-7 backdrop-blur-2xl shadow-[0_0_60px_rgba(45,255,154,0.22)] transition-transform duration-300"
+                className="hero-ledger-card relative w-full max-w-md rounded-3xl border border-[#2dff9a]/40 bg-[#06140c]/85 p-6 sm:p-7 backdrop-blur-2xl shadow-[0_0_60px_rgba(45,255,154,0.22)] transition-transform duration-150 ease-out will-change-transform"
                 style={{
-                  perspective: 1000,
+                  transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
                 }}
               >
                 {/* Glow ring around card */}
@@ -193,11 +230,13 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Headline Column */}
+            {/* Right Headline Column with Mask Reveal */}
             <div className="lg:col-span-3 text-center lg:text-left space-y-3">
-              <h1 className="headline-reveal text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight font-mono text-transparent bg-clip-text bg-gradient-to-r from-[#2dff9a] via-[#52ffab] to-[#eafff5] leading-[1.08]">
-                The ledger remembers.
-              </h1>
+              <div className="overflow-hidden">
+                <h1 className="headline-reveal text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight font-mono text-transparent bg-clip-text bg-gradient-to-r from-[#2dff9a] via-[#52ffab] to-[#eafff5] leading-[1.08]">
+                  The ledger remembers.
+                </h1>
+              </div>
               <p className="text-xs sm:text-sm text-[#7ea594] font-mono leading-relaxed">
                 Cryptographic SHA-256 hash chains with trigger-enforced immutability.
               </p>

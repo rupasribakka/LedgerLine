@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
+import CustomCursor from './components/motion/CustomCursor';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -22,6 +23,7 @@ export default function App() {
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
+          <CustomCursor />
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />

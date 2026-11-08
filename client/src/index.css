@@ -50,6 +50,30 @@
   }
 }
 
+/* Custom Cursor Rules (Non-Touch / Non-Reduced-Motion) */
+html.custom-cursor-active,
+html.custom-cursor-active * {
+  cursor: none !important;
+}
+
+/* Headline Mask Reveal (Animate only transform & opacity) */
+.headline-reveal {
+  display: inline-block;
+  animation: headlineMaskUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes headlineMaskUp {
+  0% {
+    transform: translateY(115%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0%);
+    opacity: 1;
+  }
+}
+
 /* Animations and Utilities */
 @keyframes ringPulse {
   0%, 100% {

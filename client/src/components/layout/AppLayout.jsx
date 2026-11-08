@@ -22,6 +22,7 @@ import { useToast } from '../../context/ToastContext';
 import { checkBackendHealth } from '../../services/api';
 import Badge from '../ui/Badge';
 import GlowButton from '../ui/GlowButton';
+import PageTransition from '../motion/PageTransition';
 
 const NAV_CONFIG = [
   {
@@ -337,7 +338,9 @@ export default function AppLayout() {
 
         {/* Content Viewport */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-          <Outlet />
+          <PageTransition key={location.pathname}>
+            <Outlet />
+          </PageTransition>
         </main>
       </div>
     </div>
