@@ -51,7 +51,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const redirectPath = location.state?.from?.pathname || '/dashboard';
+  const redirectPath = location.state?.from?.pathname || '/app';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -95,8 +95,8 @@ export default function LoginPage() {
           <div className="absolute -top-32 -left-32 w-96 h-96 bg-[rgba(45,255,154,0.1)] rounded-full blur-3xl pointer-events-none" />
 
           {/* Brand header */}
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#2dff9a] shadow-[0_0_15px_rgba(45,255,154,0.3)]">
+          <Link to="/" className="relative z-10 flex items-center gap-3 group">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#2dff9a] shadow-[0_0_15px_rgba(45,255,154,0.3)] transition-transform group-hover:scale-105">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
@@ -107,7 +107,7 @@ export default function LoginPage() {
                 Zero-Sum Integrity
               </p>
             </div>
-          </div>
+          </Link>
 
           {/* Central Ring Orb */}
           <div className="relative z-10 my-auto py-8 flex items-center justify-center">

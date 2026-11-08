@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (allowedRoles && (!user || !allowedRoles.includes(user.role))) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   return children;

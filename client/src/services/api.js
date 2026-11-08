@@ -301,3 +301,30 @@ export async function verifySystemIntegrity() {
 export async function fetchAuditLogs() {
   return await request('/api/audit/logs', { method: 'GET' });
 }
+
+export async function fetchDuplicateReplays() {
+  return await request('/api/audit/duplicates', { method: 'GET' });
+}
+
+/**
+ * 6. Admin API (Admin Only)
+ */
+export async function createAccount({ name, ownerId, initialBalancePaise = 0 }) {
+  return await request('/api/accounts', {
+    method: 'POST',
+    body: {
+      name,
+      owner_id: Number(ownerId),
+      initial_balance_paise: Number(initialBalancePaise),
+    },
+  });
+}
+
+export async function fetchAdminUsers({ limit = 50, offset = 0 } = {}) {
+  return await request(`/api/admin/users?limit=${limit}&offset=${offset}`, { method: 'GET' });
+}
+
+export async function fetchAdminOverview() {
+  return await request('/api/admin/overview', { method: 'GET' });
+}
+
