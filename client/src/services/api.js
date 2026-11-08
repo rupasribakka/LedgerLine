@@ -19,11 +19,23 @@ export function getStoredToken() {
 export function setStoredSession(token, user) {
   inMemoryToken = token || null;
   inMemoryUser = user || null;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('session_sync'));
+  }
 }
 
 export function clearStoredSession() {
   inMemoryToken = null;
   inMemoryUser = null;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('session_sync'));
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.__SET_MOCK_SESSION__ = (user, token = 'dev-token') => {
+    setStoredSession(token, user);
+  };
 }
 
 export function getStoredUser() {

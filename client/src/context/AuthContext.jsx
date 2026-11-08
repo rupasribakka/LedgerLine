@@ -15,6 +15,17 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => getStoredToken());
   const [authError, setAuthError] = useState(null);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handler = () => {
+        setUser(getStoredUser());
+        setToken(getStoredToken());
+      };
+      window.addEventListener('session_sync', handler);
+      return () => window.removeEventListener('session_sync', handler);
+    }
+  }, []);
+
   // Sync session state from memory
   const login = useCallback(async (email, password) => {
     setAuthError(null);

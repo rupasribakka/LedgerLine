@@ -91,13 +91,20 @@ async function run() {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
 
-    // Preset user session if requested
-    const roleToMock = process.env.MOCK_ROLE;
-    if (roleToMock) {
-      await page.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded' });
+    // Preset user session if target is protected /app
+    const isProtected = targetPath.startsWith('/app');
+    if (isProtected) {
+      const roleToMock = process.env.MOCK_ROLE || 'admin';
+      await page.goto('http://localhost:5173/login', { waitUntil: 'domcontentloaded' });
       await page.evaluate((r) => {
-        // Mock in-memory state or session
-        window.__MOCK_ROLE = r;
+        if (window.__SET_MOCK_SESSION__) {
+          window.__SET_MOCK_SESSION__({
+            id: 1,
+            email: `${r}@ledgerline.local`,
+            role: r,
+            name: `${r.toUpperCase()} User`,
+          }, 'dev-mock-token');
+        }
       }, roleToMock);
     }
 
