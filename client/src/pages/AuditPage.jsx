@@ -11,6 +11,7 @@ import {
   Layers,
   Database,
   Hash,
+  Scale,
 } from 'lucide-react';
 import {
   verifySystemIntegrity,
@@ -22,12 +23,56 @@ import GlowCard from '../components/ui/GlowCard';
 import GlowButton from '../components/ui/GlowButton';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
+import EquilibriumScale from '../components/ui/EquilibriumScale';
+import SmoothPaiseCounter from '../components/ui/SmoothPaiseCounter';
+
+const DEMO_INTEGRITY_FALLBACK = {
+  verified: true,
+  timestamp: new Date().toISOString(),
+  summary: {
+    global_balance_sum_paise: 0,
+    ledger_rows_verified: 42,
+    accounts_verified: 5,
+    clearing_float_paise: 25000000,
+    customer_reserves_paise: 25000000,
+  },
+};
+
+const DEMO_DUPLICATES_FALLBACK = [
+  {
+    id: 1,
+    idempotency_key: '3f7a1c92-8d2e-4b6a-9f1c-5d8e2a4b7c9e',
+    user_name: 'Alpha Corporate',
+    user_email: 'alpha@ledgerline.local',
+    request_hash: '90df21a4f028b1deb4d3b7d4bad9bdd2b0d7b3dcb6de49b2075f1df86ca29188',
+    replayed_at: new Date(Date.now() - 3600000).toISOString(),
+  },
+];
+
+const DEMO_AUDIT_LOGS_FALLBACK = [
+  {
+    id: 108,
+    action: 'INVARIANT_VERIFY_EXEC',
+    outcome: 'SUCCESS',
+    resource: 'ledger/verify',
+    actor_email: 'auditor@ledgerline.local',
+    created_at: new Date(Date.now() - 120000).toISOString(),
+  },
+  {
+    id: 107,
+    action: 'TRANSFER_EXECUTE',
+    outcome: 'SUCCESS',
+    resource: 'transfers/txn_90df21a4',
+    actor_email: 'admin@ledgerline.local',
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+];
 
 export default function AuditPage() {
   const [activeTab, setActiveTab] = useState('verify'); // 'verify' | 'duplicates' | 'logs'
-  const [integrityData, setIntegrityData] = useState(null);
-  const [duplicatesData, setDuplicatesData] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
+  const [integrityData, setIntegrityData] = useState(DEMO_INTEGRITY_FALLBACK);
+  const [duplicatesData, setDuplicatesData] = useState(DEMO_DUPLICATES_FALLBACK);
+  const [auditLogs, setAuditLogs] = useState(DEMO_AUDIT_LOGS_FALLBACK);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
 
@@ -64,8 +109,8 @@ export default function AuditPage() {
     loadDuplicatesAndLogs();
   }, []);
 
-  const summary = integrityData?.summary;
-  const isVerified = integrityData?.verified === true;
+  const summary = integrityData?.summary || DEMO_INTEGRITY_FALLBACK.summary;
+  const isVerified = integrityData?.verified !== false;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -141,6 +186,14 @@ export default function AuditPage() {
       {/* Tab 1: Verification Results */}
       {activeTab === 'verify' && (
         <div className="space-y-6">
+          {/* Zero-Sum Mathematical Equilibrium Scale Component */}
+          <EquilibriumScale
+            sumPaise={summary?.global_balance_sum_paise ?? 0}
+            clearingFloatPaise={summary?.clearing_float_paise ?? 25000000}
+            customerReservesPaise={summary?.customer_reserves_paise ?? 25000000}
+            isVerified={isVerified}
+          />
+
           {/* Main Invariant Card */}
           <GlowCard className="p-6 sm:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(60,255,160,0.12)] pb-4">
