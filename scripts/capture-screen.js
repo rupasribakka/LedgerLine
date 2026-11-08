@@ -114,6 +114,16 @@ async function run() {
 
     await new Promise((r) => setTimeout(r, 1200));
 
+    if (process.env.OPEN_PALETTE === 'true') {
+      try {
+        const cmdBtn = await page.$('button[title*="Command Palette"]');
+        if (cmdBtn) {
+          await cmdBtn.click();
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      } catch {}
+    }
+
     await page.screenshot({ path: outputPath, fullPage: false });
     console.log(`[SCREENSHOT] Successfully saved to: ${outputPath}`);
   } finally {

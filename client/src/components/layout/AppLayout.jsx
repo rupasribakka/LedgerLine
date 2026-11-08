@@ -16,6 +16,8 @@ import {
   User,
   Activity,
   CheckCircle2,
+  Search,
+  Command,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -23,6 +25,7 @@ import { checkBackendHealth } from '../../services/api';
 import Badge from '../ui/Badge';
 import GlowButton from '../ui/GlowButton';
 import PageTransition from '../motion/PageTransition';
+import CommandPalette from '../ui/CommandPalette';
 
 const NAV_CONFIG = [
   {
@@ -82,6 +85,7 @@ export default function AppLayout() {
   const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [backendHealth, setBackendHealth] = useState({ ok: true, checking: false, responseTime: 12 });
 
   const role = (user?.role || 'holder').toLowerCase();
@@ -102,6 +106,18 @@ export default function AppLayout() {
       navigate('/', { replace: true });
     }
   };
+
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Periodic health check
   useEffect(() => {
@@ -139,6 +155,12 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-[#020605] text-[#eafff5] flex flex-col md:flex-row font-sans selection:bg-[#2dff9a]/30 selection:text-[#2dff9a]">
+      {/* Quick Command Palette Modal */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
+
       {/* Mobile Backdrop */}
       {sidebarOpen && (
         <div
@@ -284,10 +306,23 @@ export default function AppLayout() {
             </div>
           </div>
 
-          {/* Right: Live Connection Indicator & Header User Chip */}
+          {/* Right: Search / Command Palette Shortcut + Live Connection + Header User Chip */}
           <div className="flex items-center gap-3">
+            {/* Quick Command Palette Button */}
+            <button
+              onClick={() => setCommandPaletteOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-[rgba(60,255,160,0.18)] bg-[#07110d] px-3 py-1.5 text-xs font-mono text-[#7ea594] hover:text-[#2dff9a] hover:border-[#2dff9a]/40 transition-colors cursor-pointer shadow-sm"
+              title="Open Command Palette (Ctrl+K)"
+            >
+              <Search className="h-3.5 w-3.5 text-[#2dff9a]" />
+              <span className="hidden sm:inline">Commands</span>
+              <kbd className="hidden sm:inline-block rounded bg-[#020605] px-1.5 py-0.5 text-[10px] text-[#2dff9a] border border-[rgba(60,255,160,0.2)] font-mono">
+                Ctrl K
+              </kbd>
+            </button>
+
             {/* Health Indicator */}
-            <div className="hidden sm:flex items-center gap-2 rounded-full border border-[rgba(60,255,160,0.15)] bg-[#07110d] px-3 py-1 text-xs font-mono">
+            <div className="hidden lg:flex items-center gap-2 rounded-full border border-[rgba(60,255,160,0.15)] bg-[#07110d] px-3 py-1 text-xs font-mono">
               <span className="relative flex h-2 w-2">
                 {backendHealth.checking ? (
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
