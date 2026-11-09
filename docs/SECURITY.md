@@ -51,8 +51,9 @@
 
 ## 3. Network & Application Defense
 
-- **Helmet Security Headers**: Configured with `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection`, `Strict-Transport-Security`, and `Content-Security-Policy`.
+- **Security Headers (Set Manually)**: Configured manually in `src/app.js` with `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Strict-Transport-Security: max-age=31536000; includeSubDomains`, and `Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'`.
 - **CORS Restriction**: Safe origin handling and controlled allowed headers.
-- **Request Size Limiting**: `express.json({ limit: '50kb' })` mitigates JSON body flooding attacks.
+- **Request Size Limiting**: `express.json({ limit: '10kb' })` enforces a strict 10kb body limit to mitigate JSON body flooding attacks.
+- **Idempotency Replay Header**: Duplicate requests matching an existing idempotency key and identical payload return the cached response with the `Idempotent-Replay: true` HTTP response header without re-executing or altering balances.
 - **Error Sanitization**: Server-side error handlers strip internal database connection strings, table structures, and stack traces before responding to clients.
 - **SQL Parameterization**: 100% of queries use `$1, $2, ...` parameterized bindings, preventing SQL injection vulnerabilities.

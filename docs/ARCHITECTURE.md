@@ -48,10 +48,10 @@ LedgerLine is engineered from the ground up as a high-integrity, double-entry fi
                                             ▼
                     ┌───────────────────────────────────────────────┐
                     │          Express Security & Middleware        │
-                    │  • Helmet Security Headers                    │
+                    │  • Security Headers (Manual in app.js)        │
                     │  • Safe CORS Policies                         │
                     │  • Rate Limiting (Sliding Window)             │
-                    │  • Request Size Limit (50 KB)                 │
+                    │  • Request Size Limit (10 KB)                 │
                     │  • Centralized Error Sanitizer                │
                     └───────────────────────┬───────────────────────┘
                                             │

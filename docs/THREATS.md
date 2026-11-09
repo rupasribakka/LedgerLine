@@ -24,15 +24,15 @@ This document formalizes the security and architectural threat model for **Ledge
 
 ## 2. Invariants Enforced in the System
 
-- [x] Strict security headers configured with standard helmet-equivalent headers.
-- [x] CORS origin restriction and size limiting (50 KB).
+- [x] Strict security headers configured manually in src/app.js (nosniff, DENY, HSTS, CSP connect-src 'self').
+- [x] CORS origin restriction and size limiting (10 KB).
 - [x] PostgreSQL relational schema with integer paise fields (`BIGINT`).
 - [x] PostgreSQL CHECK constraints ensuring `balance_paise >= 0` (`chk_no_overdraft`).
 - [x] Pessimistic locking queries (`SELECT ... FOR UPDATE ORDER BY id ASC`).
 - [x] Atomic database transaction wrappers (`withTransaction`).
 - [x] Double-entry ledger verification ($\sum \text{debits} == \sum \text{credits}$).
 - [x] Append-only database triggers prohibiting `UPDATE`, `DELETE`, and `TRUNCATE` on `ledger` and `audit_logs`.
-- [x] Idempotency store with atomic claim-and-lock pattern and replay tracking.
+- [x] Idempotency store with atomic claim-and-lock pattern and duplicate replay tracking returning header `Idempotent-Replay: true`.
 - [x] Comprehensive immutable audit trail (`audit_logs`) on sensitive and rejected requests.
 - [x] Account status lifecycle (`ACTIVE`, `FROZEN`, `CLOSED`).
 
