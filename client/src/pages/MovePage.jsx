@@ -357,7 +357,7 @@ export default function MovePage() {
               className="w-full bg-transparent text-xs font-mono text-[#7ea594] focus:outline-none focus:text-[#eafff5]"
             />
             <p className="text-[10px] text-[#7ea594] leading-relaxed">
-              Prevents double processing. Submitting with the same key replays the cached result without duplicate ledger debit.
+              Prevents double processing. Submitting with the same key replays the cached result without duplicate ledger debit; submitting with an altered payload returns HTTP 422.
             </p>
           </div>
 

@@ -142,6 +142,7 @@ The LedgerLine backend exposes a RESTful API with JSON request and response payl
   - `200 OK`: Successful deposit. Returns debit & credit journal entries and updated balances.
   - `400 Bad Request`: Missing idempotency key or invalid amount.
   - `403 Forbidden`: Account holder attempted direct deposit or account is frozen/closed.
+  - `422 Unprocessable Entity`: Idempotency key reused with mismatched request payload (`IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
 
 ### Withdraw Funds
 - **`POST /api/transactions/withdraw`** (or `/withdrawals`)
@@ -157,7 +158,7 @@ The LedgerLine backend exposes a RESTful API with JSON request and response payl
 - **Responses**:
   - `200 OK`: Successful withdrawal.
   - `403 Forbidden`: Account frozen/closed or holder does not own account.
-  - `422 Unprocessable Entity`: Insufficient available funds. Commits kind=`refused` to ledger.
+  - `422 Unprocessable Entity`: Insufficient available funds (commits kind=`refused` to ledger) or idempotency key reused with mismatched request payload (`IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
 
 ### Transfer Funds
 - **`POST /api/transactions/transfer`** (or `/transfers`)
@@ -175,7 +176,7 @@ The LedgerLine backend exposes a RESTful API with JSON request and response payl
   - `200 OK`: Successful transfer.
   - `400 Bad Request`: Same source and destination.
   - `403 Forbidden`: Account frozen/closed or unauthorized source.
-  - `422 Unprocessable Entity`: Insufficient funds.
+  - `422 Unprocessable Entity`: Insufficient funds or idempotency key reused with mismatched request payload (`IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
 
 ### List Transactions
 - **`GET /api/transactions`** (or `/transactions`)

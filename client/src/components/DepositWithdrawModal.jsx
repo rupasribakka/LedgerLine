@@ -270,7 +270,7 @@ export default function DepositWithdrawModal({
                 onChange={(e) => setSendReplayRequest(e.target.checked)}
                 className="mt-0.5 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0"
               />
-              <span>Test Real Replay: Send duplicate request immediately with exact same key</span>
+              <span>Test Real Replay: Send duplicate request immediately with exact same key (replaying with altered payload returns HTTP 422)</span>
             </label>
           </div>
 

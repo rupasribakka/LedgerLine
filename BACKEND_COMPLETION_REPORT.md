@@ -15,7 +15,7 @@ All requirements outlined in the hackathon specification have been engineered, i
 ### Core Guarantees Implemented & Proven
 1. **Zero Double-Spending**: Concurrency control using row-level locking (`SELECT ... FOR UPDATE`) with deterministic ordering (`ORDER BY id ASC`), backed by database check constraints (`chk_no_overdraft`), ensuring balances can never become negative under concurrent load.
 2. **Strict Double-Entry Invariants**: Every transaction records equal and offsetting debit and credit movements. The sum of balance changes across the system is mathematically guaranteed to equal zero.
-3. **Idempotency Guarantee**: All mutating financial operations require an `Idempotency-Key`. Replays return the exact cached response without re-executing financial logic. Concurrent duplicates are serialized or rejected; mismatched payloads with identical keys are rejected with `409 Conflict`.
+3. **Idempotency Guarantee**: All mutating financial operations require an `Idempotency-Key`. Replays return the exact cached response without re-executing financial logic. Concurrent duplicates are serialized or rejected; mismatched payloads with identical keys are rejected with `422 Unprocessable Entity` (code: `IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
 4. **Append-Only Immutability**: Cryptographic SHA-256 hash chaining links every ledger record to its predecessor. PostgreSQL triggers physically reject `UPDATE`, `DELETE`, and `TRUNCATE` operations on `ledger` and `audit_logs` tables.
 5. **No Floating-Point Money**: All financial quantities are stored and manipulated as integer paise (`BIGINT` in PostgreSQL). Floating-point arithmetic is strictly prohibited across the codebase.
 6. **Multi-Role Security & IDOR Defense**: Strict Role-Based Access Control (`ADMIN`, `ACCOUNT_HOLDER`, `AUDITOR`) with ownership verification prevents Insecure Direct Object References (IDOR). Audit logs capture actors, actions, timestamps, and redacted metadata.
@@ -173,7 +173,7 @@ All requirements outlined in the hackathon specification have been engineered, i
 2. **Positive Movement Constraint**: `ledger.amount_paise` is constrained by `CONSTRAINT chk_positive_amount CHECK (amount_paise > 0)`. Negative amounts are strictly illegal; movements are expressed as either `DEBIT` or `CREDIT`.
 3. **Double-Entry Equilibrium**: Every financial transaction produces at least two ledger entries such that:
    $$\sum \text{Credits} - \sum \text{Debits} = 0$$
-4. **Idempotency Fingerprinting**: Request bodies are hashed via SHA-256 before storage in `idempotency_keys.request_hash`. A repeat request with a different payload produces an immediate `409 Conflict`.
+4. **Idempotency Fingerprinting**: Request bodies are hashed via SHA-256 before storage in `idempotency_keys.request_hash`. A repeat request with a different payload produces an immediate `422 Unprocessable Entity` (code: `IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
 5. **Database Immutability Triggers**:
    - `trg_ledger_prevent_update`: Blocks `UPDATE` on `ledger`.
    - `trg_ledger_prevent_delete`: Blocks `DELETE` on `ledger`.
@@ -262,7 +262,7 @@ Test Files  6 passed (6)
 2. **`tests/phase2.test.js`** (24 tests):
    - Double-entry accounting invariants, debit/credit pairing, balanced transactions, cryptographic SHA-256 hash chain generation, trigger-enforced ledger immutability (`UPDATE`/`DELETE` prevention).
 3. **`tests/phase3.test.js`** (17 tests):
-   - Idempotency key handling, response replay verification, duplicate detection, payload hash mismatch rejection (`409 Conflict`), scoped user idempotency.
+   - Idempotency key handling, response replay verification, duplicate detection, payload hash mismatch rejection (`422 Unprocessable Entity`), scoped user idempotency.
 4. **`tests/phase4.test.js`** (27 tests):
    - Concurrency safety, race condition prevention on simultaneous withdrawals, deadlock-free circular transfers, row-level locking validation, audit log verification.
 5. **`tests/phase5.security.test.js`** (7 tests):

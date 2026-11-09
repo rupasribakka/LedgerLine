@@ -252,7 +252,7 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
                 className="mt-0.5 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0"
               />
               <span>
-                <strong>Test Real Replay</strong>: Send a real duplicate HTTP request immediately with the exact same Idempotency-Key to verify backend replay cache.
+                <strong>Test Real Replay</strong>: Send a real duplicate HTTP request immediately with the exact same Idempotency-Key to verify backend replay cache (replaying with altered payload returns HTTP 422).
               </span>
             </label>
           </div>
