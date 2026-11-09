@@ -123,7 +123,7 @@ All requirements outlined in the hackathon specification have been engineered, i
 - **`src/ledger.js`**: The core double-entry financial engine. Executes atomic money movements, enforces row-level locks, manages idempotency keys and replays, tracks high-level transactions, and exposes statements.
 - **`src/audit.js`**: Audit trail service, sensitive data redaction filter, duplicate transaction detector, and cryptographic ledger verification runner.
 - **`src/hash.js`**: Cryptographic SHA-256 implementation, canonical JSON stringification, genesis hash generation, and hash chaining calculation.
-- **`src/migrate.js`**: Migration engine using PostgreSQL advisory locks to guarantee atomic, ordered execution of SQL schema migrations.
+- **`src/migrate.js`**: Migration engine using transaction-wrapped tracking to guarantee atomic, ordered execution of SQL schema migrations.
 - **`src/seed.js`**: Deterministic test and demonstration data seeder.
 
 ---
