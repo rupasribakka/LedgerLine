@@ -51,12 +51,15 @@ export default function MovePage() {
       const res = await fetchAccounts();
       if (res.ok && res.data?.accounts) {
         setAccounts(res.data.accounts);
-        if (res.data.accounts.length > 0) {
-          setSourceAccountId(String(res.data.accounts[0].id));
-          if (res.data.accounts.length > 1) {
-            setTargetAccountId(String(res.data.accounts[1].id));
+        const nonExt = res.data.accounts.filter(
+          (a) => !a.is_external && a.account_no !== 'ACC-EXTERNAL'
+        );
+        if (nonExt.length > 0) {
+          setSourceAccountId(String(nonExt[0].id));
+          if (nonExt.length > 1) {
+            setTargetAccountId(String(nonExt[1].id));
           } else {
-            setTargetAccountId(String(res.data.accounts[0].id));
+            setTargetAccountId(String(nonExt[0].id));
           }
         }
       }
@@ -188,6 +191,10 @@ export default function MovePage() {
 
   const selectedSourceAccount = accounts.find((a) => String(a.id) === String(sourceAccountId));
 
+  const transferAccounts = accounts.filter(
+    (a) => !a.is_external && a.account_no !== 'ACC-EXTERNAL'
+  );
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
@@ -270,7 +277,7 @@ export default function MovePage() {
               onChange={(e) => setSourceAccountId(e.target.value)}
               className="w-full rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#020605] px-4 py-3 text-xs sm:text-sm font-mono text-[#eafff5] focus:border-[#2dff9a] focus:outline-none"
             >
-              {accounts.map((acc) => (
+              {(activeTab === 'transfer' ? transferAccounts : accounts).map((acc) => (
                 <option key={acc.id} value={acc.id} className="bg-[#07110d] text-[#eafff5]">
                   #{acc.id} — {acc.name} ({formatPaiseToRupees(acc.balance_paise)})
                 </option>
@@ -299,7 +306,7 @@ export default function MovePage() {
                 onChange={(e) => setTargetAccountId(e.target.value)}
                 className="w-full rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#020605] px-4 py-3 text-xs sm:text-sm font-mono text-[#eafff5] focus:border-[#2dff9a] focus:outline-none"
               >
-                {accounts.map((acc) => (
+                {transferAccounts.map((acc) => (
                   <option key={acc.id} value={acc.id} className="bg-[#07110d] text-[#eafff5]">
                     #{acc.id} — {acc.name} ({formatPaiseToRupees(acc.balance_paise)})
                   </option>

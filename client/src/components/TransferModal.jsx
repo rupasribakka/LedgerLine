@@ -178,11 +178,13 @@ export default function TransferModal({ isOpen, onClose, accounts = [], onTransf
               onChange={(e) => setSourceAccountId(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
             >
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  Account #{acc.id} ({acc.account_no || `User ${acc.owner_id}`}) — Balance: {formatPaiseToRupees(acc.balance_paise)}
-                </option>
-              ))}
+              {accounts
+                .filter((a) => !a.is_external && a.account_no !== 'ACC-EXTERNAL')
+                .map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    Account #{acc.id} ({acc.account_no || `User ${acc.owner_id}`}) — Balance: {formatPaiseToRupees(acc.balance_paise)}
+                  </option>
+                ))}
             </select>
           </div>
 
