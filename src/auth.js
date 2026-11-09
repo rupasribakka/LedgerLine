@@ -75,6 +75,48 @@ export async function authenticate(req, res, next) {
 }
 
 /**
+ * Optional Authentication Middleware.
+ * If an Authorization: Bearer token is provided, decodes and validates it,
+ * querying DB to attach req.user. If no Authorization header is provided,
+ * sets req.user = null and continues without error.
+ * If an invalid or expired token is explicitly provided, returns 401.
+ */
+export async function optionalAuthenticate(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    req.user = null;
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+
+    const userRes = await query('SELECT id, email, role FROM users WHERE id = $1', [decoded.id]);
+    if (userRes.rowCount === 0) {
+      return res.status(401).json({
+        error: 'User session invalid. User not found.',
+        code: 'USER_NOT_FOUND',
+      });
+    }
+
+    req.user = userRes.rows[0];
+    next();
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        error: 'Authentication token expired. Please log in again.',
+        code: 'TOKEN_EXPIRED',
+      });
+    }
+    return res.status(401).json({
+      error: 'Invalid authentication token.',
+      code: 'INVALID_TOKEN',
+    });
+  }
+}
+
+/**
  * Middleware to enforce role requirements.
  * Hard Rule 10: Roles: admin, holder, auditor (403 on every write).
  */

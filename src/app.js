@@ -8,6 +8,7 @@ import { query, withTransaction } from './db.js';
 import {
   signToken,
   authenticate,
+  optionalAuthenticate,
   requireRole,
   loginLimiter,
   loginRateLimitMiddleware,
@@ -138,11 +139,15 @@ const handleRegister = async (req, res, next) => {
     const token = signToken(result.user);
 
     await recordAuditLog({
-      actorId: result.user.id,
+      actorId: req.user ? req.user.id : result.user.id,
       action: 'AUTH_REGISTER_SUCCESS',
       resource: `users/${result.user.id}`,
       outcome: 'SUCCESS',
-      metadata: { email: result.user.email, role: result.user.role },
+      metadata: {
+        email: result.user.email,
+        role: result.user.role,
+        registered_by: req.user ? req.user.role : 'self',
+      },
       ipAddress: req.ip,
     });
 
@@ -155,7 +160,7 @@ const handleRegister = async (req, res, next) => {
   }
 };
 
-app.post(['/api/auth/register', '/auth/register'], handleRegister);
+app.post(['/api/auth/register', '/auth/register'], optionalAuthenticate, handleRegister);
 
 /**
  * User login handler.

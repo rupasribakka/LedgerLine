@@ -130,6 +130,71 @@ describe('Phase 6 - Complete Backend Specification & Security Suite', () => {
       expect(res.body.code).toBe('UNAUTHORIZED_ROLE_ESCALATION');
     });
 
+    it('POST /api/auth/register: should reject unauthorized role escalation to auditor by unauthenticated user', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: `fakeauditor_${Date.now()}@ledgerline.local`,
+          password: 'SecurePassword123!',
+          name: 'Fake Auditor',
+          role: 'auditor',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.code).toBe('UNAUTHORIZED_ROLE_ESCALATION');
+    });
+
+    it('POST /api/auth/register: should reject role escalation to auditor by authenticated holder', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .set('Authorization', `Bearer ${holder1Token}`)
+        .send({
+          email: `holder_escalate_${Date.now()}@ledgerline.local`,
+          password: 'SecurePassword123!',
+          name: 'Unauthorized Escalation',
+          role: 'auditor',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.code).toBe('UNAUTHORIZED_ROLE_ESCALATION');
+    });
+
+    it('POST /api/auth/register: should ALLOW authenticated admin with bearer token to create an auditor', async () => {
+      const auditorEmail = `admin_created_auditor_${Date.now()}@ledgerline.local`;
+      const res = await request(app)
+        .post('/api/auth/register')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          email: auditorEmail,
+          password: 'SecurePassword123!',
+          name: 'Provisioned Auditor',
+          role: 'auditor',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.user).toHaveProperty('id');
+      expect(res.body.user.email).toBe(auditorEmail);
+      expect(res.body.user.role).toBe('auditor');
+    });
+
+    it('POST /api/auth/register: should ALLOW authenticated admin with bearer token to create another admin', async () => {
+      const subAdminEmail = `admin_created_admin_${Date.now()}@ledgerline.local`;
+      const res = await request(app)
+        .post('/api/auth/register')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          email: subAdminEmail,
+          password: 'SecurePassword123!',
+          name: 'Co-Administrator',
+          role: 'admin',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.user).toHaveProperty('id');
+      expect(res.body.user.email).toBe(subAdminEmail);
+      expect(res.body.user.role).toBe('admin');
+    });
+
     it('POST /api/auth/logout: should successfully acknowledge logout', async () => {
       const res = await request(app)
         .post('/api/auth/logout')

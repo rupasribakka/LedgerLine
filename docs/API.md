@@ -14,7 +14,7 @@ The LedgerLine backend exposes a RESTful API with JSON request and response payl
 
 ### Register User
 - **`POST /api/auth/register`** (or `/auth/register`)
-- **Headers**: None
+- **Headers**: Optional `Authorization: Bearer <token>` (required when creating users with `admin` or `auditor` roles)
 - **Body**:
   ```json
   {
