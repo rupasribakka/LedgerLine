@@ -6,20 +6,69 @@
  * robust Idempotency-Key handling, and Idempotent-Replay detection.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl) return '';
+  if (typeof window !== 'undefined' && window.location.host) {
+    if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !envUrl.includes(window.location.host)) {
+      return '';
+    }
+  }
+  return envUrl;
+};
 
-// JWT and session state kept in memory only (page refresh returns to login)
-let inMemoryToken = typeof window !== 'undefined' ? (window.__PRELOADED_TOKEN__ || null) : null;
-let inMemoryUser = typeof window !== 'undefined' ? (window.__PRELOADED_USER__ || null) : null;
+const API_BASE_URL = getApiBaseUrl();
+
+const safeGetToken = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.__PRELOADED_TOKEN__ || sessionStorage.getItem('bv_token') || localStorage.getItem('bv_token') || null;
+  } catch {
+    return null;
+  }
+};
+
+const safeGetUser = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    if (window.__PRELOADED_USER__) return window.__PRELOADED_USER__;
+    const raw = sessionStorage.getItem('bv_user') || localStorage.getItem('bv_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+let inMemoryToken = safeGetToken();
+let inMemoryUser = safeGetUser();
 
 export function getStoredToken() {
-  return inMemoryToken;
+  return inMemoryToken || safeGetToken();
+}
+
+export function getStoredUser() {
+  return inMemoryUser || safeGetUser();
 }
 
 export function setStoredSession(token, user) {
   inMemoryToken = token || null;
   inMemoryUser = user || null;
   if (typeof window !== 'undefined') {
+    try {
+      if (token) {
+        sessionStorage.setItem('bv_token', token);
+        sessionStorage.setItem('bv_user', JSON.stringify(user));
+        localStorage.setItem('bv_token', token);
+        localStorage.setItem('bv_user', JSON.stringify(user));
+      } else {
+        sessionStorage.removeItem('bv_token');
+        sessionStorage.removeItem('bv_user');
+        localStorage.removeItem('bv_token');
+        localStorage.removeItem('bv_user');
+      }
+    } catch {
+      // ignore
+    }
     window.dispatchEvent(new CustomEvent('session_sync'));
   }
 }
@@ -28,6 +77,14 @@ export function clearStoredSession() {
   inMemoryToken = null;
   inMemoryUser = null;
   if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.removeItem('bv_token');
+      sessionStorage.removeItem('bv_user');
+      localStorage.removeItem('bv_token');
+      localStorage.removeItem('bv_user');
+    } catch {
+      // ignore
+    }
     window.dispatchEvent(new CustomEvent('session_sync'));
   }
 }
@@ -36,10 +93,6 @@ if (typeof window !== 'undefined') {
   window.__SET_MOCK_SESSION__ = (user, token = 'dev-token') => {
     setStoredSession(token, user);
   };
-}
-
-export function getStoredUser() {
-  return inMemoryUser;
 }
 
 /**
@@ -339,5 +392,34 @@ export async function fetchAdminUsers({ limit = 50, offset = 0 } = {}) {
 
 export async function fetchAdminOverview() {
   return await request('/api/admin/overview', { method: 'GET' });
+}
+
+export async function updateAccountStatus({ accountId, status }) {
+  return await request(`/api/accounts/${accountId}/status`, {
+    method: 'PATCH',
+    body: { status },
+  });
+}
+
+/**
+ * 7. Transaction Stream & Ledger Entries
+ */
+export async function fetchTransactions({ limit = 50, offset = 0, accountId, type, status } = {}) {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (accountId) params.append('account_id', String(accountId));
+  if (type) params.append('type', String(type));
+  if (status) params.append('status', String(status));
+  return await request(`/api/transactions?${params.toString()}`, { method: 'GET' });
+}
+
+export async function fetchLedgerEntries({ limit = 50, offset = 0, accountId, txnId } = {}) {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (accountId) params.append('account_id', String(accountId));
+  if (txnId) params.append('txn_id', String(txnId));
+  return await request(`/api/ledger?${params.toString()}`, { method: 'GET' });
+}
+
+export async function fetchDetailedHealth() {
+  return await request('/api/health/details', { method: 'GET' });
 }
 

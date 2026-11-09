@@ -192,6 +192,7 @@ export default function MovePage() {
   };
 
   const selectedSourceAccount = accounts.find((a) => String(a.id) === String(sourceAccountId));
+  const selectedTargetAccount = accounts.find((a) => String(a.id) === String(targetAccountId));
 
   const transferAccounts = accounts.filter(
     (a) => !a.is_external && a.account_no !== 'ACC-EXTERNAL'

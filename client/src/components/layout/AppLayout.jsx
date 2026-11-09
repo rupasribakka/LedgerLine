@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Search,
   Command,
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -42,6 +43,14 @@ const NAV_CONFIG = [
     id: 'accounts',
     label: 'Accounts',
     icon: Wallet,
+    roles: ['admin', 'auditor', 'holder'],
+    end: false,
+  },
+  {
+    path: '/app/transactions',
+    id: 'transactions',
+    label: 'Transactions',
+    icon: BookOpen,
     roles: ['admin', 'auditor', 'holder'],
     end: false,
   },

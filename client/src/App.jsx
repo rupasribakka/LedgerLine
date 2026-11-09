@@ -16,6 +16,7 @@ import MovePage from './pages/MovePage';
 import AuditPage from './pages/AuditPage';
 import AttackLabPage from './pages/AttackLabPage';
 import AdminPage from './pages/AdminPage';
+import TransactionsPage from './pages/TransactionsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 /**
@@ -68,6 +69,7 @@ export default function App() {
               <Route path="overview" element={<Navigate to="/app" replace />} />
               <Route path="accounts" element={<AccountsPage />} />
               <Route path="accounts/:id" element={<AccountStatementPage />} />
+              <Route path="transactions" element={<TransactionsPage />} />
               <Route
                 path="move"
                 element={
