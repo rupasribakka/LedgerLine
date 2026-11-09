@@ -28,7 +28,7 @@ export default function NotFoundPage() {
               Ledger Block Not Found
             </h1>
             <p className="text-sm text-[#7ea594] max-w-md mx-auto leading-relaxed">
-              The requested URI does not exist in the LedgerLine state tree. No balance change or ledger mutation occurred.
+              The requested URI does not exist in the BalanceVault state tree. No balance change or ledger mutation occurred.
             </p>
           </div>
 

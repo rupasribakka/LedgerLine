@@ -130,6 +130,18 @@ export async function initDbPool() {
     throw new Error('DATABASE_URL is required in production.');
   }
 
+  if (connectionString) {
+    try {
+      const u = new URL(connectionString);
+      if (u.password && !testEmbeddedPassword) {
+        testEmbeddedPassword = decodeURIComponent(u.password);
+      }
+      if (u.port && !testEmbeddedPort) {
+        testEmbeddedPort = Number(u.port);
+      }
+    } catch {}
+  }
+
   if (!connectionString) {
     const embeddedPassword =
       process.env.NODE_ENV === 'test'
@@ -179,6 +191,7 @@ export async function initDbPool() {
       await embeddedServer.start();
       console.log(`[DB] Embedded PostgreSQL ready on port ${port}.`);
     }
+    process.env.DATABASE_URL = connectionString;
   }
 
   pool = new pg.Pool({

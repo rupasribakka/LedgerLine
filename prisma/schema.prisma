@@ -1,0 +1,161 @@
+// BalanceVault Prisma Schema
+// Dual-layer data access: User onboarding, RBAC, accounts, and audit queries
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int                  @id @default(autoincrement())
+  email         String               @unique @db.VarChar(255)
+  passwordHash  String               @map("password_hash") @db.VarChar(255)
+  role          String               @db.VarChar(32)
+  name          String               @default("Account User") @db.VarChar(255)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz
+
+  accounts      Account[]
+  ledgerEntries Ledger[]
+  keys          IdempotencyKey[]
+  replays       IdempotencyReplay[]
+  transactions  Transaction[]
+  auditLogs     AuditLog[]
+  auditFlags    AuditFlag[]
+
+  @@map("users")
+}
+
+model Account {
+  id           Int           @id @default(autoincrement())
+  accountNo    String        @unique @map("account_no") @db.VarChar(64)
+  ownerId      Int?          @map("owner_id")
+  name         String        @db.VarChar(255)
+  balancePaise BigInt        @default(0) @map("balance_paise")
+  isExternal   Boolean       @default(false) @map("is_external")
+  status       String        @default("ACTIVE") @db.VarChar(32)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  owner        User?         @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  ledgerRows   Ledger[]
+  outTxns      Transaction[] @relation("FromAccount")
+  inTxns       Transaction[] @relation("ToAccount")
+
+  @@index([ownerId])
+  @@index([accountNo])
+  @@map("accounts")
+}
+
+model Ledger {
+  id                BigInt    @id @default(autoincrement())
+  txnId             String    @map("txn_id") @db.Uuid
+  accountId         Int       @map("account_id")
+  kind              String    @db.VarChar(16)
+  amountPaise       BigInt    @map("amount_paise")
+  balanceAfterPaise BigInt    @map("balance_after_paise")
+  initiatedBy       Int?      @map("initiated_by")
+  idempotencyKey    String?   @map("idempotency_key") @db.VarChar(255)
+  reason            String?
+  prevHash          String    @map("prev_hash") @db.VarChar(64)
+  hash              String    @db.VarChar(64)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  account           Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  initiator         User?     @relation(fields: [initiatedBy], references: [id], onDelete: Restrict)
+
+  @@index([accountId])
+  @@index([txnId])
+  @@index([createdAt])
+  @@map("ledger")
+}
+
+model IdempotencyKey {
+  userId         Int       @map("user_id")
+  key            String    @db.VarChar(255)
+  requestHash    String    @map("request_hash") @db.VarChar(64)
+  state          String    @db.VarChar(32)
+  responseStatus Int?      @map("response_status")
+  responseBody   Json?     @map("response_body")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([userId, key])
+  @@map("idempotency_keys")
+}
+
+model IdempotencyReplay {
+  id             BigInt    @id @default(autoincrement())
+  userId         Int       @map("user_id")
+  idempotencyKey String    @map("idempotency_key") @db.VarChar(255)
+  requestHash    String    @map("request_hash") @db.VarChar(64)
+  replayedAt     DateTime  @default(now()) @map("replayed_at") @db.Timestamptz
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([idempotencyKey])
+  @@map("idempotency_replays")
+}
+
+model Transaction {
+  id             String    @id @db.Uuid
+  type           String    @db.VarChar(32)
+  status         String    @db.VarChar(32)
+  amountPaise    BigInt    @map("amount_paise")
+  fromAccountId  Int?      @map("from_account_id")
+  toAccountId    Int?      @map("to_account_id")
+  initiatedBy    Int?      @map("initiated_by")
+  idempotencyKey String?   @map("idempotency_key") @db.VarChar(255)
+  description    String?
+  errorReason    String?   @map("error_reason")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  fromAccount    Account?  @relation("FromAccount", fields: [fromAccountId], references: [id], onDelete: Restrict)
+  toAccount      Account?  @relation("ToAccount", fields: [toAccountId], references: [id], onDelete: Restrict)
+  initiator      User?     @relation(fields: [initiatedBy], references: [id], onDelete: Restrict)
+
+  @@index([fromAccountId])
+  @@index([toAccountId])
+  @@index([initiatedBy])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model AuditLog {
+  id            BigInt    @id @default(autoincrement())
+  actorId       Int?      @map("actor_id")
+  action        String    @db.VarChar(64)
+  resource      String    @db.VarChar(128)
+  correlationId String?   @map("correlation_id") @db.VarChar(255)
+  outcome       String    @db.VarChar(32)
+  metadata      Json?
+  ipAddress     String?   @map("ip_address") @db.VarChar(64)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  actor         User?     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@map("audit_logs")
+}
+
+model AuditFlag {
+  id          Int       @id @default(autoincrement())
+  txnId       String    @map("txn_id") @db.Uuid
+  reason      String
+  score       Decimal   @default(0.0) @db.Decimal(5, 2)
+  suggestedAt DateTime  @default(now()) @map("suggested_at") @db.Timestamptz
+  decidedBy   Int?      @map("decided_by")
+  decision    String?   @db.VarChar(32)
+  decidedAt   DateTime? @map("decided_at") @db.Timestamptz
+
+  decider     User?     @relation(fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@index([txnId])
+  @@map("audit_flags")
+}

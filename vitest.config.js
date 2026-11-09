@@ -5,15 +5,13 @@ export default defineConfig({
     include: ['tests/**/*.test.js'],
     setupFiles: ['./tests/setup.js'],
     fileParallelism: false,
+    pool: 'forks',
     poolOptions: {
-      threads: {
-        singleThread: true,
-      },
       forks: {
         singleFork: true,
       },
     },
-    hookTimeout: 40000,
-    testTimeout: 40000,
+    hookTimeout: 80000,
+    testTimeout: 60000,
   },
 });

@@ -190,6 +190,13 @@ export async function seedDatabase({ env = process.env, dbClient = null, force =
     for (const cred of SEED_CREDENTIALS) {
       const existing = await client.query('SELECT id, role, email FROM users WHERE email = $1', [cred.email]);
       if (existing.rowCount > 0) {
+        const hash = bcrypt.hashSync(cred.password, 10);
+        await client.query('UPDATE users SET role = $1, password_hash = $2 WHERE id = $3', [
+          cred.role,
+          hash,
+          existing.rows[0].id,
+        ]);
+        existing.rows[0].role = cred.role;
         userMap.set(cred.role + (cred.email.includes('2') ? '2' : '1'), existing.rows[0]);
       } else {
         const hash = bcrypt.hashSync(cred.password, 10);

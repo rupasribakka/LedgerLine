@@ -62,6 +62,7 @@ describe('Production Boot Sequence & Idempotency on Empty Database', () => {
 
     if (adminClient) {
       try {
+        await adminClient.query('ALTER ROLE ledgerline_runtime NOLOGIN').catch(() => {});
         await adminClient.query(`DROP DATABASE IF EXISTS ${TEST_DB_NAME}`);
         await adminClient.end();
       } catch (e) {

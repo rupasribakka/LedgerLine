@@ -25,7 +25,7 @@ export default function Navbar({
 
         <div>
           <div className="flex items-center space-x-2 text-[10px] font-mono uppercase tracking-widest text-slate-400">
-            <span className="text-cyan-400 font-semibold">LedgerLine</span>
+            <span className="text-cyan-400 font-semibold">BalanceVault</span>
             <span>/</span>
             <span>Financial Operations Command</span>
           </div>

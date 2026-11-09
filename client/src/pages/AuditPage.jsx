@@ -124,7 +124,7 @@ export default function AuditPage() {
   const handleExportCSV = () => {
     let headers = [];
     let rows = [];
-    const filename = `ledgerline-audit-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `balancevault-audit-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
 
     if (activeTab === 'duplicates') {
       headers = ['Idempotency Key', 'User ID', 'Attempt Count', 'First Seen', 'Last Seen', 'Response Status'];

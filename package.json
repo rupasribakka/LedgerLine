@@ -1,7 +1,7 @@
 {
-  "name": "ledgerline",
+  "name": "balancevault",
   "version": "1.0.0",
-  "description": "LedgerLine — High-Integrity Financial Ledger Management System",
+  "description": "BalanceVault (formerly LedgerLine) — High-Integrity Financial Ledger & Double-Entry Accounting Engine",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -12,20 +12,28 @@
     "dev": "node --watch src/server.js",
     "migrate": "node src/migrate.js",
     "seed": "node src/seed.js",
+    "bootstrap:admin": "node scripts/bootstrap-admin.js",
+    "bootstrap": "node scripts/bootstrap-admin.js",
+    "postinstall": "prisma generate",
+    "prisma:generate": "prisma generate",
+    "prisma:pull": "prisma db pull",
     "test": "vitest run",
     "mutation": "node scripts/mutation-check.js",
     "attack": "node scripts/attack.js"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
     "embedded-postgres": "16.15.0-beta.19",
+    "prisma": "^6.19.3",
     "supertest": "^7.0.0",
     "vitest": "^3.0.7"
   }

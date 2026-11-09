@@ -1,4 +1,4 @@
-# LedgerLine — Backend Engineering Completion Report
+# BalanceVault (formerly LedgerLine) — Backend Engineering Completion Report
 **Snovasys Hackathon**  
 **Engineering Discipline:** Senior Backend, PostgreSQL Database Architect, Financial Systems & Application Security  
 **Status:** Completed & Fully Verified  
@@ -8,17 +8,22 @@
 
 ## 1. Executive Summary
 
-LedgerLine is a high-integrity financial ledger system designed to guarantee mathematical correctness, concurrency safety, cryptographic traceability, and strict double-entry invariants for money movement.
+**BalanceVault** (formerly LedgerLine) is a high-integrity financial ledger system designed to guarantee mathematical correctness, concurrency safety, cryptographic traceability, and strict double-entry invariants for money movement.
 
-All requirements outlined in the hackathon specification have been engineered, integrated, and verified against a live PostgreSQL 16 database. The backend is 100% production-ready, featuring an automated test suite with **137 passing tests across 7 test suites with zero failures**.
+All requirements outlined in both the original LedgerLine specification and the updated BalanceVault challenge specification have been engineered, integrated, and verified against a live PostgreSQL 16 database. The backend is 100% production-ready, featuring an automated test suite with **148 passing tests across 8 test suites with zero failures**.
 
 ### Core Guarantees Implemented & Proven
 1. **Zero Double-Spending**: Concurrency control using row-level locking (`SELECT ... FOR UPDATE`) with deterministic ordering (`ORDER BY id ASC`), backed by database check constraints (`chk_no_overdraft`), ensuring balances can never become negative under concurrent load.
 2. **Strict Double-Entry Invariants**: Every transaction records equal and offsetting debit and credit movements. The sum of balance changes across the system is mathematically guaranteed to equal zero.
 3. **Idempotency Guarantee**: All mutating financial operations require an `Idempotency-Key`. Replays return the exact cached response without re-executing financial logic. Concurrent duplicates are serialized or rejected; mismatched payloads with identical keys are rejected with `422 Unprocessable Entity` (code: `IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
 4. **Append-Only Immutability**: Cryptographic SHA-256 hash chaining links every ledger record to its predecessor. PostgreSQL triggers physically reject `UPDATE`, `DELETE`, and `TRUNCATE` operations on `ledger` and `audit_logs` tables.
-5. **No Floating-Point Money**: All financial quantities are stored and manipulated as integer paise (`BIGINT` in PostgreSQL). Floating-point arithmetic is strictly prohibited across the codebase.
-6. **Multi-Role Security & IDOR Defense**: Strict Role-Based Access Control (`ADMIN`, `ACCOUNT_HOLDER`, `AUDITOR`) with ownership verification prevents Insecure Direct Object References (IDOR). Audit logs capture actors, actions, timestamps, and redacted metadata.
+5. **PostgreSQL / Prisma ORM Layer**: Full Prisma schema (`prisma/schema.prisma`) and `@prisma/client` integration alongside raw SQL transaction engines for high-concurrency locking.
+6. **Redis Rate Limiting & Zero-Crash Resilience**: Distributed Redis sliding-window rate limiting (`ioredis`) for authentication and financial transactions, with automatic seamless in-memory fallback when Redis is unconfigured or offline.
+7. **First-Admin Bootstrap CLI**: Standalone idempotent provisioning script (`scripts/bootstrap-admin.js` / `npm run bootstrap:admin`) for initializing or elevating root administrators.
+8. **Least-Privilege Database Roles**: Restricted runtime roles (`balancevault_runtime`, `ledgerline_runtime`) with zero DDL, DELETE, or TRUNCATE privileges.
+9. **Deployment Health Probes**: Comprehensive probes (`GET /api/health`, `GET /api/health/details`) reporting database latency, current DB role, and Redis connectivity.
+10. **No Floating-Point Money**: All financial quantities are stored and manipulated as integer paise (`BIGINT` in PostgreSQL). Floating-point arithmetic is strictly prohibited across the codebase.
+11. **Multi-Role Security & IDOR Defense**: Strict Role-Based Access Control (`ADMIN`, `ACCOUNT_HOLDER`, `AUDITOR`) with ownership verification prevents Insecure Direct Object References (IDOR). Audit logs capture actors, actions, timestamps, and redacted metadata.
 
 ---
 

@@ -184,7 +184,7 @@ export default function AppLayout() {
             </div>
             <div>
               <span className="text-lg font-bold font-mono tracking-tight text-[#eafff5]">
-                Ledger<span className="text-[#2dff9a]">Line</span>
+                Balance<span className="text-[#2dff9a]">Vault</span>
               </span>
               <p className="text-[10px] font-mono uppercase text-[#7ea594] tracking-widest">
                 Financial Core
@@ -302,7 +302,7 @@ export default function AppLayout() {
 
             <div>
               <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-[#7ea594]">
-                <span className="text-[#2dff9a] font-semibold">LedgerLine</span>
+                <span className="text-[#2dff9a] font-semibold">BalanceVault</span>
                 <span>/</span>
                 <span>Console</span>
               </div>

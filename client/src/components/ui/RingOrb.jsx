@@ -41,7 +41,7 @@ export default function RingOrb({ size = 380, className = '', label = 'ZERO-SUM 
         <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#2dff9a]/20 to-transparent blur-sm" />
         <ShieldCheck className="h-8 w-8 text-[#2dff9a] mb-1 drop-shadow-[0_0_8px_rgba(45,255,154,0.8)]" />
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#eafff5]">
-          LedgerLine
+          BalanceVault
         </span>
         <span className="text-[9px] font-mono text-[#2dff9a] tracking-widest mt-0.5">
           Σ = 0 PAISE

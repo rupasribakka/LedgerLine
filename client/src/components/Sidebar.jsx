@@ -64,7 +64,7 @@ export default function Sidebar({
             <div>
               <div className="flex items-center space-x-1.5">
                 <span className="text-lg font-bold tracking-tight text-white font-mono">
-                  Ledger<span className="text-cyan-400">Line</span>
+                  Balance<span className="text-cyan-400">Vault</span>
                 </span>
               </div>
               <p className="text-[10px] font-mono tracking-widest text-cyan-400/80 uppercase">

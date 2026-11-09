@@ -34,6 +34,7 @@ import {
   getAuditLogs,
   getAuditLogById,
 } from './audit.js';
+import { checkRedisHealth } from './redis.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,11 +96,62 @@ if (fs.existsSync(clientDistDir)) {
 // -------------------------------------------------------------------------
 
 /**
+ * Detailed health probe builder.
+ */
+async function buildDetailedHealth() {
+  const startDb = Date.now();
+  let dbCheck = { status: 'unknown' };
+  try {
+    const dbRes = await query('SELECT 1 as ping, CURRENT_USER as user, CURRENT_DATABASE() as database');
+    const latencyMs = Date.now() - startDb;
+    dbCheck = {
+      status: 'healthy',
+      user: dbRes.rows[0].user,
+      database: dbRes.rows[0].database,
+      latencyMs,
+    };
+  } catch (err) {
+    dbCheck = {
+      status: 'unhealthy',
+      error: err.message,
+    };
+  }
+
+  const redisCheck = await checkRedisHealth();
+
+  return {
+    status: dbCheck.status === 'healthy' ? 'ok' : 'degraded',
+    service: 'BalanceVault',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    checks: {
+      database: dbCheck,
+      redis: redisCheck,
+    },
+  };
+}
+
+/**
  * GET /api/health, /health
  * Requirement 5: Health probe returning strictly {"status":"ok"}.
+ * Enhanced: Supports ?details=true for full deployment diagnostics.
  */
-app.get(['/api/health', '/health'], (req, res) => {
+app.get(['/api/health', '/health'], async (req, res) => {
+  if (req.query.details === 'true' || req.query.full === 'true') {
+    const health = await buildDetailedHealth();
+    return res.status(health.status === 'ok' ? 200 : 503).json(health);
+  }
   return res.status(200).json({ status: 'ok' });
+});
+
+/**
+ * GET /api/health/details, /health/details
+ * Dedicated deployment health diagnostics endpoint.
+ */
+app.get(['/api/health/details', '/health/details'], async (req, res) => {
+  const health = await buildDetailedHealth();
+  return res.status(health.status === 'ok' ? 200 : 503).json(health);
 });
 
 // -------------------------------------------------------------------------

@@ -45,12 +45,37 @@ The LedgerLine backend exposes a RESTful financial API with JSON request and res
 
 ### 1. System Health
 
-#### Health Check
-- **Route & Aliases**: `GET /api/health`, `GET /health`
+#### Health Check (Standard & Detailed)
+- **Route & Aliases**: `GET /api/health`, `GET /health`, `GET /api/health/details`, `GET /health/details`
 - **Who may call it**: **Public** (Unauthenticated)
-- **What it does to the money**: **Does not move money**. Checks database connectivity and system status.
+- **What it does to the money**: **Does not move money**. Checks database connectivity, role privileges, and Redis status.
 - **Responses**:
-  - `200 OK`: `{"status": "ok", "timestamp": "...", "database": "connected"}`
+  - `GET /api/health`:
+    - `200 OK`: `{"status": "ok"}`
+  - `GET /api/health?details=true` or `GET /api/health/details`:
+    - `200 OK`:
+      ```json
+      {
+        "status": "ok",
+        "service": "BalanceVault",
+        "version": "1.0.0",
+        "timestamp": "2026-11-09T16:00:00.000Z",
+        "uptime": 45.2,
+        "checks": {
+          "database": {
+            "status": "healthy",
+            "user": "balancevault_runtime",
+            "database": "balancevault",
+            "latencyMs": 2
+          },
+          "redis": {
+            "status": "connected" | "fallback_in_memory",
+            "configured": true,
+            "message": "Redis rate limiting active."
+          }
+        }
+      }
+      ```
 
 ---
 

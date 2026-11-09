@@ -71,7 +71,7 @@ export default function SignupPage() {
             </div>
             <div>
               <span className="text-lg font-bold font-mono tracking-tight text-[#eafff5]">
-                Ledger<span className="text-[#2dff9a]">Line</span>
+                Balance<span className="text-[#2dff9a]">Vault</span>
               </span>
               <p className="text-[10px] font-mono uppercase text-[#7ea594] tracking-widest">
                 Account Holder Onboarding
@@ -110,7 +110,7 @@ export default function SignupPage() {
               <Link to="/" className="flex items-center gap-2 mb-3 lg:hidden group">
                 <ShieldCheck className="h-6 w-6 text-[#2dff9a]" />
                 <span className="text-base font-bold font-mono text-[#eafff5] group-hover:text-[#2dff9a] transition-colors">
-                  LedgerLine
+                  BalanceVault
                 </span>
               </Link>
               <div className="flex items-center justify-between">
@@ -122,7 +122,7 @@ export default function SignupPage() {
                 </Badge>
               </div>
               <p className="text-sm text-[#7ea594] mt-1.5">
-                Join LedgerLine with a cryptographic double-entry ledger account.
+                Join BalanceVault with a cryptographic double-entry ledger account.
               </p>
             </div>
 

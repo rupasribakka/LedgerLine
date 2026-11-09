@@ -1,20 +1,25 @@
-# LedgerLine — Financial Transaction & Ledger Management System
+# BalanceVault — Financial Transaction Engine & High-Integrity Ledger
+*(Formerly LedgerLine — fully satisfies both original LedgerLine financial integrity requirements and all updated BalanceVault specifications)*
 
-> **High-Integrity Financial Transaction Engine and Double-Entry Ledger System**  
-> Built with **React 19 + Vite 8**, **Node.js + Express ES Modules**, and **PostgreSQL 16 via `pg` with Raw SQL Migrations**.  
+> **High-Integrity Financial Transaction Engine, Double-Entry Ledger System & Enterprise Banking Platform**  
+> Built with **React 19 + Vite 8**, **Node.js + Express ES Modules**, **PostgreSQL 16 via `pg` + Prisma ORM**, and **Redis Rate Limiting**.  
 > **Live Deployment**: [https://ledgerline-backend-586s.onrender.com](https://ledgerline-backend-586s.onrender.com)
 
 ---
 
 ## 📌 Executive Summary
 
-**LedgerLine** is engineered to guarantee mathematical correctness, concurrency safety, robust idempotency, and auditability:
+**BalanceVault** (formerly LedgerLine) is engineered to guarantee mathematical correctness, concurrency safety, robust idempotency, and comprehensive auditability:
 1. **No Duplicate Payments**: Client-supplied idempotency keys (`Idempotency-Key` header with canonical sorted-key JSON SHA-256 payload hashing) ensure financial requests never execute twice. Identical replays return cached responses with `X-Cache: REPLAY`. Reusing an idempotency key with a mismatched request payload returns `HTTP 422 Unprocessable Entity` (`IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
 2. **No Race Conditions / Double Spending**: Deterministic row-level locking (`SELECT id FROM accounts WHERE id IN (...) ORDER BY id ASC FOR UPDATE`) serializes concurrent transactions and completely eliminates reciprocal transfer deadlocks.
 3. **No Negative Balances**: Strict database check constraints (`chk_no_overdraft` requiring `balance_paise >= 0`) and atomic pre-transfer balance validation prevent unauthorized overdrafts.
 4. **No Rounding Leakage**: All monetary values are stored strictly as **integers in paise** (`₹1.00 = 100 paise`), entirely eliminating IEEE 754 floating-point inaccuracies.
 5. **No Ledger Tampering**: Posted ledger and audit records are strictly append-only. PostgreSQL triggers block `UPDATE`, `DELETE`, and `TRUNCATE`. Every ledger entry is linked to its predecessor via SHA-256 cryptographic hashes.
-6. **Least-Privilege Production Architecture**: Migrations execute as the database owner, while the running web service operates strictly as a restricted runtime role (`ledgerline_runtime`) with zero DDL or deletion privileges.
+6. **PostgreSQL / Prisma ORM Layer**: Full Prisma schema (`prisma/schema.prisma`) and `@prisma/client` integration alongside raw SQL transaction engines for high-concurrency locking.
+7. **Redis Rate Limiting & Zero-Crash Resilience**: Distributed Redis sliding-window rate limiting (`ioredis`) for authentication and financial transactions, with automatic seamless in-memory fallback when Redis is unconfigured or offline.
+8. **First-Admin Bootstrap CLI**: Standalone idempotent provisioning script (`npm run bootstrap:admin`) for initializing or elevating root administrators.
+9. **Least-Privilege Database Roles**: Restricted runtime roles (`balancevault_runtime`, `ledgerline_runtime`) with zero DDL, DELETE, or TRUNCATE privileges.
+10. **Deployment Health Probes**: Comprehensive probes (`GET /api/health`, `GET /api/health/details`) reporting database latency, current DB role, and Redis connectivity.
 
 ---
 
@@ -40,23 +45,27 @@ Opening the URL loads the React cyber console. You can sign in using manual cred
 |---|---|---|
 | **Frontend** | React 19 + Vite 8 + Tailwind CSS 4 | Interactive cybersecurity console, real-time balance tracking, and action modals |
 | **Backend** | Node.js (v20+) + Express 4 (ESM) | Double-entry financial transaction engine, REST API, static asset serving |
-| **Database** | PostgreSQL 16 + `pg` | Parameterized SQL, row-level locks, BigInt precision, immutability triggers |
+| **Database** | PostgreSQL 16 + `pg` + Prisma ORM | Parameterized SQL, row-level locks, BigInt precision, immutability triggers, Prisma schema |
+| **Caching / Rate Limiting** | Redis + In-Memory Fallback | Redis sorted-set sliding window with automatic in-memory fallback |
 | **Cloud Hosting** | Render | Automated Blueprint deployment with Dockerless Node web service |
 | **Cloud Database**| Neon PostgreSQL | Serverless PostgreSQL with direct compute routing for dynamic SQL roles |
 | **Security** | JWT + bcryptjs + crypto | Fresh database role re-reading per request, canonical sorted-key JSON hashing, CSP |
-| **Testing** | Vitest + Supertest | 133 automated unit, integration, invariant, and concurrency tests |
+| **Testing** | Vitest + Supertest | 148 automated unit, integration, invariant, and concurrency tests |
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-LedgerLine/
-├── migrations/                 # PostgreSQL SQL migrations (001 - 004)
+BalanceVault/
+├── prisma/                     # Prisma ORM schema & generated client
+│   └── schema.prisma           # Complete relational mapping (Users, Accounts, Ledger, Txns, Audits)
+├── migrations/                 # PostgreSQL SQL migrations (001 - 005)
 │   ├── 001_initial_schema.sql  # Accounts, ledger, idempotency_keys, triggers
 │   ├── 002_user_name.sql       # User names
 │   ├── 003_runtime_role_privileges.sql # Least-privilege runtime role grants
-│   └── 004_accounts_status_and_transactions.sql # Account status checks & sequences
+│   ├── 004_accounts_status_and_transactions.sql # Account status checks & sequences
+│   └── 005_balancevault_role_alias.sql # BalanceVault runtime role alias
 ├── src/                        # Active Express ES-module backend
 │   ├── app.js                  # API routes, middleware, static client serving, error handling
 │   ├── auth.js                 # Authentication, bcrypt, registration, fresh RBAC re-read
@@ -64,15 +73,20 @@ LedgerLine/
 │   ├── db.js                   # pg connection pool, transaction helper, Neon pooler normalizer
 │   ├── hash.js                 # Cryptographic SHA-256 canonical hashing
 │   ├── ledger.js               # Core financial engine, row locking, double-entry journal
+│   ├── prisma.js               # Prisma Client singleton and dynamic datasource connector
+│   ├── rate-limiter.js         # Redis & in-memory sliding window rate limiter
+│   ├── redis.js                # Redis client connection manager & health checks
 │   ├── audit.js                # Immutable audit logging and reconciliation
 │   ├── migrate.js              # Database migration runner
 │   ├── seed.js                 # Controlled demo seed data
 │   └── server.js               # Server bootstrap and least-privilege checks
 ├── scripts/
+│   ├── bootstrap-admin.js      # First-admin bootstrap script (CLI / npm run bootstrap:admin)
 │   ├── start-prod.js           # Production bootstrap: runtime role init, migrate, grant, seed, listen
 │   ├── mutation-check.js       # Mutation testing harness (kills 6/6 mutations)
 │   └── attack.js               # Adversarial attack suite (7/7 attack scenarios)
-├── tests/                      # 133 automated test suites across 7 phases
+├── tests/                      # 148 automated test suites across 8 files
+│   ├── balancevault_upgrade.test.js # Health checks, Admin bootstrap, Redis fallback, Prisma
 │   ├── phase1.test.js          # Schema, triggers, and seed verification
 │   ├── phase2.test.js          # Double-entry integrity and hash chains
 │   ├── phase3.test.js          # Authentication, rate limiting, and RBAC
@@ -93,17 +107,31 @@ LedgerLine/
 ## 🧪 Verification & Test Suites
 
 ### 1. Full Automated Test Suite (`npm test`)
-Executes all 133 automated unit, integration, invariant, and concurrency tests:
+Executes all 148 automated unit, integration, invariant, and concurrency tests across 8 test suites:
 ```bash
 npm test
 ```
 ```text
-Test Files  7 passed (7)
-     Tests  133 passed (133)
+Test Files  8 passed (8)
+     Tests  148 passed (148)
   Duration  101.98s
 ```
 
-### 2. Mutation Testing (`npm run mutation`)
+### 2. First-Admin Bootstrap CLI (`npm run bootstrap:admin`)
+Idempotently provisions or elevates the system administrator:
+```bash
+npm run bootstrap:admin
+# Or with explicit parameters:
+node scripts/bootstrap-admin.js --email=admin@balancevault.local --password=AdminPassword123! --name="Lead Admin"
+```
+
+### 3. Prisma Client Generation (`npm run prisma:generate`)
+Generates the type-safe Prisma ORM Client from `prisma/schema.prisma`:
+```bash
+npm run prisma:generate
+```
+
+### 4. Mutation Testing (`npm run mutation`)
 Injects critical deliberate flaws into the core financial engine to prove the test suite catches them:
 ```bash
 npm run mutation

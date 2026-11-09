@@ -107,7 +107,7 @@ export default function LandingPage() {
               <ShieldCheck className="h-4.5 w-4.5" />
             </div>
             <span className="text-sm font-bold font-mono tracking-tight text-[#eafff5]">
-              Ledger<span className="text-[#2dff9a]">Line</span>
+              Balance<span className="text-[#2dff9a]">Vault</span>
             </span>
           </Link>
 
@@ -408,7 +408,7 @@ export default function LandingPage() {
                 When moving funds between two accounts, circular reciprocal transfers (User A transferring to B while User B transfers to A concurrently) can deadlock conventional database transactions.
               </p>
               <p className="text-sm text-[#7ea594] leading-relaxed">
-                LedgerLine eliminates reciprocal transfer deadlocks by enforcing deterministic lock acquisition ordering:
+                BalanceVault eliminates reciprocal transfer deadlocks by enforcing deterministic lock acquisition ordering:
               </p>
 
               <div className="rounded-xl border border-[rgba(60,255,160,0.15)] bg-[#07110d] p-4 font-mono text-xs text-[#2dff9a] space-y-2">
@@ -510,7 +510,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-[11px] font-mono text-[#7ea594]/60 pt-8 border-t border-[rgba(60,255,160,0.08)]">
-            LedgerLine Core Financial Architecture • PostgreSQL 16 ACID • Zero Mathematical Drift
+            BalanceVault Core Financial Architecture • PostgreSQL 16 ACID • Zero Mathematical Drift
           </p>
         </div>
       </footer>

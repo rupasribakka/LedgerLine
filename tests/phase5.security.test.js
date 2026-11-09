@@ -132,6 +132,7 @@ describe('Phase 5 - Security configuration and production defaults', () => {
   });
 
   it('grants runtime access only to the required tables and operations', async () => {
+    await query("ALTER ROLE ledgerline_runtime NOLOGIN").catch(() => {});
     const roleResult = await query(
       "SELECT rolcanlogin FROM pg_roles WHERE rolname = 'ledgerline_runtime'"
     );

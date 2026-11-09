@@ -1,7 +1,7 @@
 /**
- * LedgerLine API Client Service
+ * BalanceVault API Client Service
  * 
- * Communicates with the LedgerLine financial backend.
+ * Communicates with the BalanceVault financial backend.
  * Enforces in-memory-only JWT token storage, exact integer paise arithmetic (no floats),
  * robust Idempotency-Key handling, and Idempotent-Replay detection.
  */
@@ -189,10 +189,11 @@ async function request(endpoint, options = {}) {
 /**
  * 1. Health Probe
  */
-export async function checkBackendHealth() {
+export async function checkBackendHealth({ details = false } = {}) {
   const startTime = performance.now();
   try {
-    const response = await fetch(`${API_BASE_URL}/api/health`, {
+    const endpoint = details ? '/api/health?details=true' : '/api/health';
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
     });

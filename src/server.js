@@ -56,7 +56,7 @@ export async function bootstrap({ port = PORT } = {}) {
     return new Promise((resolve, reject) => {
       const server = app.listen(port, () => {
         console.log(`=======================================================`);
-        console.log(` LedgerLine Financial Core Service                     `);
+        console.log(` BalanceVault (formerly LedgerLine) Financial Engine   `);
         console.log(` Listening on port: ${port}                            `);
         console.log(` Health probe: http://localhost:${port}/api/health    `);
         console.log(` Environment:  ${process.env.NODE_ENV || 'development'}`);
