@@ -16,7 +16,7 @@ Each threat is mapped directly to the automated test that enforces its defense, 
 | **T-04** | **Tampering / Accounting Drift** | Unbalanced financial movements creating or destroying money out of thin air. A buggy deposit or transfer creates a debit entry without a matching credit entry. | Every movement strictly creates balanced credit and debit ledger entries within an atomic transaction. For every transaction: $\sum \text{Debits} = \sum \text{Credits}$. Initial opening balances are funded via real double-entry entries from `ACC-EXTERNAL`. Total system balance is continuously zero ($\sum \text{Balances} = 0$). | `tests/phase1.test.js` > *Seed Data Verification* > `should confirm global ledger balance conservation (sum of all balances === 0)` |
 | **T-05** | **Tampering / Ledger Alteration** | Direct modification or deletion of past financial records. A rogue administrator or attacker updates past ledger rows to alter historical transaction amounts or erase debits. | Database triggers `prevent_ledger_mutation` and `prevent_ledger_truncate` block `UPDATE`, `DELETE`, and `TRUNCATE` operations on `ledger` and `audit_logs`. Each row includes a SHA-256 hash linked to the previous row. Tampering breaks the hash chain and is flagged by `GET /api/ledger/verify`. | `tests/phase1.test.js` > *HARD RULE 6: Immutability Triggers (Append-Only Enforcement)* > `should block UPDATE on ledger table via row trigger` |
 | **T-06** | **Elevation of Privilege / Overdraft** | Negative balance generation. An account holder issues a withdrawal larger than their settled available balance, causing an unauthorized credit line. | Multiple layers of defense: `postMovement` performs balance validation after acquiring pessimistic row locks. The database check constraint `chk_no_overdraft` guarantees that an overdraft can never commit at the storage layer. Refused attempts write a `kind='refused'` ledger entry with 0 balance mutation. | `tests/phase1.test.js` > *HARD RULE 3: DB Overdraft Constraint Enforcement* > `should reject a negative balance on a non-external account at the DB level` |
-| **T-07** | **Elevation of Privilege / Auth Bypass & IDOR** | Insecure Direct Object Reference (IDOR). User A alters `accountId` or `from_account_id` in a payload to debit User B's account. | Server-side authorization helper `canMoveFrom` validates cryptographic JWT identity and checks account ownership fresh from the database on every authenticated request prior to querying or locking records. Unauthorized attempts are rejected with `HTTP 403 Forbidden`. | `tests/phase2.test.js` > *Server-Side canMoveFrom Authorization Helper (Hard Rule 9 & 10)* > `holder1 should NOT be permitted to move from holder2 account ACC-H2-01` |
+| **T-07** | **Elevation of Privilege / Auth Bypass & IDOR** | Insecure Direct Object Reference (IDOR). User A alters `accountId` or `from_account_id` in a payload to debit User B's account. | Server-side authorization in `postMovement` (`src/ledger.js:289-293`) validates account ownership against authenticated JWT identity prior to any balance movement. Unauthorized attempts are rejected with `HTTP 403 Forbidden` and committed as `kind='refused'` rows on the targeted account (`src/ledger.js:537-554`). | `tests/phase2.test.js` > *Server-Side canMoveFrom Authorization Helper* > `holder1 should NOT be permitted to move from holder2 account ACC-H2-01` (Statement pollution: **ACCEPTED RISK**) |
 | **T-08** | **Repudiation / Covert Probing** | Unlogged rejected or suspicious transaction attempts. An attacker probes the API with invalid credentials or bad balances, but leaves no trace for security teams. | All sensitive actions (failed/successful logins, registrations, account creations, status changes, deposits, withdrawals, transfers, and refusals) are written to an append-only `audit_logs` table protected by immutability triggers. | `tests/phase6.complete_backend.test.js` > *6. Database Immutability of Audit Logs* > `should reject UPDATE on audit_logs table via database trigger` |
 | **T-09** | **Autonomous AI Escalation** | AI agents autonomously initiating or authorizing money movement. An autonomous LLM agent connected to an API initiates fund transfers without direct human approval or cryptographic signature. | **Zero AI Autonomy Invariant**: Financial movements require explicit user or administrator initiation. AI assistants may summarize and analyze, but cannot independently sign, initiate, or approve money transfers. | **ACCEPTED RISK**: The API endpoints enforce cryptographic JWT authorization and RBAC, but cannot determine whether the calling human client is running an automated agent script. Defended operationally by bearer token scoping, short session lifespans, and requirement of human-in-the-loop confirmation before initiating calls. |
 | **T-10** | **Denial of Service / Deadlock** | Concurrent circular transfers causing database deadlocks. User A transfers to User B while User B simultaneously transfers to User A, resulting in mutual lock waits and aborted transactions. | All multi-account locks are acquired in strictly deterministic ascending primary-key order (`ORDER BY id ASC`). Circular transfer requests acquire locks in identical sequence, eliminating cyclic wait conditions. | `tests/phase6.complete_backend.test.js` > *3. Concurrency Protection & Double Spending Prevention (Section 11)* > `simultaneous circular transfers: both complete without deadlocking` |
@@ -29,14 +29,27 @@ Each threat is mapped directly to the automated test that enforces its defense, 
 ## 2. In-Depth Operational, Deployment & Edge-Case Threat Analysis
 
 ### 1. Refused-Row Spam into a Victim's Statement
-- **Threat Mechanism**: An attacker repeatedly fires transfers targeting a victim's account with insufficient funds, hoping to fill the victim's account statement with spam `refused` entries.
-- **LedgerLine Defense**:
-  - `canMoveFrom` checks ownership of the *source* account before any funds or balance checks occur.
-  - When a transfer fails due to insufficient funds, a `kind = 'refused'` entry is recorded **only on the sender's account** ledger journal.
-  - The victim's account is never locked or modified, and no refused rows are injected into the victim's statement.
-  - For the sender's own statement, pagination (`limit`, `offset`) prevents unbounded payload retrieval.
-- **Covering Test**: `tests/phase4.test.js` > *Statement — refused rows* > `refused (overdraft) attempt appears in statement as kind=refused`
-- **Covering IDOR Test**: `tests/phase3.test.js` > *HARD RULE 9 & 10: Authorization Restrictions on Money Movements* > `holder2 should receive 403 when attempting to transfer from holder1 account`
+- **Threat Mechanism**: When `holder2` attempts to withdraw from or transfer out of an account owned by `holder1` (`fromAccountId` set to `holder1`'s account), how does the system handle the rejection, and onto which account's statement is the refused ledger row written?
+- **Exact Code Behavior (File and Line)**:
+  1. In `src/ledger.js` (lines 284–293), `postMovement` validates source account ownership:
+     `else if (fromAccount.owner_id !== user.id) { authRefusalReason = 'Holder does not own source account ' + fromAccount.account_no + '.'; }`
+  2. Because `authRefusalReason` is populated, `src/ledger.js` (lines 295–307) immediately invokes `recordRefusal(client, { fromAccount, ... })`.
+  3. Inside `recordRefusal` in `src/ledger.js` (lines 520–554), the previous hash for `fromAccount.id` is queried, and a `kind = 'refused'` row is inserted into `ledger`:
+     `INSERT INTO ledger (txn_id, account_id, kind, amount_paise, balance_after_paise, initiated_by, idempotency_key, reason, prev_hash, hash) VALUES ($1, $2, 'refused', ...)`
+     where `$2` is `fromAccount.id` (the victim's account ID), and `initiated_by` is set to `user.id` (`holder2`).
+  4. In `src/audit.js` (lines 132–150) / `src/app.js` (lines 598–670), `GET /api/accounts/:id/statement` queries ledger rows where `account_id = $1`.
+  5. **Result**: A refused ledger row **IS written**, and it **lands directly on the victim's (`holder1`'s) account statement**, recording `kind='refused'`, the requested `amount_paise`, the victim's unchanged `balance_after_paise`, `initiated_by: holder2`, and the reason string.
+- **Status**: **ACCEPTED RISK**
+- **Reason**:
+  - **Forensic Audit Invariant**: Hard Rule 7 mandates that every unauthorized, rejected, or refused attempt to touch an account must be committed as an immutable `kind='refused'` record into that specific account's cryptographic ledger hash chain. This provides an unalterable forensic record for the victim and compliance auditors showing who attempted unauthorized debits against that specific account.
+  - **Identified Risk**: An attacker (`holder2`) who knows or enumerates a victim's account ID can repeatedly fire unauthorized withdrawal or transfer requests against it, spamming the victim's account statement with `kind='refused'` rows (statement pollution / refusal spam).
+  - **Mitigating Controls**:
+    - The victim's funds are completely protected: `amount_paise` is not deducted and `balance_after_paise` remains intact.
+    - Transaction rate limiting (`moneyRateLimitMiddleware` in `src/auth.js`) throttles spam frequency.
+    - Statement pagination (`limit` and `offset` in `src/app.js:600`) ensures victim client queries do not fail or return unbounded payloads.
+- **Covering Tests**:
+  - `tests/phase3.test.js` > *HARD RULE 9 & 10: Authorization Restrictions on Money Movements* > `holder2 should receive 403 when attempting to transfer from holder1 account`
+  - `tests/phase4.test.js` > *Statement — refused rows* > `refused (overdraft) attempt appears in statement as kind=refused`
 
 ### 2. 404 vs 403 Account Enumeration
 - **Threat Mechanism**: An attacker probes sequential account IDs (e.g. `/api/accounts/1`, `/api/accounts/2`, `/api/accounts/999`) to map out which account IDs exist versus which do not.
@@ -91,13 +104,12 @@ Each threat is mapped directly to the automated test that enforces its defense, 
 - **Honest Reason**: Because tokens are kept in memory only, refreshing the browser or opening a new browser tab clears the session, returning the user to the login screen. This is a deliberate, accepted security-first design trade-off prioritizing token safety over tab-persistence convenience.
 
 ### 8. Public Demo Credentials
-- **Threat Mechanism**: Development environments use known pre-seeded accounts (`admin@example.com`, `holder1@example.com`, `auditor@example.com` with password `Password123!`). If deployed to production, attackers could immediately take over the system.
-- **LedgerLine Defense**:
-  - `src/seed.js` and `src/config.js` enforce that `ALLOW_DEV_SEED` is strictly rejected when `NODE_ENV === 'production'`.
-  - Production boot fails fast if `JWT_SECRET` is missing, shorter than 32 characters, or uses known development placeholder strings.
-- **Covering Tests**:
-  - `tests/phase5.security.test.js` > *Phase 5 - Security configuration and production defaults* > `does not seed demo users in production, even when the flag is set`
-  - `tests/phase5.security.test.js` > *Phase 5 - Security configuration and production defaults* > `rejects a missing JWT secret and weak production secrets`
+- **Threat Mechanism**: The live deployment runs in production with pre-seeded accounts (`admin@example.com`, `holder1@example.com`, `holder2@example.com`, `auditor@example.com`) and publicly documented passwords (`Password123!` in `src/seed.js:7-38`). Anyone can use these credentials to log in.
+- **Status**: **ACCEPTED RISK**
+- **Reason**:
+  - **Evaluation & Judging Usability**: Demo credentials are made public intentionally to allow hackathon judges and evaluators to immediately log in and explore all three system roles (`admin`, `holder`, `auditor`) without an out-of-band manual provisioning process.
+  - **Synthetic Data Scope**: The seeded database holds demonstration data only; no real fiat currency, bank accounts, or production customer PII exist in the system.
+  - **Controlled Seeding Flag**: Demo user seeding is strictly gated and controlled by the environment variable `LEDGERLINE_SEED_DEMO_USERS=true` (`src/server.js:41`, `src/seed.js:168`). In a non-demo production deployment where this variable is unset or false, demo seeding is completely disabled.
 
 ### 9. CORS on a Same-Origin Deployment
 - **Threat Mechanism**: In a production single-container deployment where Express serves both the API and the compiled React frontend, cross-origin requests do not occur during normal browsing. An attacker might attempt to exploit permissive CORS headers from malicious origins.

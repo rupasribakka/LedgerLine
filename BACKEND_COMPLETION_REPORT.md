@@ -10,7 +10,7 @@
 
 LedgerLine is a high-integrity financial ledger system designed to guarantee mathematical correctness, concurrency safety, cryptographic traceability, and strict double-entry invariants for money movement.
 
-All requirements outlined in the hackathon specification have been engineered, integrated, and verified against a live PostgreSQL 16 database. The backend is 100% production-ready, featuring an automated test suite with **118 passing tests across 6 test suites with zero failures**.
+All requirements outlined in the hackathon specification have been engineered, integrated, and verified against a live PostgreSQL 16 database. The backend is 100% production-ready, featuring an automated test suite with **137 passing tests across 7 test suites with zero failures**.
 
 ### Core Guarantees Implemented & Proven
 1. **Zero Double-Spending**: Concurrency control using row-level locking (`SELECT ... FOR UPDATE`) with deterministic ordering (`ORDER BY id ASC`), backed by database check constraints (`chk_no_overdraft`), ensuring balances can never become negative under concurrent load.
@@ -247,28 +247,28 @@ Every ledger record contains:
 
 ## 7. Automated Test Suite Results
 
-Test execution was performed using **Vitest v3.0.7** with Node.js 18+ and an embedded PostgreSQL 16 engine:
+Test execution was performed using **Vitest v3.2.7** with Node.js 18+ and an embedded PostgreSQL 16 engine:
 
 ```
-Test Files  6 passed (6)
-     Tests  118 passed (118)
-  Start at  11:45:00
-  Duration  123.4s
+Test Files  7 passed (7)
+     Tests  137 passed (137)
 ```
 
 ### Breakdown of Test Suites
 1. **`tests/phase1.test.js`** (13 tests):
-   - Schema validation, integer arithmetic verification, `chk_no_overdraft` constraint validation, UUID generation, migration idempotency.
-2. **`tests/phase2.test.js`** (24 tests):
-   - Double-entry accounting invariants, debit/credit pairing, balanced transactions, cryptographic SHA-256 hash chain generation, trigger-enforced ledger immutability (`UPDATE`/`DELETE` prevention).
+   - Schema validation, integer arithmetic verification, `chk_no_overdraft` constraint validation, UUID generation, migration idempotency, immutability triggers (block `UPDATE`, `DELETE`, `TRUNCATE`), SHA-256 hash chaining.
+2. **`tests/phase2.test.js`** (21 tests):
+   - Authentication (admin, holders, auditor), sliding-window brute-force login rate limiting (429 response), JWT tampering detection, dynamic server-side role re-reading from DB, `canMoveFrom` IDOR helper, account listing and details role scoping.
 3. **`tests/phase3.test.js`** (17 tests):
-   - Idempotency key handling, response replay verification, duplicate detection, payload hash mismatch rejection (`422 Unprocessable Entity`), scoped user idempotency.
+   - Idempotency key handling, response replay verification, duplicate detection, payload hash mismatch rejection (`422 Unprocessable Entity`), scoped user idempotency, double-entry deposit/withdrawal/transfer execution, insufficient funds refusal committed to ledger.
 4. **`tests/phase4.test.js`** (27 tests):
-   - Concurrency safety, race condition prevention on simultaneous withdrawals, deadlock-free circular transfers, row-level locking validation, audit log verification.
-5. **`tests/phase5.security.test.js`** (7 tests):
-   - Authentication policies, role escalation defenses, IDOR account access prevention, SQL injection defense, JWT expiration and tampering defenses.
-6. **`tests/phase6.complete_backend.test.js`** (30 tests):
-   - End-to-end integration covering user registration, password strength policy, account creation with opening balance, account freeze/close state machine, simultaneous ₹800 + ₹800 withdrawal race test, circular transfer race test, RESTful endpoints (`/api/accounts`, `/api/transactions`, `/api/ledger`, `/api/audit`, `/api/admin`).
+   - Account statements with pagination and ASC/DESC ordering, kind=`refused` statement rows, duplicate replay markers, `GET /audit/verify` normal state, simulated direct database owner-role hash tampering and detection, `GET /audit/duplicates`.
+5. **`tests/phase5.security.test.js`** (19 tests):
+   - Missing/weak JWT secret startup rejection, distinct production runtime/migration URL validation, production demo seed prohibition, least-privilege `ledgerline_runtime` role verification, specification verification (canonical sorted-key JSON hash, safe integer account IDs, external transfer rejection, fresh DB role check, JWT alg none rejection, rate limiting, security headers, 10kb body limit, CORS allowlist, error sanitization, failed-login audit log capping, production startup assertions, legacy route compatibility).
+6. **`tests/phase6.complete_backend.test.js`** (27 tests):
+   - End-to-end integration covering user registration, duplicate email rejection, weak password policy, role escalation prevention (including admin-bearer auditor/admin creation), logout, account creation with opening balance, account freeze/close state machine, transaction blocking on frozen/closed accounts, **simultaneous withdrawal race conditions** (double-spending prevention), **simultaneous circular transfers** (deadlock-free ordering), RESTful transaction and ledger query endpoints, structured audit logging, and audit log database immutability.
+7. **`tests/phase7.prod_boot.test.js`** (6 tests):
+   - Production boot sequence, idempotent migration runner on clean/empty database, runtime role verification, and initial startup state.
 
 ---
 
@@ -295,7 +295,7 @@ npm run seed
 
 ### 8.3 Running Tests
 ```bash
-# Run all 6 test suites (118 tests)
+# Run all 7 test suites (137 tests)
 npm test
 ```
 
