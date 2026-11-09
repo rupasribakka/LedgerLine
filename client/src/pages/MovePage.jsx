@@ -285,7 +285,7 @@ export default function MovePage() {
             </select>
 
             {selectedSourceAccount && activeTab !== 'deposit' && (
-              <p className="text-[11px] font-mono text-[#7ea594]">
+              <p className="text-xs font-mono text-[#9abfb0]">
                 Available balance:{' '}
                 <span className="text-[#2dff9a] font-bold">
                   {formatPaiseToRupees(selectedSourceAccount.balance_paise)}
@@ -319,12 +319,12 @@ export default function MovePage() {
           <div className="space-y-2">
             <label className="text-xs font-mono font-bold text-[#eafff5] flex items-center justify-between">
               <span>Amount (₹ Rupees)</span>
-              <span className="text-[10px] text-[#7ea594] font-normal">
+              <span className="text-xs text-[#9abfb0] font-normal">
                 Stored strictly as integer paise
               </span>
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-base text-[#7ea594]">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-base text-[#9abfb0]">
                 ₹
               </span>
               <input
@@ -332,11 +332,11 @@ export default function MovePage() {
                 placeholder="100.00"
                 value={amountInput}
                 onChange={(e) => setAmountInput(e.target.value)}
-                className="w-full rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#020605] pl-9 pr-4 py-3 text-sm sm:text-base font-mono text-[#eafff5] placeholder-[#7ea594]/50 focus:border-[#2dff9a] focus:outline-none"
+                className="w-full rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#020605] pl-9 pr-4 py-3 text-sm sm:text-base font-mono text-[#eafff5] placeholder-[#9abfb0]/60 focus:border-[#2dff9a] focus:outline-none"
               />
             </div>
             {amountInput && parseRupeesToPaise(amountInput) !== null && (
-              <p className="text-[11px] font-mono text-[#2dff9a]">
+              <p className="text-xs font-mono text-[#2dff9a]">
                 Exact Integer Value: {parseRupeesToPaise(amountInput)} paise
               </p>
             )}
@@ -352,7 +352,7 @@ export default function MovePage() {
               <button
                 type="button"
                 onClick={handleRegenerateKey}
-                className="text-[10px] font-mono text-[#2dff9a] hover:underline cursor-pointer"
+                className="text-xs font-mono text-[#2dff9a] hover:underline cursor-pointer"
               >
                 Regenerate
               </button>
@@ -361,9 +361,9 @@ export default function MovePage() {
               type="text"
               value={idempotencyKey}
               onChange={(e) => setIdempotencyKey(e.target.value)}
-              className="w-full bg-transparent text-xs font-mono text-[#7ea594] focus:outline-none focus:text-[#eafff5]"
+              className="w-full bg-transparent text-xs font-mono text-[#9abfb0] focus:outline-none focus:text-[#eafff5]"
             />
-            <p className="text-[10px] text-[#7ea594] leading-relaxed">
+            <p className="text-xs text-[#9abfb0] leading-relaxed">
               Prevents double processing. Submitting with the same key replays the cached result without duplicate ledger debit; submitting with an altered payload returns HTTP 422.
             </p>
           </div>

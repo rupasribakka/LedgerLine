@@ -48,6 +48,23 @@
     background: #143226;
     border-color: rgba(60, 255, 160, 0.4);
   }
+
+  /* Accessibility: Minimum 12px font size and high contrast (>4.5:1) for small labels */
+  .text-\[8px\],
+  .text-\[9px\],
+  .text-\[10px\],
+  .text-\[11px\] {
+    font-size: 12px !important;
+    line-height: 1.25rem !important;
+  }
+
+  /* Enhanced contrast for gray and muted text elements against dark surfaces (>4.5:1) */
+  .text-slate-400,
+  .text-slate-500,
+  .text-slate-600,
+  .text-zinc-500 {
+    color: #9abfb0 !important;
+  }
 }
 
 /* Custom Cursor Rules (Non-Touch / Non-Reduced-Motion) */
