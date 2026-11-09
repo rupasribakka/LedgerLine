@@ -10,21 +10,34 @@ export default function CustomCursor() {
 
   useEffect(() => {
     // 1. Check touch device and prefers-reduced-motion
-    const isTouch =
-      window.matchMedia('(pointer: coarse)').matches ||
-      'ontouchstart' in window ||
-      navigator.maxTouchPoints > 0;
-    const prefersReducedMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches;
+    const checkDisabled = () => {
+      const isTouch =
+        window.matchMedia('(pointer: coarse)').matches ||
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0;
+      const prefersReducedMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches;
+      return isTouch || prefersReducedMotion;
+    };
 
-    if (isTouch || prefersReducedMotion) {
+    if (checkDisabled()) {
       setIsDisabled(true);
+      document.documentElement.classList.remove('custom-cursor-active');
       return;
     }
 
     // Hide default cursor on desktop when custom cursor is active
     document.documentElement.classList.add('custom-cursor-active');
+
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleMotionChange = (e) => {
+      if (e.matches) {
+        setIsDisabled(true);
+        document.documentElement.classList.remove('custom-cursor-active');
+      }
+    };
+    motionQuery.addEventListener?.('change', handleMotionChange);
 
     // Particle pool
     const particles = [];
@@ -148,6 +161,7 @@ export default function CustomCursor() {
 
     return () => {
       document.documentElement.classList.remove('custom-cursor-active');
+      motionQuery.removeEventListener?.('change', handleMotionChange);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mousemove', handleMagneticMove);

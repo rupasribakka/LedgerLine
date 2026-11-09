@@ -169,3 +169,22 @@ html.custom-cursor-active * {
     scroll-behavior: auto !important;
   }
 }
+
+/* Touch device adaptations: native touch targets, no sticky hover, fast tap responsiveness */
+@media (pointer: coarse), (hover: none) {
+  html, body, * {
+    cursor: auto !important;
+  }
+  
+  /* Prevent sticky hover effects on touch tap */
+  .hover\:scale-105:hover,
+  .hover\:-translate-y-1:hover {
+    transform: none !important;
+  }
+
+  /* Optimize touch responsiveness and remove touch delay */
+  button, a, input, select {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(45, 255, 154, 0.15);
+  }
+}

@@ -23,7 +23,11 @@ export default function CyberBackground() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Check if user has reduced-motion preference
+    // Check if user has reduced-motion preference or touch device
+    const isTouch =
+      window.matchMedia('(pointer: coarse)').matches ||
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let animationFrameId;
@@ -100,8 +104,10 @@ export default function CyberBackground() {
     };
 
     window.addEventListener('resize', handleResize);
-    window.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
+    if (!isTouch) {
+      window.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseleave', handleMouseLeave);
+    }
 
     // Main animation loop
     let lastTime = performance.now();
@@ -242,16 +248,24 @@ export default function CyberBackground() {
         ctx.fill();
       }
 
-      animationFrameId = requestAnimationFrame(render);
+      if (!prefersReducedMotion) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
-    animationFrameId = requestAnimationFrame(render);
+    if (prefersReducedMotion) {
+      render(performance.now());
+    } else {
+      animationFrameId = requestAnimationFrame(render);
+    }
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
+      if (!isTouch) {
+        window.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseleave', handleMouseLeave);
+      }
     };
   }, []);
 
