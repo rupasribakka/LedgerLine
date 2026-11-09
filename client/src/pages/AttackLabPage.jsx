@@ -340,6 +340,9 @@ export default function AttackLabPage() {
             <Badge variant="emerald" size="sm">
               LIVE WAVEFORM
             </Badge>
+            <Badge variant="cyan" size="sm">
+              Illustration
+            </Badge>
           </div>
           <div className="flex items-center gap-3 text-[11px] font-mono text-[#7ea594]">
             <span>Scenario: <strong className="text-[#2dff9a]">{telemetryEvent.scenario}</strong></span>
@@ -359,6 +362,7 @@ export default function AttackLabPage() {
                 <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread1.action}</span>
               </div>
               <div className="flex items-center gap-2">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#020605] text-[#7ea594] border border-[rgba(60,255,160,0.2)]">Illustration</span>
                 <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread1.latencyMs}ms</span>
                 <Badge
                   variant={telemetryEvent.thread1.status === 'SUCCESS' ? 'emerald' : 'error'}
@@ -370,11 +374,17 @@ export default function AttackLabPage() {
             </div>
 
             {/* Simulated Execution Timeline Bar */}
-            <div className="h-2 rounded-full bg-[#020605] overflow-hidden relative">
-              <div
-                className="h-full bg-gradient-to-r from-[#2dff9a]/40 via-[#2dff9a] to-[#7ea594] rounded-full transition-all duration-700"
-                style={{ width: '100%' }}
-              />
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px] font-mono text-[#7ea594]/70">
+                <span>Timeline Trace</span>
+                <span>Illustration</span>
+              </div>
+              <div className="h-2 rounded-full bg-[#020605] overflow-hidden relative">
+                <div
+                  className="h-full bg-gradient-to-r from-[#2dff9a]/40 via-[#2dff9a] to-[#7ea594] rounded-full transition-all duration-700"
+                  style={{ width: '100%' }}
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-[10px] font-mono text-[#7ea594]">
@@ -394,6 +404,7 @@ export default function AttackLabPage() {
                 <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread2.action}</span>
               </div>
               <div className="flex items-center gap-2">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#020605] text-[#7ea594] border border-[rgba(255,93,122,0.2)]">Illustration</span>
                 <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread2.latencyMs}ms</span>
                 <Badge
                   variant={telemetryEvent.thread2.status === 'SUCCESS' ? 'emerald' : telemetryEvent.thread2.status === 'CACHED' ? 'cyan' : 'error'}
@@ -405,14 +416,20 @@ export default function AttackLabPage() {
             </div>
 
             {/* Simulated Execution Timeline Bar */}
-            <div className="h-2 rounded-full bg-[#020605] overflow-hidden relative">
-              <div
-                className={`h-full rounded-full transition-all duration-700 ${
-                  telemetryEvent.thread2.status === 'CACHED'
-                    ? 'bg-gradient-to-r from-cyan-500/40 via-cyan-400 to-[#2dff9a] w-full'
-                    : 'bg-gradient-to-r from-amber-500 via-[#ff5d7a] to-[#ff5d7a] w-3/4'
-                }`}
-              />
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px] font-mono text-[#7ea594]/70">
+                <span>Timeline Trace</span>
+                <span>Illustration</span>
+              </div>
+              <div className="h-2 rounded-full bg-[#020605] overflow-hidden relative">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    telemetryEvent.thread2.status === 'CACHED'
+                      ? 'bg-gradient-to-r from-cyan-500/40 via-cyan-400 to-[#2dff9a] w-full'
+                      : 'bg-gradient-to-r from-amber-500 via-[#ff5d7a] to-[#ff5d7a] w-3/4'
+                  }`}
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-[10px] font-mono text-[#7ea594]">
@@ -430,36 +447,48 @@ export default function AttackLabPage() {
 
         {/* Invariant Health Indicators */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-[10px] font-mono">
-          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center gap-2">
-            <Lock className="h-3.5 w-3.5 text-[#2dff9a]" />
-            <div>
-              <p className="text-[#eafff5] font-bold">ROW LOCKING</p>
-              <p className="text-[#7ea594]">Pessimistic Active</p>
+          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Lock className="h-3.5 w-3.5 text-[#2dff9a]" />
+              <div>
+                <p className="text-[#eafff5] font-bold">ROW LOCKING</p>
+                <p className="text-[#7ea594]">Pessimistic Active</p>
+              </div>
             </div>
+            <span className="text-[8px] text-[#7ea594] px-1 rounded bg-[#041209] border border-[#2dff9a]/20">Illustration</span>
           </div>
 
-          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center gap-2">
-            <ShieldCheck className="h-3.5 w-3.5 text-[#2dff9a]" />
-            <div>
-              <p className="text-[#eafff5] font-bold">OVERDRAFT GUARD</p>
-              <p className="text-[#7ea594]">chk_no_overdraft</p>
+          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#2dff9a]" />
+              <div>
+                <p className="text-[#eafff5] font-bold">OVERDRAFT GUARD</p>
+                <p className="text-[#7ea594]">chk_no_overdraft</p>
+              </div>
             </div>
+            <span className="text-[8px] text-[#7ea594] px-1 rounded bg-[#041209] border border-[#2dff9a]/20">Illustration</span>
           </div>
 
-          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center gap-2">
-            <RotateCcw className="h-3.5 w-3.5 text-cyan-400" />
-            <div>
-              <p className="text-[#eafff5] font-bold">IDEMPOTENCY</p>
-              <p className="text-[#7ea594]">UUID v4 Deduplicated</p>
+          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <RotateCcw className="h-3.5 w-3.5 text-cyan-400" />
+              <div>
+                <p className="text-[#eafff5] font-bold">IDEMPOTENCY</p>
+                <p className="text-[#7ea594]">UUID v4 Deduplicated</p>
+              </div>
             </div>
+            <span className="text-[8px] text-[#7ea594] px-1 rounded bg-[#041209] border border-[#2dff9a]/20">Illustration</span>
           </div>
 
-          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center gap-2">
-            <Activity className="h-3.5 w-3.5 text-[#2dff9a]" />
-            <div>
-              <p className="text-[#eafff5] font-bold">CONSERVATION</p>
-              <p className="text-[#7ea594]">Sum(Balances) == 0</p>
+          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="h-3.5 w-3.5 text-[#2dff9a]" />
+              <div>
+                <p className="text-[#eafff5] font-bold">CONSERVATION</p>
+                <p className="text-[#7ea594]">Sum(Balances) == 0</p>
+              </div>
             </div>
+            <span className="text-[8px] text-[#7ea594] px-1 rounded bg-[#041209] border border-[#2dff9a]/20">Illustration</span>
           </div>
         </div>
       </GlowCard>

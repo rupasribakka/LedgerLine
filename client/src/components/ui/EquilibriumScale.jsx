@@ -33,6 +33,9 @@ export default function EquilibriumScale({
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(45,255,154,0.1)] text-[#2dff9a] border border-[#2dff9a]/30">
                 ∑ BALANCES ≡ 0 PAISE
               </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 text-[#7ea594] border border-slate-700">
+                Illustration
+              </span>
             </h3>
             <p className="text-[11px] text-[#7ea594] font-mono">
               Conserved closed-system zero-sum double-entry ledger state
@@ -57,6 +60,11 @@ export default function EquilibriumScale({
 
       {/* Interactive Visual Scale Canvas / SVG Representation */}
       <div className="py-8 relative flex flex-col items-center justify-center">
+        {/* Visual Element Label */}
+        <div className="text-[10px] font-mono text-[#7ea594] mb-3 uppercase tracking-wider">
+          Visual Scale Dynamics — [Illustration]
+        </div>
+
         {/* Horizontal Laser Level Guide Line */}
         <div className="absolute top-1/2 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-[#2dff9a]/30 to-transparent pointer-events-none" />
 
@@ -78,13 +86,13 @@ export default function EquilibriumScale({
             <div className="absolute left-1 top-1.5 w-0.5 h-12 bg-[#2dff9a]/60 origin-top flex flex-col items-center">
               <div className="mt-12 -ml-16 w-32 p-2.5 rounded-xl bg-[#041a10] border border-[#2dff9a]/40 shadow-[0_0_20px_rgba(45,255,154,0.15)] text-center space-y-1">
                 <span className="text-[9px] font-mono uppercase text-[#7ea594] block font-semibold">
-                  Clearing Float
+                  Clearing Float (Illustration)
                 </span>
                 <span className="text-xs font-mono font-bold text-[#eafff5] block">
                   <SmoothPaiseCounter paise={clearingFloatPaise} />
                 </span>
                 <span className="text-[8px] font-mono text-[#2dff9a] block">
-                  Inflow Source
+                  Illustration Inflow
                 </span>
               </div>
             </div>
@@ -93,13 +101,13 @@ export default function EquilibriumScale({
             <div className="absolute right-1 top-1.5 w-0.5 h-12 bg-[#2dff9a]/60 origin-top flex flex-col items-center">
               <div className="mt-12 -mr-16 w-32 p-2.5 rounded-xl bg-[#041a10] border border-[#2dff9a]/40 shadow-[0_0_20px_rgba(45,255,154,0.15)] text-center space-y-1">
                 <span className="text-[9px] font-mono uppercase text-[#7ea594] block font-semibold">
-                  Customer Reserves
+                  Customer Reserves (Illustration)
                 </span>
                 <span className="text-xs font-mono font-bold text-[#eafff5] block">
                   <SmoothPaiseCounter paise={customerReservesPaise} />
                 </span>
                 <span className="text-[8px] font-mono text-[#2dff9a] block">
-                  Settled Outflow
+                  Illustration Outflow
                 </span>
               </div>
             </div>
