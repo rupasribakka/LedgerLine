@@ -9,6 +9,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Sparkles,
+  Scale,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -367,6 +368,110 @@ export default function MovePage() {
               Prevents double processing. Submitting with the same key replays the cached result without duplicate ledger debit; submitting with an altered payload returns HTTP 422.
             </p>
           </div>
+
+          {/* Balance Preview Panel */}
+          {selectedSourceAccount && (
+            <div className="rounded-2xl border border-[rgba(60,255,160,0.2)] bg-[#03100a] p-4 sm:p-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[rgba(60,255,160,0.12)] pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Scale className="h-4 w-4 text-[#2dff9a]" />
+                  <span className="text-xs font-mono font-bold text-[#eafff5] uppercase tracking-wider">
+                    Balance Preview
+                  </span>
+                </div>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#041d12] text-[#2dff9a] border border-[#2dff9a]/30 font-mono font-semibold">
+                  Preview, the server decides
+                </span>
+              </div>
+
+              {/* Balances & Arithmetic Breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                {/* Source Account Impact */}
+                <div className="p-3 rounded-xl bg-[#020605] border border-[rgba(60,255,160,0.12)] space-y-1.5">
+                  <div className="flex items-center justify-between text-[#9abfb0]">
+                    <span>
+                      {activeTab === 'deposit' ? 'Target Account' : 'Source Account'} #{selectedSourceAccount.id}
+                    </span>
+                    <span className="font-bold text-[#eafff5]">{selectedSourceAccount.account_no}</span>
+                  </div>
+                  <div className="flex justify-between text-[#9abfb0]">
+                    <span>Current Balance:</span>
+                    <span className="text-[#eafff5]">
+                      {formatPaiseToRupees(selectedSourceAccount.balance_paise)} ({selectedSourceAccount.balance_paise} paise)
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-[rgba(60,255,160,0.1)] pt-1">
+                    <span className="text-[#9abfb0]">
+                      {activeTab === 'deposit' ? 'After Credit (+):' : 'After Debit (-):'}
+                    </span>
+                    <span className="font-bold text-[#2dff9a]">
+                      {activeTab === 'deposit'
+                        ? `${formatPaiseToRupees(Number(selectedSourceAccount.balance_paise) + (parseRupeesToPaise(amountInput) || 0))} (${Number(selectedSourceAccount.balance_paise) + (parseRupeesToPaise(amountInput) || 0)} paise)`
+                        : `${formatPaiseToRupees(Math.max(Number(selectedSourceAccount.balance_paise) - (parseRupeesToPaise(amountInput) || 0), 0))} (${Number(selectedSourceAccount.balance_paise) - (parseRupeesToPaise(amountInput) || 0)} paise)`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Counterparty / Target Account Impact */}
+                <div className="p-3 rounded-xl bg-[#020605] border border-[rgba(60,255,160,0.12)] space-y-1.5">
+                  <div className="flex items-center justify-between text-[#9abfb0]">
+                    <span>
+                      {activeTab === 'transfer'
+                        ? `Target Account #${selectedTargetAccount?.id || '—'}`
+                        : 'Clearing Reserve'}
+                    </span>
+                    <span className="font-bold text-[#eafff5]">
+                      {activeTab === 'transfer'
+                        ? selectedTargetAccount?.account_no || 'None Selected'
+                        : 'ACC-EXTERNAL'}
+                    </span>
+                  </div>
+                  {activeTab === 'transfer' && selectedTargetAccount ? (
+                    <>
+                      <div className="flex justify-between text-[#9abfb0]">
+                        <span>Current Balance:</span>
+                        <span className="text-[#eafff5]">
+                          {formatPaiseToRupees(selectedTargetAccount.balance_paise)} ({selectedTargetAccount.balance_paise} paise)
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t border-[rgba(60,255,160,0.1)] pt-1">
+                        <span className="text-[#9abfb0]">After Credit (+):</span>
+                        <span className="font-bold text-[#2dff9a]">
+                          {formatPaiseToRupees(Number(selectedTargetAccount.balance_paise) + (parseRupeesToPaise(amountInput) || 0))} ({Number(selectedTargetAccount.balance_paise) + (parseRupeesToPaise(amountInput) || 0)} paise)
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between text-[#9abfb0]">
+                        <span>Counterparty:</span>
+                        <span className="text-[#eafff5]">External Clearing Invariant</span>
+                      </div>
+                      <div className="flex justify-between border-t border-[rgba(60,255,160,0.1)] pt-1">
+                        <span className="text-[#9abfb0]">
+                          {activeTab === 'deposit' ? 'Debited Reserve:' : 'Credited Reserve:'}
+                        </span>
+                        <span className="font-bold text-[#2dff9a]">
+                          {parseRupeesToPaise(amountInput) ? `${parseRupeesToPaise(amountInput)} paise` : '0 paise'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Debit Equals Credit Double-Entry Invariant Proof */}
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-[#020605] border border-[rgba(60,255,160,0.1)] text-xs font-mono">
+                <span className="text-[#9abfb0] flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#2dff9a]" />
+                  <span>Double-Entry Balance Invariant:</span>
+                </span>
+                <span className="text-[#2dff9a] font-bold">
+                  Debit ≡ Credit ({parseRupeesToPaise(amountInput) || 0} paise)
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Action Trigger Button */}
           <GlowButton

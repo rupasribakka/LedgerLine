@@ -12,6 +12,7 @@ import {
   Database,
   Hash,
   Scale,
+  Download,
 } from 'lucide-react';
 import {
   fetchAccounts,
@@ -120,6 +121,62 @@ export default function AuditPage() {
   const summary = integrityData?.summary || DEMO_INTEGRITY_FALLBACK.summary;
   const isVerified = integrityData?.verified !== false;
 
+  const handleExportCSV = () => {
+    let headers = [];
+    let rows = [];
+    const filename = `ledgerline-audit-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    if (activeTab === 'duplicates') {
+      headers = ['Idempotency Key', 'User ID', 'Attempt Count', 'First Seen', 'Last Seen', 'Response Status'];
+      rows = (duplicatesData || []).map((d) => [
+        d.key || '',
+        d.user_id || '',
+        d.count || 1,
+        d.first_seen || '',
+        d.last_seen || '',
+        d.response_status || d.status || '',
+      ]);
+    } else if (activeTab === 'logs') {
+      headers = ['ID', 'Action', 'Outcome', 'Actor ID', 'IP Address', 'Timestamp', 'Metadata'];
+      rows = (auditLogs || []).map((l) => [
+        l.id || '',
+        l.action || '',
+        l.outcome || '',
+        l.actor_id || '',
+        l.ip_address || '',
+        l.created_at || '',
+        typeof l.metadata === 'object' ? JSON.stringify(l.metadata).replace(/"/g, '""') : l.metadata || '',
+      ]);
+    } else {
+      headers = ['Account ID', 'Account Number', 'Owner ID', 'Balance Paise', 'Status', 'Is External'];
+      rows = (accounts || []).map((a) => [
+        a.id || '',
+        a.account_no || '',
+        a.owner_id || '',
+        a.balance_paise || 0,
+        a.status || '',
+        a.is_external ? 'true' : 'false',
+      ]);
+    }
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -138,13 +195,23 @@ export default function AuditPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <GlowButton
+            variant="secondary"
+            size="sm"
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <Download className="h-4 w-4" />
+            <span>Export CSV</span>
+          </GlowButton>
+
           <GlowButton
             variant="primary"
             size="sm"
             onClick={runVerification}
             disabled={verifying}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 cursor-pointer"
           >
             <ShieldCheck className={`h-4 w-4 ${verifying ? 'animate-spin' : ''}`} />
             <span>{verifying ? 'Auditing Ledger...' : 'Run Integrity Verification'}</span>
