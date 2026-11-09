@@ -55,19 +55,19 @@ export default function AttackLabPage() {
     thread1: {
       id: 'TH-01 (TxA)',
       action: 'WITHDRAW 80%',
-      state: 'LOCK_ACQUIRED',
-      step: 'COMMITTED',
-      latencyMs: 14,
-      status: 'SUCCESS',
+      state: 'IDLE (READY)',
+      step: 'STANDBY',
+      latencyMs: null,
+      status: 'READY',
       sql: 'SELECT balance_paise FROM accounts WHERE id = 2 FOR UPDATE',
     },
     thread2: {
       id: 'TH-02 (TxB)',
       action: 'WITHDRAW 80%',
-      state: 'LOCK_WAIT -> REJECTED',
-      step: 'chk_no_overdraft VIOLATION',
-      latencyMs: 22,
-      status: 'REJECTED',
+      state: 'IDLE (READY)',
+      step: 'STANDBY',
+      latencyMs: null,
+      status: 'READY',
       sql: 'ROLLBACK TRANSACTION: Balance insufficient',
     },
   });
@@ -115,12 +115,29 @@ export default function AttackLabPage() {
       const key1 = generateIdempotencyKey();
       const key2 = generateIdempotencyKey();
 
-      const startTime = performance.now();
-      const [res1, res2] = await Promise.all([
-        executeWithdrawal({ accountId: activeAccount, amountPaise: withdrawAmount, idempotencyKey: key1 }),
-        executeWithdrawal({ accountId: activeAccount, amountPaise: withdrawAmount, idempotencyKey: key2 }),
-      ]);
-      const totalElapsed = Math.round(performance.now() - startTime);
+      const start1 = performance.now();
+      const p1 = executeWithdrawal({
+        accountId: activeAccount,
+        amountPaise: withdrawAmount,
+        idempotencyKey: key1,
+      }).then((res) => ({
+        res,
+        latencyMs: Math.round(performance.now() - start1),
+      }));
+
+      const start2 = performance.now();
+      const p2 = executeWithdrawal({
+        accountId: activeAccount,
+        amountPaise: withdrawAmount,
+        idempotencyKey: key2,
+      }).then((res) => ({
+        res,
+        latencyMs: Math.round(performance.now() - start2),
+      }));
+
+      const [r1, r2] = await Promise.all([p1, p2]);
+      const res1 = r1.res;
+      const res2 = r2.res;
 
       const oneSucceeded = (res1.ok && !res2.ok) || (!res1.ok && res2.ok);
       const bothFailed = !res1.ok && !res2.ok;
@@ -135,7 +152,7 @@ export default function AttackLabPage() {
           action: `DEBIT ${formatPaiseToRupees(withdrawAmount)}`,
           state: 'LOCK_ACQUIRED',
           step: res1.ok ? 'COMMITTED (HTTP 200)' : 'ROLLBACK',
-          latencyMs: Math.max(Math.floor(totalElapsed * 0.4), 8),
+          latencyMs: r1.latencyMs,
           status: res1.ok ? 'SUCCESS' : 'REJECTED',
           sql: `ORDER BY id ASC FOR UPDATE (Acquired Lock)`,
         },
@@ -144,7 +161,7 @@ export default function AttackLabPage() {
           action: `DEBIT ${formatPaiseToRupees(withdrawAmount)}`,
           state: res2.ok ? 'LOCK_ACQUIRED' : 'LOCK_WAIT -> REJECTED',
           step: res2.ok ? 'COMMITTED' : 'chk_no_overdraft (HTTP 400)',
-          latencyMs: totalElapsed,
+          latencyMs: r2.latencyMs,
           status: res2.ok ? 'SUCCESS' : 'REJECTED',
           sql: `BLOCKED by TxA -> Insufficient balance for second debit`,
         },
@@ -182,16 +199,27 @@ export default function AttackLabPage() {
 
       addLog(`Fixed Idempotency-Key: ${fixedKey}. Firing 10 parallel requests...`);
 
-      const startTime = performance.now();
-      const promises = Array.from({ length: 10 }, () =>
-        executeWithdrawal({ accountId: activeAccount, amountPaise: testAmount, idempotencyKey: fixedKey })
-      );
+      const promises = Array.from({ length: 10 }, (_, i) => {
+        const reqStart = performance.now();
+        return executeWithdrawal({
+          accountId: activeAccount,
+          amountPaise: testAmount,
+          idempotencyKey: fixedKey,
+        }).then((res) => ({
+          res,
+          latencyMs: Math.round(performance.now() - reqStart),
+          index: i,
+        }));
+      });
 
-      const results = await Promise.all(promises);
-      const totalElapsed = Math.round(performance.now() - startTime);
-
-      const successful = results.filter((r) => r.ok);
+      const timedResults = await Promise.all(promises);
+      const results = timedResults.map((t) => t.res);
       const replays = results.filter((r) => r.isReplay);
+
+      const replayLatencies = timedResults.slice(1).map((t) => t.latencyMs);
+      const avgReplayLatency = Math.round(
+        replayLatencies.reduce((acc, lat) => acc + lat, 0) / replayLatencies.length
+      );
 
       // Update Waveform Telemetry for Replay Storm
       setTelemetryEvent({
@@ -203,7 +231,7 @@ export default function AttackLabPage() {
           action: 'DEBIT ₹1.00',
           state: 'PRIMARY INSERT',
           step: 'WRITTEN & CACHED',
-          latencyMs: 12,
+          latencyMs: timedResults[0].latencyMs,
           status: 'SUCCESS',
           sql: 'INSERT INTO ledger RETURNING idempotency_key',
         },
@@ -212,7 +240,7 @@ export default function AttackLabPage() {
           action: '9x CONCURRENT REPLAY',
           state: 'UNIQUE KEY COLLISION',
           step: 'SERVED FROM CACHE (Idempotent-Replay: true)',
-          latencyMs: totalElapsed,
+          latencyMs: avgReplayLatency,
           status: 'CACHED',
           sql: 'SELECT response_body FROM idempotency_keys WHERE key = ...',
         },
@@ -243,13 +271,13 @@ export default function AttackLabPage() {
       const hugeAmount = 1000000000; // ₹10,000,000.00
       addLog(`Attempting to withdraw ${formatPaiseToRupees(hugeAmount)} exceeding account balance...`);
 
-      const startTime = performance.now();
+      const reqStart = performance.now();
       const res = await executeWithdrawal({
         accountId: activeAccount,
         amountPaise: hugeAmount,
         idempotencyKey: generateIdempotencyKey(),
       });
-      const totalElapsed = Math.round(performance.now() - startTime);
+      const measuredLatency = Math.round(performance.now() - reqStart);
 
       setTelemetryEvent({
         active: true,
@@ -260,7 +288,7 @@ export default function AttackLabPage() {
           action: 'DEBIT ₹10,000,000.00',
           state: 'CONSTRAINT CHECK',
           step: 'chk_no_overdraft FAILED',
-          latencyMs: Math.max(totalElapsed, 9),
+          latencyMs: measuredLatency,
           status: 'REJECTED',
           sql: 'CHECK (balance_paise >= 0) -> VIOLATION (400 Bad Request)',
         },
@@ -269,7 +297,7 @@ export default function AttackLabPage() {
           action: 'INVARIANT AUDIT',
           state: 'ROLLBACK ENFORCED',
           step: 'ZERO CORRUPTION',
-          latencyMs: 1,
+          latencyMs: null,
           status: 'SUCCESS',
           sql: 'Database balance preserved without negative slippage',
         },
@@ -340,9 +368,6 @@ export default function AttackLabPage() {
             <Badge variant="emerald" size="sm">
               LIVE WAVEFORM
             </Badge>
-            <Badge variant="cyan" size="sm">
-              Illustration
-            </Badge>
           </div>
           <div className="flex items-center gap-3 text-[11px] font-mono text-[#7ea594]">
             <span>Scenario: <strong className="text-[#2dff9a]">{telemetryEvent.scenario}</strong></span>
@@ -362,8 +387,9 @@ export default function AttackLabPage() {
                 <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread1.action}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#020605] text-[#7ea594] border border-[rgba(60,255,160,0.2)]">Illustration</span>
-                <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread1.latencyMs}ms</span>
+                {telemetryEvent.thread1.latencyMs != null && (
+                  <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread1.latencyMs}ms</span>
+                )}
                 <Badge
                   variant={telemetryEvent.thread1.status === 'SUCCESS' ? 'emerald' : 'error'}
                   size="sm"
@@ -377,7 +403,6 @@ export default function AttackLabPage() {
             <div className="space-y-1">
               <div className="flex justify-between text-[9px] font-mono text-[#7ea594]/70">
                 <span>Timeline Trace</span>
-                <span>Illustration</span>
               </div>
               <div className="h-2 rounded-full bg-[#020605] overflow-hidden relative">
                 <div
@@ -404,8 +429,9 @@ export default function AttackLabPage() {
                 <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread2.action}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#020605] text-[#7ea594] border border-[rgba(255,93,122,0.2)]">Illustration</span>
-                <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread2.latencyMs}ms</span>
+                {telemetryEvent.thread2.latencyMs != null && (
+                  <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread2.latencyMs}ms</span>
+                )}
                 <Badge
                   variant={telemetryEvent.thread2.status === 'SUCCESS' ? 'emerald' : telemetryEvent.thread2.status === 'CACHED' ? 'cyan' : 'error'}
                   size="sm"
@@ -419,7 +445,6 @@ export default function AttackLabPage() {
             <div className="space-y-1">
               <div className="flex justify-between text-[9px] font-mono text-[#7ea594]/70">
                 <span>Timeline Trace</span>
-                <span>Illustration</span>
               </div>
               <div className="h-2 rounded-full bg-[#020605] overflow-hidden relative">
                 <div
@@ -455,7 +480,6 @@ export default function AttackLabPage() {
                 <p className="text-[#7ea594]">Pessimistic Active</p>
               </div>
             </div>
-            <span className="text-[8px] text-[#7ea594] px-1 rounded bg-[#041209] border border-[#2dff9a]/20">Illustration</span>
           </div>
 
           <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
@@ -466,7 +490,6 @@ export default function AttackLabPage() {
                 <p className="text-[#7ea594]">chk_no_overdraft</p>
               </div>
             </div>
-            <span className="text-[8px] text-[#7ea594] px-1 rounded bg-[#041209] border border-[#2dff9a]/20">Illustration</span>
           </div>
 
           <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
@@ -477,7 +500,6 @@ export default function AttackLabPage() {
                 <p className="text-[#7ea594]">UUID v4 Deduplicated</p>
               </div>
             </div>
-            <span className="text-[8px] text-[#7ea594] px-1 rounded bg-[#041209] border border-[#2dff9a]/20">Illustration</span>
           </div>
 
           <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
@@ -488,7 +510,6 @@ export default function AttackLabPage() {
                 <p className="text-[#7ea594]">Sum(Balances) == 0</p>
               </div>
             </div>
-            <span className="text-[8px] text-[#7ea594] px-1 rounded bg-[#041209] border border-[#2dff9a]/20">Illustration</span>
           </div>
         </div>
       </GlowCard>

@@ -14,6 +14,7 @@ import {
   Scale,
 } from 'lucide-react';
 import {
+  fetchAccounts,
   verifySystemIntegrity,
   fetchDuplicateReplays,
   fetchAuditLogs,
@@ -33,8 +34,6 @@ const DEMO_INTEGRITY_FALLBACK = {
     global_balance_sum_paise: 0,
     ledger_rows_verified: 42,
     accounts_verified: 5,
-    clearing_float_paise: 25000000,
-    customer_reserves_paise: 25000000,
   },
 };
 
@@ -73,15 +72,22 @@ export default function AuditPage() {
   const [integrityData, setIntegrityData] = useState(DEMO_INTEGRITY_FALLBACK);
   const [duplicatesData, setDuplicatesData] = useState(DEMO_DUPLICATES_FALLBACK);
   const [auditLogs, setAuditLogs] = useState(DEMO_AUDIT_LOGS_FALLBACK);
+  const [accounts, setAccounts] = useState(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
 
   const runVerification = async () => {
     setVerifying(true);
     try {
-      const res = await verifySystemIntegrity();
+      const [res, accRes] = await Promise.all([
+        verifySystemIntegrity(),
+        fetchAccounts(),
+      ]);
       if (res.ok && res.data) {
         setIntegrityData(res.data);
+      }
+      if (accRes.ok && accRes.data?.accounts) {
+        setAccounts(accRes.data.accounts);
       }
     } finally {
       setVerifying(false);
@@ -91,15 +97,17 @@ export default function AuditPage() {
   const loadDuplicatesAndLogs = async () => {
     setLoading(true);
     try {
-      const [intRes, dupRes, logRes] = await Promise.all([
+      const [intRes, dupRes, logRes, accRes] = await Promise.all([
         verifySystemIntegrity(),
         fetchDuplicateReplays(),
         fetchAuditLogs(),
+        fetchAccounts(),
       ]);
 
       if (intRes.ok && intRes.data) setIntegrityData(intRes.data);
       if (dupRes.ok && dupRes.data?.replays) setDuplicatesData(dupRes.data.replays);
       if (logRes.ok && logRes.data?.logs) setAuditLogs(logRes.data.logs);
+      if (accRes.ok && accRes.data?.accounts) setAccounts(accRes.data.accounts);
     } finally {
       setLoading(false);
     }
@@ -184,17 +192,27 @@ export default function AuditPage() {
       </div>
 
       {/* Tab 1: Verification Results */}
-      {activeTab === 'verify' && (
-        <div className="space-y-6">
-          {/* Zero-Sum Mathematical Equilibrium Scale Component */}
-          <EquilibriumScale
-            sumPaise={summary?.global_balance_sum_paise ?? 0}
-            clearingFloatPaise={summary?.clearing_float_paise ?? 25000000}
-            customerReservesPaise={summary?.customer_reserves_paise ?? 25000000}
-            isVerified={isVerified}
-          />
+      {activeTab === 'verify' && (() => {
+        const extAccount = accounts?.find((a) => a.is_external || a.account_no === 'ACC-EXTERNAL');
+        const clearingFloatPaise = extAccount != null ? Math.abs(Number(extAccount.balance_paise)) : null;
 
-          {/* Main Invariant Card */}
+        const otherAccounts = accounts?.filter((a) => !a.is_external && a.account_no !== 'ACC-EXTERNAL');
+        const customerReservesPaise = accounts != null && otherAccounts != null
+          ? otherAccounts.reduce((sum, a) => sum + Number(a.balance_paise), 0)
+          : null;
+
+        return (
+          <div className="space-y-6">
+            {/* Zero-Sum Mathematical Equilibrium Scale Component */}
+            <EquilibriumScale
+              sumPaise={summary?.global_balance_sum_paise ?? 0}
+              clearingFloatPaise={clearingFloatPaise}
+              customerReservesPaise={customerReservesPaise}
+              isVerified={isVerified}
+              isLoading={loading || accounts == null}
+            />
+
+            {/* Main Invariant Card */}
           <GlowCard className="p-6 sm:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(60,255,160,0.12)] pb-4">
               <div className="flex items-center gap-3">
@@ -305,7 +323,8 @@ export default function AuditPage() {
             </div>
           </GlowCard>
         </div>
-      )}
+      );
+    })()}
 
       {/* Tab 2: Duplicate Replays */}
       {activeTab === 'duplicates' && (

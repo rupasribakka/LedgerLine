@@ -1,18 +1,21 @@
 import React from 'react';
 import { Scale, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import SmoothPaiseCounter from './SmoothPaiseCounter';
+import Skeleton from './Skeleton';
 
 export default function EquilibriumScale({
   sumPaise = 0,
-  clearingFloatPaise = 15000000,
-  customerReservesPaise = 15000000,
+  clearingFloatPaise = null,
+  customerReservesPaise = null,
   isVerified = true,
+  isLoading = false,
   className = '',
 }) {
+  const isLoaded = !isLoading && clearingFloatPaise != null && customerReservesPaise != null;
   // If sumPaise is strictly 0, beam is perfectly horizontal (0deg tilt)
   const isPerfectEquilibrium = sumPaise === 0;
   // Compute minor deflection angle if imbalanced (capped at max 8 deg)
-  const tiltDegrees = isPerfectEquilibrium ? 0 : Math.max(Math.min(sumPaise / 100000, 8), -8);
+  const tiltDegrees = (!isLoaded || isPerfectEquilibrium) ? 0 : Math.max(Math.min(sumPaise / 100000, 8), -8);
 
   return (
     <div
@@ -32,9 +35,6 @@ export default function EquilibriumScale({
               <span>Mathematical Equilibrium Scale</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(45,255,154,0.1)] text-[#2dff9a] border border-[#2dff9a]/30">
                 ∑ BALANCES ≡ 0 PAISE
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 text-[#7ea594] border border-slate-700">
-                Illustration
               </span>
             </h3>
             <p className="text-[11px] text-[#7ea594] font-mono">
@@ -60,9 +60,12 @@ export default function EquilibriumScale({
 
       {/* Interactive Visual Scale Canvas / SVG Representation */}
       <div className="py-8 relative flex flex-col items-center justify-center">
-        {/* Visual Element Label */}
-        <div className="text-[10px] font-mono text-[#7ea594] mb-3 uppercase tracking-wider">
-          Visual Scale Dynamics — [Illustration]
+        {/* Beam and Cord Graphics Label (Illustration) */}
+        <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#7ea594] mb-3 uppercase tracking-wider">
+          <span>Scale Beam &amp; Cords</span>
+          <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[#7ea594] text-[9px]">
+            Illustration
+          </span>
         </div>
 
         {/* Horizontal Laser Level Guide Line */}
@@ -75,39 +78,47 @@ export default function EquilibriumScale({
             <div className="h-2 w-2 rounded-full bg-[#2dff9a] animate-pulse" />
           </div>
 
-          {/* Balance Beam (tilts smoothly with transform rotate) */}
+          {/* Balance Beam (tilts smoothly with transform rotate) - Graphic Illustration */}
           <div
             className="w-72 sm:w-96 h-1.5 rounded-full bg-gradient-to-r from-[#2dff9a] via-[#eafff5] to-[#2dff9a] shadow-[0_0_15px_rgba(45,255,154,0.5)] origin-center transition-transform duration-700 ease-out absolute -top-0.5"
             style={{
               transform: `rotate(${tiltDegrees}deg)`,
             }}
           >
-            {/* Left Pan Suspension Cord */}
+            {/* Left Pan Suspension Cord (Graphic Illustration) */}
             <div className="absolute left-1 top-1.5 w-0.5 h-12 bg-[#2dff9a]/60 origin-top flex flex-col items-center">
               <div className="mt-12 -ml-16 w-32 p-2.5 rounded-xl bg-[#041a10] border border-[#2dff9a]/40 shadow-[0_0_20px_rgba(45,255,154,0.15)] text-center space-y-1">
                 <span className="text-[9px] font-mono uppercase text-[#7ea594] block font-semibold">
-                  Clearing Float (Illustration)
+                  Clearing Float
                 </span>
-                <span className="text-xs font-mono font-bold text-[#eafff5] block">
-                  <SmoothPaiseCounter paise={clearingFloatPaise} />
+                <span className="text-xs font-mono font-bold text-[#eafff5] block min-h-[1.25rem]">
+                  {!isLoaded ? (
+                    <Skeleton className="h-4 w-20 mx-auto bg-[#032014] rounded my-0.5" />
+                  ) : (
+                    <SmoothPaiseCounter paise={clearingFloatPaise} />
+                  )}
                 </span>
                 <span className="text-[8px] font-mono text-[#2dff9a] block">
-                  Illustration Inflow
+                  Inflow Source
                 </span>
               </div>
             </div>
 
-            {/* Right Pan Suspension Cord */}
+            {/* Right Pan Suspension Cord (Graphic Illustration) */}
             <div className="absolute right-1 top-1.5 w-0.5 h-12 bg-[#2dff9a]/60 origin-top flex flex-col items-center">
               <div className="mt-12 -mr-16 w-32 p-2.5 rounded-xl bg-[#041a10] border border-[#2dff9a]/40 shadow-[0_0_20px_rgba(45,255,154,0.15)] text-center space-y-1">
                 <span className="text-[9px] font-mono uppercase text-[#7ea594] block font-semibold">
-                  Customer Reserves (Illustration)
+                  Customer Reserves
                 </span>
-                <span className="text-xs font-mono font-bold text-[#eafff5] block">
-                  <SmoothPaiseCounter paise={customerReservesPaise} />
+                <span className="text-xs font-mono font-bold text-[#eafff5] block min-h-[1.25rem]">
+                  {!isLoaded ? (
+                    <Skeleton className="h-4 w-20 mx-auto bg-[#032014] rounded my-0.5" />
+                  ) : (
+                    <SmoothPaiseCounter paise={customerReservesPaise} />
+                  )}
                 </span>
                 <span className="text-[8px] font-mono text-[#2dff9a] block">
-                  Illustration Outflow
+                  Settled Outflow
                 </span>
               </div>
             </div>
@@ -128,7 +139,7 @@ export default function EquilibriumScale({
         <div className="flex items-center gap-2 text-[#2dff9a] font-bold">
           <span>Net System Invariant Drift:</span>
           <span className="px-2 py-0.5 rounded bg-[#020605] border border-[#2dff9a]/30">
-            {sumPaise} PAISE
+            {!isLoaded || sumPaise == null ? '0 PAISE' : `${sumPaise} PAISE`}
           </span>
         </div>
       </div>
