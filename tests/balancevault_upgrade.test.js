@@ -219,5 +219,150 @@ describe('BalanceVault Upgrade & Alignment Suite', () => {
         client.release();
       }
     });
+
+    it('verifies column-level grants prevent runtime role from updating protected fields (owner_id, account_no, etc.)', async () => {
+      const client = await getClient();
+      try {
+        const roles = ['balancevault_runtime', 'ledgerline_runtime'];
+        for (const role of roles) {
+          const res = await client.query(`
+            SELECT
+              has_column_privilege('${role}', 'accounts', 'balance_paise', 'UPDATE') AS can_update_balance,
+              has_column_privilege('${role}', 'accounts', 'status', 'UPDATE') AS can_update_status,
+              has_column_privilege('${role}', 'accounts', 'owner_id', 'UPDATE') AS can_update_owner,
+              has_column_privilege('${role}', 'accounts', 'account_no', 'UPDATE') AS can_update_account_no,
+              has_column_privilege('${role}', 'accounts', 'is_external', 'UPDATE') AS can_update_external,
+              has_column_privilege('${role}', 'accounts', 'name', 'UPDATE') AS can_update_name,
+              has_column_privilege('${role}', 'accounts', 'created_at', 'UPDATE') AS can_update_created_at
+          `);
+          expect(res.rows[0]).toEqual({
+            can_update_balance: true,
+            can_update_status: true,
+            can_update_owner: false,
+            can_update_account_no: false,
+            can_update_external: false,
+            can_update_name: false,
+            can_update_created_at: false,
+          });
+        }
+      } finally {
+        client.release();
+      }
+    });
+
+    it('asserts runtime role receives permission denied when attempting to change account ownership or account numbers', async () => {
+      const client = await getClient();
+      try {
+        await client.query('BEGIN');
+        await client.query('SET ROLE balancevault_runtime');
+
+        // Forbidden column: owner_id
+        await expect(
+          client.query('UPDATE accounts SET owner_id = 999 WHERE id = 1')
+        ).rejects.toThrow(/permission denied/i);
+
+        // Reset subtransaction / transaction for next query
+        await client.query('ROLLBACK');
+        await client.query('BEGIN');
+        await client.query('SET ROLE balancevault_runtime');
+
+        // Forbidden column: account_no
+        await expect(
+          client.query("UPDATE accounts SET account_no = 'HACKED-ACC' WHERE id = 1")
+        ).rejects.toThrow(/permission denied/i);
+
+        await client.query('ROLLBACK');
+        await client.query('BEGIN');
+        await client.query('SET ROLE balancevault_runtime');
+
+        // Forbidden column: is_external
+        await expect(
+          client.query('UPDATE accounts SET is_external = true WHERE id = 1')
+        ).rejects.toThrow(/permission denied/i);
+
+        await client.query('ROLLBACK');
+        await client.query('BEGIN');
+        await client.query('SET ROLE balancevault_runtime');
+
+        // Allowed column: balance_paise
+        await expect(
+          client.query('UPDATE accounts SET balance_paise = balance_paise WHERE id = 1')
+        ).resolves.not.toThrow();
+
+        // Allowed column: status
+        await expect(
+          client.query("UPDATE accounts SET status = 'ACTIVE' WHERE id = 1")
+        ).resolves.not.toThrow();
+
+        await client.query('ROLLBACK');
+      } finally {
+        await client.query('RESET ROLE').catch(() => {});
+        client.release();
+      }
+    });
+
+    it('verifies ledger immutability triggers block UPDATE, DELETE and TRUNCATE under the runtime role', async () => {
+      const client = await getClient();
+      try {
+        // 1. Verify runtime role cannot UPDATE, DELETE, or TRUNCATE ledger (denied by RBAC)
+        await client.query('BEGIN');
+        await client.query('SET ROLE balancevault_runtime');
+
+        await expect(
+          client.query('UPDATE ledger SET amount_paise = 999999 WHERE id = 1')
+        ).rejects.toThrow(/permission denied/i);
+
+        await client.query('ROLLBACK');
+        await client.query('BEGIN');
+        await client.query('SET ROLE balancevault_runtime');
+
+        await expect(
+          client.query('DELETE FROM ledger WHERE id = 1')
+        ).rejects.toThrow(/permission denied/i);
+
+        await client.query('ROLLBACK');
+        await client.query('BEGIN');
+        await client.query('SET ROLE balancevault_runtime');
+
+        await expect(
+          client.query('TRUNCATE ledger')
+        ).rejects.toThrow(/permission denied/i);
+
+        await client.query('ROLLBACK');
+
+        // 2. Defense in Depth: Even if table-level UPDATE/DELETE were granted to runtime role,
+        // the PL/pgSQL triggers prevent_ledger_mutation() and prevent_ledger_truncate() STILL block them!
+        await client.query('BEGIN');
+        await client.query('GRANT UPDATE, DELETE, TRUNCATE ON ledger TO balancevault_runtime');
+        await client.query('SET ROLE balancevault_runtime');
+
+        await expect(
+          client.query('UPDATE ledger SET amount_paise = 999999 WHERE id = 1')
+        ).rejects.toThrow('Ledger entries are immutable. UPDATE and DELETE operations are strictly prohibited.');
+
+        await client.query('ROLLBACK');
+        await client.query('BEGIN');
+        await client.query('GRANT UPDATE, DELETE, TRUNCATE ON ledger TO balancevault_runtime');
+        await client.query('SET ROLE balancevault_runtime');
+
+        await expect(
+          client.query('DELETE FROM ledger WHERE id = 1')
+        ).rejects.toThrow('Ledger entries are immutable. UPDATE and DELETE operations are strictly prohibited.');
+
+        await client.query('ROLLBACK');
+        await client.query('BEGIN');
+        await client.query('GRANT UPDATE, DELETE, TRUNCATE ON ledger TO balancevault_runtime');
+        await client.query('SET ROLE balancevault_runtime');
+
+        await expect(
+          client.query('TRUNCATE ledger')
+        ).rejects.toThrow('Ledger is append-only. TRUNCATE is strictly prohibited.');
+
+        await client.query('ROLLBACK');
+      } finally {
+        await client.query('RESET ROLE').catch(() => {});
+        client.release();
+      }
+    });
   });
 });

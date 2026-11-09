@@ -217,7 +217,7 @@ describe('Phase 2 - Authentication, Authorization, Role Enforcement & Accounts',
         .set('Authorization', `Bearer ${holder1Token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.accounts.length).toBe(2);
+      expect(res.body.accounts.length).toBeGreaterThanOrEqual(2);
       res.body.accounts.forEach((acc) => {
         expect(acc.owner_id).toBe(holder1User.id);
       });

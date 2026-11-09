@@ -70,8 +70,16 @@ describe('Production Boot Sequence & Idempotency on Empty Database', () => {
       }
     }
 
-    // Restore environment
-    process.env = envBackup;
+    // Properly restore environment variables
+    for (const key of Object.keys(process.env)) {
+      if (!(key in envBackup)) {
+        delete process.env[key];
+      }
+    }
+    for (const [key, value] of Object.entries(envBackup)) {
+      process.env[key] = value;
+    }
+    process.env.NODE_ENV = 'test';
   });
 
   it('runs full production boot against empty database and asserts runtime role, seed data, and health probe', async () => {
@@ -184,6 +192,16 @@ describe('Production Boot Sequence & Idempotency on Empty Database', () => {
     // Assert that ledger entries increased by 2 (new debit + credit rows inserted into bigserial ledger)
     const afterLedger = await query('SELECT COUNT(*) AS count FROM ledger');
     expect(parseInt(afterLedger.rows[0].count, 10)).toBe(6);
+
+    // Assert that the actual production runtime role CANNOT change protected account fields:
+    await expect(query('UPDATE accounts SET owner_id = 999 WHERE id = $1', [h1Acc.id])).rejects.toThrow(/permission denied/i);
+    await expect(query("UPDATE accounts SET account_no = 'HACKED' WHERE id = $1", [h1Acc.id])).rejects.toThrow(/permission denied/i);
+    await expect(query('UPDATE accounts SET is_external = true WHERE id = $1', [h1Acc.id])).rejects.toThrow(/permission denied/i);
+
+    // Assert that the actual production runtime role CANNOT mutate or truncate the ledger:
+    await expect(query('UPDATE ledger SET amount_paise = 999999 WHERE id = 1')).rejects.toThrow(/permission denied/i);
+    await expect(query('DELETE FROM ledger WHERE id = 1')).rejects.toThrow(/permission denied/i);
+    await expect(query('TRUNCATE ledger')).rejects.toThrow(/permission denied/i);
 
     // Close second server
     await new Promise((r) => server.close(r));
