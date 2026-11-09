@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { checkBackendHealth } from '../../services/api';
+import { AnimatePresence } from 'framer-motion';
 import Badge from '../ui/Badge';
 import GlowButton from '../ui/GlowButton';
 import PageTransition from '../motion/PageTransition';
@@ -86,7 +87,7 @@ export default function AppLayout() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [backendHealth, setBackendHealth] = useState({ ok: true, checking: false, responseTime: 12 });
+  const [backendHealth, setBackendHealth] = useState({ ok: true, checking: false, responseTime: null });
 
   const role = (user?.role || 'holder').toLowerCase();
 
@@ -129,7 +130,7 @@ export default function AppLayout() {
         setBackendHealth({
           ok: res.ok,
           checking: false,
-          responseTime: res.responseTime ?? 10,
+          responseTime: res.ok && res.responseTime != null ? res.responseTime : null,
         });
       }
     };
@@ -171,7 +172,7 @@ export default function AppLayout() {
 
       {/* Role-Based Sidebar */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 flex w-72 flex-col border-r border-[rgba(60,255,160,0.12)] bg-[#030a07]/95 backdrop-blur-2xl transition-transform duration-300 md:static md:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 flex w-[280px] max-w-[calc(100vw-3rem)] flex-col border-r border-[rgba(60,255,160,0.12)] bg-[#030a07]/95 backdrop-blur-2xl transition-transform duration-300 md:static md:translate-x-0 md:w-72 md:max-w-none ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -234,19 +235,24 @@ export default function AppLayout() {
 
           {visibleNav.map((item) => {
             const Icon = item.icon;
+            const isMatch = item.end
+              ? location.pathname === item.path || location.pathname === `${item.path}/`
+              : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+
             return (
               <NavLink
                 key={item.id}
                 to={item.path}
                 end={item.end}
                 onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `w-full group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-mono font-semibold transition-all ${
-                    isActive
+                className={({ isActive }) => {
+                  const highlighted = isActive || isMatch;
+                  return `w-full group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-mono font-semibold transition-all ${
+                    highlighted
                       ? 'bg-[rgba(45,255,154,0.15)] text-[#2dff9a] border border-[#2dff9a]/40 shadow-[0_0_15px_rgba(45,255,154,0.15)]'
-                      : 'text-[#7ea594] hover:bg-[#07110d] hover:text-[#eafff5] hover:border hover:border-[rgba(60,255,160,0.15)]'
-                  }`
-                }
+                      : 'text-[#9abfb0] hover:bg-[#07110d] hover:text-[#eafff5] hover:border hover:border-[rgba(60,255,160,0.15)]'
+                  }`;
+                }}
               >
                 <div className="flex items-center gap-3">
                   <Icon className="h-4 w-4" />
@@ -335,11 +341,11 @@ export default function AppLayout() {
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-[#ff5d7a]" />
                 )}
               </span>
-              <span className="text-[#7ea594] text-[11px]">
+              <span className="text-[#9abfb0] text-xs">
                 {backendHealth.ok ? 'ONLINE' : 'OFFLINE'}
               </span>
-              {backendHealth.responseTime && (
-                <span className="text-[10px] text-[#2dff9a] pl-1 border-l border-[rgba(60,255,160,0.12)]">
+              {backendHealth.ok && backendHealth.responseTime != null && (
+                <span className="text-xs text-[#2dff9a] pl-1.5 border-l border-[rgba(60,255,160,0.18)] font-mono">
                   {backendHealth.responseTime}ms
                 </span>
               )}
@@ -373,9 +379,11 @@ export default function AppLayout() {
 
         {/* Content Viewport */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-          <PageTransition key={location.pathname}>
-            <Outlet />
-          </PageTransition>
+          <AnimatePresence mode="wait" initial={false}>
+            <PageTransition key={location.pathname}>
+              <Outlet />
+            </PageTransition>
+          </AnimatePresence>
         </main>
       </div>
     </div>

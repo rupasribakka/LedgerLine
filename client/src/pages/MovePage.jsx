@@ -24,6 +24,7 @@ import {
 } from '../services/api';
 import GlowCard from '../components/ui/GlowCard';
 import GlowButton from '../components/ui/GlowButton';
+import Skeleton from '../components/ui/Skeleton';
 import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
 
@@ -370,7 +371,9 @@ export default function MovePage() {
           </div>
 
           {/* Balance Preview Panel */}
-          {selectedSourceAccount && (
+          {loadingAccounts ? (
+            <Skeleton className="h-40 rounded-2xl" />
+          ) : selectedSourceAccount && (
             <div className="rounded-2xl border border-[rgba(60,255,160,0.2)] bg-[#03100a] p-4 sm:p-5 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[rgba(60,255,160,0.12)] pb-2.5">
                 <div className="flex items-center gap-2">

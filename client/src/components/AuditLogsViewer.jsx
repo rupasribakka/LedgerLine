@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, RefreshCw, Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { FileText, RefreshCw, ShieldCheck, AlertCircle } from 'lucide-react';
+import Skeleton from './ui/Skeleton';
 import { fetchAuditLogs } from '../services/api';
 
 export default function AuditLogsViewer() {
@@ -109,9 +110,10 @@ export default function AuditLogsViewer() {
       ) : (
         <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/40 p-8 text-center text-xs text-slate-400 font-mono">
           {loading ? (
-            <div className="flex items-center justify-center space-x-2">
-              <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
-              <span>Fetching audit logs from database...</span>
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-full rounded" />
+              <Skeleton className="h-6 w-3/4 rounded mx-auto" />
+              <Skeleton className="h-6 w-1/2 rounded mx-auto" />
             </div>
           ) : (
             'No audit events captured yet. Authentication attempts and financial actions are logged automatically.'

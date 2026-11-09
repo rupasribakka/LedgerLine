@@ -26,8 +26,44 @@ import { useAuth } from '../context/AuthContext';
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('exactly-once');
+  const [activeSection, setActiveSection] = useState('invariants');
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [beamAngle, setBeamAngle] = useState(0);
+
+  const navLinks = [
+    { id: 'invariants', label: 'Invariants' },
+    { id: 'architecture', label: 'Architecture' },
+    { id: 'pipeline', label: 'Pipeline' },
+    { id: 'security', label: 'Security' },
+  ];
+
+  const scrollToSection = (e, id) => {
+    e.preventDefault();
+    const elem = document.getElementById(id);
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth' });
+      setActiveSection(id);
+      window.history.pushState(null, '', `#${id}`);
+    }
+  };
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 180;
+      for (let i = navLinks.length - 1; i >= 0; i--) {
+        const id = navLinks[i].id;
+        const el = document.getElementById(id);
+        if (el && el.offsetTop <= scrollPosition) {
+          setActiveSection(id);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   React.useEffect(() => {
     const isTouch =
@@ -76,19 +112,24 @@ export default function LandingPage() {
           </Link>
 
           {/* Links */}
-          <div className="hidden md:flex items-center gap-5 text-xs font-mono text-[#7ea594]">
-            <a href="#invariants" className="hover:text-[#2dff9a] transition-colors">
-              Invariants
-            </a>
-            <a href="#architecture" className="hover:text-[#2dff9a] transition-colors">
-              Architecture
-            </a>
-            <a href="#pipeline" className="hover:text-[#2dff9a] transition-colors">
-              Pipeline
-            </a>
-            <a href="#security" className="hover:text-[#2dff9a] transition-colors">
-              Security
-            </a>
+          <div className="hidden md:flex items-center gap-1.5 text-xs font-mono">
+            {navLinks.map((link) => {
+              const isActive = activeSection === link.id;
+              return (
+                <a
+                  key={link.id}
+                  href={`#${link.id}`}
+                  onClick={(e) => scrollToSection(e, link.id)}
+                  className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                    isActive
+                      ? 'text-[#2dff9a] bg-[rgba(45,255,154,0.14)] border border-[#2dff9a]/40 shadow-[0_0_12px_rgba(45,255,154,0.25)] font-bold'
+                      : 'text-[#9abfb0] hover:text-[#eafff5] hover:bg-[#07110d]'
+                  }`}
+                >
+                  {link.label}
+                </a>
+              );
+            })}
           </div>
 
           {/* Auth Actions */}

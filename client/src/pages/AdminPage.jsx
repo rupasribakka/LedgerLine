@@ -25,6 +25,7 @@ import GlowCard from '../components/ui/GlowCard';
 import GlowButton from '../components/ui/GlowButton';
 import Badge from '../components/ui/Badge';
 import Input from '../components/ui/Input';
+import Skeleton from '../components/ui/Skeleton';
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -438,39 +439,45 @@ export default function AdminPage() {
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-[rgba(60,255,160,0.14)] bg-[#07110d]">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="border-b border-[rgba(60,255,160,0.12)] bg-[#030a07] text-[#7ea594]">
-                <tr>
-                  <th className="py-3 px-4">User ID</th>
-                  <th className="py-3 px-4">Name</th>
-                  <th className="py-3 px-4">Email</th>
-                  <th className="py-3 px-4">Role Clearance</th>
-                  <th className="py-3 px-4">Registered Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[rgba(60,255,160,0.08)]">
-                {usersList.map((u) => (
-                  <tr key={u.id} className="hover:bg-[#030a07]/60 transition-colors">
-                    <td className="py-3 px-4 font-bold text-[#eafff5]">#{u.id}</td>
-                    <td className="py-3 px-4 text-[#eafff5]">{u.name || 'Account User'}</td>
-                    <td className="py-3 px-4 text-[#7ea594]">{u.email}</td>
-                    <td className="py-3 px-4">
-                      <Badge
-                        variant={u.role === 'admin' ? 'amber' : u.role === 'auditor' ? 'cyan' : 'emerald'}
-                        size="sm"
-                      >
-                        {u.role.toUpperCase()}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-[#7ea594]">
-                      {new Date(u.created_at).toLocaleDateString()}
-                    </td>
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-48 rounded-2xl" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-[rgba(60,255,160,0.14)] bg-[#07110d]">
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="border-b border-[rgba(60,255,160,0.12)] bg-[#030a07] text-[#7ea594]">
+                  <tr>
+                    <th className="py-3 px-4">User ID</th>
+                    <th className="py-3 px-4">Name</th>
+                    <th className="py-3 px-4">Email</th>
+                    <th className="py-3 px-4">Role Clearance</th>
+                    <th className="py-3 px-4">Registered Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[rgba(60,255,160,0.08)]">
+                  {usersList.map((u) => (
+                    <tr key={u.id} className="hover:bg-[#030a07]/60 transition-colors">
+                      <td className="py-3 px-4 font-bold text-[#eafff5]">#{u.id}</td>
+                      <td className="py-3 px-4 text-[#eafff5]">{u.name || 'Account User'}</td>
+                      <td className="py-3 px-4 text-[#7ea594]">{u.email}</td>
+                      <td className="py-3 px-4">
+                        <Badge
+                          variant={u.role === 'admin' ? 'amber' : u.role === 'auditor' ? 'cyan' : 'emerald'}
+                          size="sm"
+                        >
+                          {u.role.toUpperCase()}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-[#7ea594]">
+                        {new Date(u.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

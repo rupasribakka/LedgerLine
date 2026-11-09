@@ -9,8 +9,8 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // JWT and session state kept in memory only (page refresh returns to login)
-let inMemoryToken = null;
-let inMemoryUser = null;
+let inMemoryToken = typeof window !== 'undefined' ? (window.__PRELOADED_TOKEN__ || null) : null;
+let inMemoryUser = typeof window !== 'undefined' ? (window.__PRELOADED_USER__ || null) : null;
 
 export function getStoredToken() {
   return inMemoryToken;

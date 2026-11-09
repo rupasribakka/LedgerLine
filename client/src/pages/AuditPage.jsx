@@ -406,7 +406,12 @@ export default function AuditPage() {
             </span>
           </div>
 
-          {duplicatesData.length === 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-28 rounded-2xl" />
+              <Skeleton className="h-28 rounded-2xl" />
+            </div>
+          ) : duplicatesData.length === 0 ? (
             <GlowCard className="p-12 text-center space-y-3">
               <CheckCircle2 className="h-10 w-10 text-[#2dff9a] mx-auto" />
               <h4 className="text-base font-bold font-mono text-[#eafff5]">Zero duplicate replays recorded</h4>
@@ -473,7 +478,11 @@ export default function AuditPage() {
             </span>
           </div>
 
-          {auditLogs.length === 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-48 rounded-2xl" />
+            </div>
+          ) : auditLogs.length === 0 ? (
             <GlowCard className="p-10 text-center space-y-2">
               <p className="text-sm font-mono text-[#eafff5]">No audit logs available</p>
               <p className="text-xs text-[#7ea594]">All security events are streamed in real time.</p>

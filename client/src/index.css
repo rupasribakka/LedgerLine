@@ -65,6 +65,12 @@
   .text-zinc-500 {
     color: #9abfb0 !important;
   }
+
+  /* Visible keyboard focus for accessibility */
+  :focus-visible {
+    outline: 2px solid #2dff9a !important;
+    outline-offset: 2px !important;
+  }
 }
 
 /* Custom Cursor Rules (Non-Touch / Non-Reduced-Motion) */
