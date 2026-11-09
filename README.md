@@ -9,7 +9,7 @@
 ## 📌 Executive Summary
 
 **LedgerLine** is engineered to guarantee mathematical correctness, concurrency safety, robust idempotency, and auditability:
-1. **No Duplicate Payments**: Client-supplied idempotency keys (`Idempotency-Key` header with canonical SHA-256 payload hashing) ensure financial requests never execute twice. Identical replays return cached responses with `X-Cache: REPLAY`. Reusing an idempotency key with a mismatched request payload returns `HTTP 422 Unprocessable Entity` (`IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
+1. **No Duplicate Payments**: Client-supplied idempotency keys (`Idempotency-Key` header with canonical sorted-key JSON SHA-256 payload hashing) ensure financial requests never execute twice. Identical replays return cached responses with `X-Cache: REPLAY`. Reusing an idempotency key with a mismatched request payload returns `HTTP 422 Unprocessable Entity` (`IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
 2. **No Race Conditions / Double Spending**: Deterministic row-level locking (`SELECT id FROM accounts WHERE id IN (...) ORDER BY id ASC FOR UPDATE`) serializes concurrent transactions and completely eliminates reciprocal transfer deadlocks.
 3. **No Negative Balances**: Strict database check constraints (`chk_no_overdraft` requiring `balance_paise >= 0`) and atomic pre-transfer balance validation prevent unauthorized overdrafts.
 4. **No Rounding Leakage**: All monetary values are stored strictly as **integers in paise** (`₹1.00 = 100 paise`), entirely eliminating IEEE 754 floating-point inaccuracies.
@@ -43,7 +43,7 @@ Opening the URL loads the React cyber console. You can sign in using manual cred
 | **Database** | PostgreSQL 16 + `pg` | Parameterized SQL, row-level locks, BigInt precision, immutability triggers |
 | **Cloud Hosting** | Render | Automated Blueprint deployment with Dockerless Node web service |
 | **Cloud Database**| Neon PostgreSQL | Serverless PostgreSQL with direct compute routing for dynamic SQL roles |
-| **Security** | JWT + bcryptjs + crypto | Fresh database role re-reading per request, canonical request hashing, CSP |
+| **Security** | JWT + bcryptjs + crypto | Fresh database role re-reading per request, canonical sorted-key JSON hashing, CSP |
 | **Testing** | Vitest + Supertest | 133 automated unit, integration, invariant, and concurrency tests |
 
 ---
@@ -77,7 +77,7 @@ LedgerLine/
 │   ├── phase2.test.js          # Double-entry integrity and hash chains
 │   ├── phase3.test.js          # Authentication, rate limiting, and RBAC
 │   ├── phase4.test.js          # Concurrency, race conditions, reciprocal deadlock prevention
-│   ├── phase5.security.test.js # Canonical request hash, strict integer validation, JWT security
+│   ├── phase5.security.test.js # Canonical sorted-key JSON, strict integer validation, JWT security
 │   ├── phase6.complete_backend.test.js # Full API contract, audit log capping, legacy endpoints
 │   └── phase7.prod_boot.test.js # Production boot sequence, runtime role isolation, idempotent seed
 ├── client/                     # React 19 + Vite 8 frontend

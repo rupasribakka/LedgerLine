@@ -573,7 +573,7 @@ export default function AccountStatementPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#eafff5]">
                             <Terminal className="h-3.5 w-3.5 text-[#2dff9a]" />
-                            <span>Canonical Block JSON Payload (RFC 8785)</span>
+                            <span>Canonical Block JSON Payload (canonical sorted-key JSON)</span>
                           </div>
                           <div className="flex items-center gap-2 text-[10px] font-mono">
                             <span className="px-2 py-0.5 rounded bg-[#020605] text-[#2dff9a] border border-[#2dff9a]/30">

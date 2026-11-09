@@ -95,7 +95,7 @@ LedgerLine is engineered from the ground up as a high-integrity, double-entry fi
 - **`src/auth.js`**: JWT generation/verification, bcrypt hashing, dynamic server-side role re-reading from DB, authorization enforcement (`requireRole`), IDOR prevention (`canMoveFrom`), and brute-force rate limiting.
 - **`src/ledger.js`**: Financial transaction core, integer paise validation, deterministic row-level locking (`ORDER BY id ASC FOR UPDATE`), balance checking, atomic double-entry balance updates, append-only journal insertions, and transaction status queries.
 - **`src/audit.js`**: Immutable audit event recorder (`recordAuditLog`), sanitization of sensitive metadata, account statement generation with replay counts, system reconciliation service (`verifySystemIntegrity`), and duplicate replay tracking.
-- **`src/hash.js`**: Canonical string serialization, SHA-256 hash generation, and mathematical cryptographic hash chain verification.
+- **`src/hash.js`**: Canonical sorted-key JSON serialization, SHA-256 hash generation, and mathematical cryptographic hash chain verification.
 - **`src/db.js`**: PostgreSQL connection pooling, embedded PostgreSQL management for tests, transaction wrappers (`withTransaction`), and runtime least-privilege verification (`assertProductionRuntimeRole`).
 - **`src/config.js`**: Environment variable validation, JWT secret strength enforcement, and production separation of runtime and migration roles.
 - **`src/migrate.js`**: Versioned SQL migration runner tracking applied migrations in `schema_migrations`.
