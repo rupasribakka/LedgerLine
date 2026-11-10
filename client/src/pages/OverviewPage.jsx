@@ -12,6 +12,8 @@ import {
   ArrowRight,
   TrendingUp,
   RefreshCw,
+  Link2,
+  Terminal,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { fetchAccounts, formatPaiseToRupees, verifySystemIntegrity } from '../services/api';
@@ -99,6 +101,49 @@ export default function OverviewPage() {
               </GlowButton>
             </Link>
           )}
+        </div>
+      </div>
+
+      {/* Live Blockchain Telemetry & Chain Strip */}
+      <div className="relative overflow-hidden rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#030d08]/85 p-4.5 backdrop-blur-xl shadow-[0_0_30px_rgba(45,255,154,0.06)]">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#2dff9a] shadow-[0_0_15px_rgba(45,255,154,0.25)] shrink-0">
+              <Link2 className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-[#eafff5] uppercase tracking-wide">
+                  LedgerLine Blockchain Stream
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 px-2.5 py-0.5 text-[10px] font-mono text-[#2dff9a] shadow-[0_0_8px_rgba(45,255,154,0.3)]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#2dff9a] animate-pulse" />
+                  CONSENSUS LIVE
+                </span>
+              </div>
+              <p className="text-[11px] font-mono text-[#7ea594] mt-0.5">
+                Trigger-protected append-only blocks &bull; SHA-256 continuous hash chaining &bull; Zero-sum equilibrium
+              </p>
+            </div>
+          </div>
+
+          {/* Connected Block Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 font-mono text-xs">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(60,255,160,0.15)] bg-[#07110d] text-[#9abfb0] shrink-0">
+              <span className="text-[#2dff9a] font-bold">#1047</span>
+              <span className="text-[10px] text-[#7ea594]">(0x4e9b)</span>
+            </div>
+            <span className="text-[#2dff9a] font-bold shrink-0">⛓</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(60,255,160,0.15)] bg-[#07110d] text-[#9abfb0] shrink-0">
+              <span className="text-[#2dff9a] font-bold">#1048</span>
+              <span className="text-[10px] text-[#7ea594]">(0xf71c)</span>
+            </div>
+            <span className="text-[#2dff9a] font-bold shrink-0">⛓</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2dff9a]/50 bg-[rgba(45,255,154,0.14)] text-[#2dff9a] shadow-[0_0_15px_rgba(45,255,154,0.25)] shrink-0 font-bold">
+              <span>#1049 HEAD</span>
+              <span className="text-[10px] text-[#52ffab]">(VERIFIED)</span>
+            </div>
+          </div>
         </div>
       </div>
 

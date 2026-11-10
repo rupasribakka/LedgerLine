@@ -28,6 +28,7 @@ import Badge from '../ui/Badge';
 import GlowButton from '../ui/GlowButton';
 import PageTransition from '../motion/PageTransition';
 import CommandPalette from '../ui/CommandPalette';
+import BlockchainBackground from '../ui/BlockchainBackground';
 
 const NAV_CONFIG = [
   {
@@ -296,8 +297,10 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content Area with Cryptographic Blockchain Background */}
+      <div className="flex-1 flex flex-col min-w-0 relative">
+        <BlockchainBackground opacity={0.65} interactive={true} />
+
         {/* Top Header */}
         <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-[rgba(60,255,160,0.12)] bg-[#020605]/85 px-4 sm:px-6 backdrop-blur-xl">
           <div className="flex items-center gap-3">
@@ -389,7 +392,7 @@ export default function AppLayout() {
         </header>
 
         {/* Content Viewport */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative z-10">
           <AnimatePresence mode="wait" initial={false}>
             <PageTransition key={location.pathname}>
               <Outlet />
