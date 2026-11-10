@@ -65,7 +65,7 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    const result = await login({ email: email.trim(), password });
+    const result = await login(email.trim(), password);
     setLoading(false);
 
     if (result.success) {

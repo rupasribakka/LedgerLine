@@ -27,7 +27,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Sync session state from memory
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (emailOrObj, maybePassword) => {
+    let email = emailOrObj;
+    let password = maybePassword;
+    if (emailOrObj && typeof emailOrObj === 'object') {
+      email = emailOrObj.email;
+      password = emailOrObj.password;
+    }
     setAuthError(null);
     const result = await loginUser(email, password);
     if (result.ok && result.data?.user) {

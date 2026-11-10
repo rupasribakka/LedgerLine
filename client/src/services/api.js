@@ -279,7 +279,13 @@ export async function checkBackendHealth({ details = false } = {}) {
 /**
  * 2. Authentication API (Must send { email, password })
  */
-export async function loginUser(email, password) {
+export async function loginUser(emailOrObj, maybePassword) {
+  let email = emailOrObj;
+  let password = maybePassword;
+  if (emailOrObj && typeof emailOrObj === 'object') {
+    email = emailOrObj.email;
+    password = emailOrObj.password;
+  }
   const res = await request('/api/auth/login', {
     method: 'POST',
     body: { email, password },
