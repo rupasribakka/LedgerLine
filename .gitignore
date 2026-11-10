@@ -51,3 +51,9 @@ Thumbs.db
 # Puppeteer profiles
 .pup_*
 **/.pup_*
+
+# Screenshots and visual captures
+screenshots/
+*.png
+!client/src/assets/**
+
