@@ -21,13 +21,15 @@ export default function GlowButton({
 
   const variantClasses = {
     primary:
-      'bg-[#2dff9a] text-[#020605] font-bold shadow-[0_0_20px_rgba(45,255,154,0.35)] hover:shadow-[0_0_30px_rgba(45,255,154,0.6)] hover:bg-[#3affab]',
+      'bg-gradient-to-r from-[#16BFFF] to-[#387BFF] text-[#050B18] font-bold shadow-[0_0_20px_rgba(22,191,255,0.38)] hover:shadow-[0_0_30px_rgba(22,191,255,0.65)] hover:brightness-110 active:scale-[0.98]',
     secondary:
-      'bg-[#07110d] text-[#eafff5] border border-[rgba(60,255,160,0.2)] hover:border-[#2dff9a] hover:bg-[#0d1e18] hover:text-[#2dff9a]',
+      'bg-[#0A1426] text-[#F4F8FF] border border-[rgba(22,191,255,0.22)] hover:border-[#16BFFF] hover:bg-[#101E33] hover:text-[#16BFFF] active:scale-[0.98]',
+    highlight:
+      'bg-gradient-to-r from-[#387BFF] to-[#8B7CFF] text-[#F4F8FF] font-semibold shadow-[0_0_20px_rgba(139,124,255,0.35)] hover:shadow-[0_0_30px_rgba(139,124,255,0.6)] active:scale-[0.98]',
     danger:
-      'bg-[rgba(255,93,122,0.12)] text-[#ff5d7a] border border-[rgba(255,93,122,0.3)] hover:bg-[rgba(255,93,122,0.22)] hover:border-[#ff5d7a]',
+      'bg-[rgba(255,91,122,0.12)] text-[#FF5B7A] border border-[rgba(255,91,122,0.3)] hover:bg-[rgba(255,91,122,0.22)] hover:border-[#FF5B7A] active:scale-[0.98]',
     ghost:
-      'bg-transparent text-[#7ea594] hover:text-[#eafff5] hover:bg-[rgba(60,255,160,0.06)]',
+      'bg-transparent text-[#9AAEC5] hover:text-[#F4F8FF] hover:bg-[rgba(22,191,255,0.08)]',
   }[variant] || '';
 
   return (
@@ -40,7 +42,7 @@ export default function GlowButton({
     >
       {/* Subtle hover shimmer */}
       <span className="pointer-events-none absolute inset-0 rounded-full overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <span className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/25 to-transparent" />
       </span>
 
       {loading ? (

@@ -3,8 +3,8 @@ import React, { useEffect, useRef } from 'react';
 /**
  * CyberBackground Component
  * 
- * An elite, high-performance Canvas cybersecurity visual background:
- * - Rotating radar sweep with phosphor emerald / cyan gradient and glowing laser lead
+ * An elite, high-performance Canvas cybersecurity visual background (Cybersecurity Blue):
+ * - Rotating radar sweep with electric cyan & neon blue gradient
  * - Interconnected sentinel nodes forming a zero-trust mesh with security pulses
  * - Vertical hexadecimal / binary matrix streams drifting smoothly down
  * - Tactical HUD corner brackets with real-time cybersecurity status tags
@@ -20,7 +20,7 @@ export default function CyberBackground({
   showMatrix = true,
   showHUD = true,
   nodeCount = null,
-  accentColor = '#2dff9a',
+  accentColor = '#16BFFF',
   className = '',
 }) {
   const canvasRef = useRef(null);
@@ -80,7 +80,7 @@ export default function CyberBackground({
     }
 
     // -----------------------------------------------------------------
-    // CYBER SENTINEL MESH NODES
+    // CYBER SENTINEL MESH NODES (Cybersecurity Blue Theme)
     // -----------------------------------------------------------------
     const isMobile = width < 768;
     const COUNT = nodeCount || (isMobile ? 36 : 68);
@@ -88,10 +88,10 @@ export default function CyberBackground({
     const MOUSE_RADIUS = 160;
 
     const colors = [
-      { r: 45, g: 255, b: 154, hex: '#2dff9a' }, // Emerald Cyber
-      { r: 6, g: 182, b: 212, hex: '#06b6d4' },   // Cyan Telemetry
-      { r: 82, g: 255, b: 171, hex: '#52ffab' },  // Light Matrix
-      { r: 20, g: 184, b: 166, hex: '#14b8a6' },  // Teal Sentinel
+      { r: 22, g: 191, b: 255, hex: '#16BFFF' }, // Electric Cyan
+      { r: 56, g: 123, b: 255, hex: '#387BFF' }, // Neon Blue
+      { r: 139, g: 124, b: 255, hex: '#8B7CFF' }, // Subtle Purple
+      { r: 56, g: 189, b: 248, hex: '#38bdf8' }, // Sky Blue
     ];
 
     const nodes = [];
@@ -192,7 +192,7 @@ export default function CyberBackground({
       if (showGrid) {
         ctx.save();
         const gridSize = isMobile ? 60 : 75;
-        ctx.strokeStyle = 'rgba(45, 255, 154, 0.04)';
+        ctx.strokeStyle = 'rgba(22, 191, 255, 0.04)';
         ctx.lineWidth = 1;
 
         for (let x = 0; x < width; x += gridSize) {
@@ -209,7 +209,7 @@ export default function CyberBackground({
         }
 
         // Draw tactical targeting crosshairs at select grid intersections
-        ctx.strokeStyle = 'rgba(45, 255, 154, 0.18)';
+        ctx.strokeStyle = 'rgba(22, 191, 255, 0.18)';
         ctx.lineWidth = 1;
         const crosshairStep = gridSize * 2;
         for (let x = crosshairStep; x < width; x += crosshairStep) {
@@ -244,7 +244,7 @@ export default function CyberBackground({
             const cyPos = st.y - c * 13;
             if (cyPos > -15 && cyPos < height + 15) {
               const charAlpha = (1 - c / st.chars.length) * st.opacity;
-              ctx.fillStyle = c === 0 ? 'rgba(255, 255, 255, 0.5)' : `rgba(45, 255, 154, ${charAlpha})`;
+              ctx.fillStyle = c === 0 ? 'rgba(244, 248, 255, 0.55)' : `rgba(22, 191, 255, ${charAlpha})`;
               ctx.fillText(st.chars[c], st.x, cyPos);
             }
           }
@@ -267,9 +267,9 @@ export default function CyberBackground({
         ctx.closePath();
 
         const radarGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius);
-        radarGrad.addColorStop(0, 'rgba(45, 255, 154, 0.14)');
-        radarGrad.addColorStop(0.35, 'rgba(45, 255, 154, 0.04)');
-        radarGrad.addColorStop(0.7, 'rgba(6, 182, 212, 0.015)');
+        radarGrad.addColorStop(0, 'rgba(22, 191, 255, 0.15)');
+        radarGrad.addColorStop(0.35, 'rgba(56, 123, 255, 0.04)');
+        radarGrad.addColorStop(0.7, 'rgba(139, 124, 255, 0.015)');
         radarGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = radarGrad;
         ctx.fill();
@@ -280,9 +280,9 @@ export default function CyberBackground({
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(endX, endY);
-        ctx.strokeStyle = 'rgba(45, 255, 154, 0.38)';
+        ctx.strokeStyle = 'rgba(22, 191, 255, 0.45)';
         ctx.lineWidth = 1.6;
-        ctx.shadowColor = '#2dff9a';
+        ctx.shadowColor = '#16BFFF';
         ctx.shadowBlur = 10;
         ctx.stroke();
 
@@ -292,12 +292,12 @@ export default function CyberBackground({
         for (let r = 120; r < maxRadius; r += 160) {
           ctx.beginPath();
           ctx.arc(cx, cy, r, 0, Math.PI * 2);
-          ctx.strokeStyle = 'rgba(45, 255, 154, 0.05)';
+          ctx.strokeStyle = 'rgba(22, 191, 255, 0.05)';
           ctx.lineWidth = 1;
           ctx.stroke();
 
           // Concentric zone label
-          ctx.fillStyle = 'rgba(45, 255, 154, 0.2)';
+          ctx.fillStyle = 'rgba(22, 191, 255, 0.22)';
           ctx.fillText(`ZONE_${Math.round(r)}`, cx + r + 6, cy - 4);
         }
         ctx.restore();
@@ -315,7 +315,7 @@ export default function CyberBackground({
         if (tag.y < 0) tag.y = height;
         if (tag.y > height) tag.y = 0;
 
-        ctx.fillStyle = `rgba(45, 255, 154, ${tag.alpha * 0.75})`;
+        ctx.fillStyle = `rgba(22, 191, 255, ${tag.alpha * 0.75})`;
         ctx.fillText(tag.text, tag.x, tag.y);
       }
       ctx.restore();
@@ -358,7 +358,7 @@ export default function CyberBackground({
             ctx.beginPath();
             ctx.moveTo(n1.x, n1.y);
             ctx.lineTo(n2.x, n2.y);
-            ctx.strokeStyle = `rgba(45, 255, 154, ${alpha})`;
+            ctx.strokeStyle = `rgba(22, 191, 255, ${alpha})`;
             ctx.lineWidth = 1;
             ctx.stroke();
           }
@@ -386,8 +386,8 @@ export default function CyberBackground({
 
             ctx.beginPath();
             ctx.arc(px, py, pkt.size, 0, Math.PI * 2);
-            ctx.fillStyle = '#2dff9a';
-            ctx.shadowColor = '#2dff9a';
+            ctx.fillStyle = '#16BFFF';
+            ctx.shadowColor = '#16BFFF';
             ctx.shadowBlur = 10;
             ctx.fill();
           }
@@ -423,7 +423,7 @@ export default function CyberBackground({
       // 8. Cyber HUD Tactical Frame Brackets in Viewport Corners
       if (showHUD) {
         ctx.save();
-        ctx.strokeStyle = 'rgba(45, 255, 154, 0.28)';
+        ctx.strokeStyle = 'rgba(22, 191, 255, 0.28)';
         ctx.lineWidth = 1.5;
         const bracketSize = isMobile ? 18 : 26;
         const pad = isMobile ? 16 : 24;
@@ -459,14 +459,14 @@ export default function CyberBackground({
         // Tactical HUD Telemetry Labels
         if (!isMobile) {
           ctx.font = '9px "JetBrains Mono", monospace';
-          ctx.fillStyle = 'rgba(45, 255, 154, 0.35)';
+          ctx.fillStyle = 'rgba(22, 191, 255, 0.38)';
           ctx.textAlign = 'left';
           ctx.fillText('[+ PROTOCOL: ZERO_TRUST // SHA-256 +]', pad + 8, pad + 14);
-          ctx.fillText('[+ DEFENSE: ACTIVE SENTINEL MESH +]', pad + 8, height - pad - 6);
+          ctx.fillText('[+ DEFENSE: SENTINEL MESH ACTIVE +]', pad + 8, height - pad - 6);
 
           ctx.textAlign = 'right';
           ctx.fillText('[+ CLEARANCE: STRICT_LOCK // INVARIANTS +]', width - pad - 8, pad + 14);
-          ctx.fillText('[+ LEDGERLINE SEC_OPS v2.4 +]', width - pad - 8, height - pad - 6);
+          ctx.fillText('[+ BALANCEVAULT SEC_OPS v3.0 +]', width - pad - 8, height - pad - 6);
         }
         ctx.restore();
       }
@@ -478,8 +478,8 @@ export default function CyberBackground({
           mouse.x, mouse.y, 0,
           mouse.x, mouse.y, 150
         );
-        cursorGlow.addColorStop(0, 'rgba(45, 255, 154, 0.15)');
-        cursorGlow.addColorStop(0.6, 'rgba(6, 182, 212, 0.05)');
+        cursorGlow.addColorStop(0, 'rgba(22, 191, 255, 0.16)');
+        cursorGlow.addColorStop(0.6, 'rgba(56, 123, 255, 0.05)');
         cursorGlow.addColorStop(1, 'transparent');
         ctx.fillStyle = cursorGlow;
         ctx.beginPath();

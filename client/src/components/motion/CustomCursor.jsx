@@ -147,8 +147,8 @@ export default function CustomCursor() {
 
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(45, 255, 154, ${p.alpha})`;
-          ctx.shadowColor = 'rgba(45, 255, 154, 0.4)';
+          ctx.fillStyle = `rgba(22, 191, 255, ${p.alpha})`;
+          ctx.shadowColor = 'rgba(22, 191, 255, 0.45)';
           ctx.shadowBlur = 4;
           ctx.fill();
         }
@@ -192,23 +192,23 @@ export default function CustomCursor() {
           marginLeft: isHovering ? '-24px' : '-16px',
           marginTop: isHovering ? '-24px' : '-16px',
           border: isHovering
-            ? '1.5px solid rgba(45, 255, 154, 0.9)'
-            : '1px solid rgba(45, 255, 154, 0.65)',
+            ? '1.5px solid rgba(22, 191, 255, 0.95)'
+            : '1px solid rgba(22, 191, 255, 0.65)',
           backgroundColor: isHovering
-            ? 'rgba(45, 255, 154, 0.12)'
-            : 'rgba(45, 255, 154, 0.03)',
+            ? 'rgba(22, 191, 255, 0.14)'
+            : 'rgba(22, 191, 255, 0.03)',
           boxShadow: isHovering
-            ? '0 0 20px rgba(45, 255, 154, 0.35)'
-            : '0 0 10px rgba(45, 255, 154, 0.15)',
+            ? '0 0 20px rgba(22, 191, 255, 0.45)'
+            : '0 0 10px rgba(22, 191, 255, 0.2)',
         }}
       >
         {/* Tiny center dot */}
         <div
-          className="rounded-full bg-[#2dff9a] transition-all duration-150"
+          className="rounded-full bg-[#16BFFF] transition-all duration-150"
           style={{
             width: isHovering ? '5px' : '3px',
             height: isHovering ? '5px' : '3px',
-            boxShadow: '0 0 6px #2dff9a',
+            boxShadow: '0 0 8px #16BFFF',
           }}
         />
       </div>

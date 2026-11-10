@@ -10,10 +10,8 @@ import {
   Sparkles,
   Lock,
   ArrowRight,
-  TrendingUp,
   RefreshCw,
   Link2,
-  Terminal,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { fetchAccounts, formatPaiseToRupees, verifySystemIntegrity } from '../services/api';
@@ -63,17 +61,21 @@ export default function OverviewPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(60,255,160,0.12)] pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(22,191,255,0.16)] pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs font-mono uppercase text-[#2dff9a] tracking-wider">
-              {role === 'admin' ? 'Root Administrative Clearance' : role === 'auditor' ? 'Independent Audit Clearance' : 'Standard Account Holder'}
+            <span className="text-xs font-mono uppercase text-[#16BFFF] tracking-wider font-bold">
+              {role === 'admin'
+                ? 'Root Administrative Clearance'
+                : role === 'auditor'
+                ? 'Independent Audit Clearance'
+                : 'Standard Account Holder'}
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#eafff5]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#F4F8FF]">
             Financial Operations Overview
           </h1>
-          <p className="text-xs sm:text-sm text-[#7ea594] mt-1">
+          <p className="text-xs sm:text-sm text-[#9AAEC5] mt-1">
             Real-time ledger state, cryptographic continuity proofs, and account balances.
           </p>
         </div>
@@ -105,23 +107,23 @@ export default function OverviewPage() {
       </div>
 
       {/* Live Blockchain Telemetry & Chain Strip */}
-      <div className="relative overflow-hidden rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#030d08]/85 p-4.5 backdrop-blur-xl shadow-[0_0_30px_rgba(45,255,154,0.06)]">
+      <div className="relative overflow-hidden rounded-2xl border border-[rgba(22,191,255,0.2)] bg-[#0A1426]/90 p-5 backdrop-blur-xl shadow-[0_0_30px_rgba(22,191,255,0.08)]">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#2dff9a] shadow-[0_0_15px_rgba(45,255,154,0.25)] shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/50 text-[#16BFFF] shadow-[0_0_15px_rgba(22,191,255,0.3)] shrink-0">
               <Link2 className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-[#eafff5] uppercase tracking-wide">
-                  LedgerLine Blockchain Stream
+                <span className="text-xs font-mono font-bold text-[#F4F8FF] uppercase tracking-wide">
+                  BalanceVault Blockchain Stream
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 px-2.5 py-0.5 text-[10px] font-mono text-[#2dff9a] shadow-[0_0_8px_rgba(45,255,154,0.3)]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#2dff9a] animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/40 px-2.5 py-0.5 text-[10px] font-mono text-[#16BFFF] shadow-[0_0_8px_rgba(22,191,255,0.3)]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#16BFFF] animate-pulse" />
                   CONSENSUS LIVE
                 </span>
               </div>
-              <p className="text-[11px] font-mono text-[#7ea594] mt-0.5">
+              <p className="text-[11px] font-mono text-[#9AAEC5] mt-0.5">
                 Trigger-protected append-only blocks &bull; SHA-256 continuous hash chaining &bull; Zero-sum equilibrium
               </p>
             </div>
@@ -129,19 +131,19 @@ export default function OverviewPage() {
 
           {/* Connected Block Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 font-mono text-xs">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(60,255,160,0.15)] bg-[#07110d] text-[#9abfb0] shrink-0">
-              <span className="text-[#2dff9a] font-bold">#1047</span>
-              <span className="text-[10px] text-[#7ea594]">(0x4e9b)</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(22,191,255,0.16)] bg-[#050B18] text-[#9AAEC5] shrink-0">
+              <span className="text-[#16BFFF] font-bold">#1047</span>
+              <span className="text-[10px] text-[#9AAEC5]">(0x4e9b)</span>
             </div>
-            <span className="text-[#2dff9a] font-bold shrink-0">⛓</span>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(60,255,160,0.15)] bg-[#07110d] text-[#9abfb0] shrink-0">
-              <span className="text-[#2dff9a] font-bold">#1048</span>
-              <span className="text-[10px] text-[#7ea594]">(0xf71c)</span>
+            <span className="text-[#16BFFF] font-bold shrink-0">⛓</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(22,191,255,0.16)] bg-[#050B18] text-[#9AAEC5] shrink-0">
+              <span className="text-[#16BFFF] font-bold">#1048</span>
+              <span className="text-[10px] text-[#9AAEC5]">(0xf71c)</span>
             </div>
-            <span className="text-[#2dff9a] font-bold shrink-0">⛓</span>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2dff9a]/50 bg-[rgba(45,255,154,0.14)] text-[#2dff9a] shadow-[0_0_15px_rgba(45,255,154,0.25)] shrink-0 font-bold">
+            <span className="text-[#16BFFF] font-bold shrink-0">⛓</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#16BFFF]/50 bg-[rgba(22,191,255,0.16)] text-[#16BFFF] shadow-[0_0_15px_rgba(22,191,255,0.3)] shrink-0 font-bold">
               <span>#1049 HEAD</span>
-              <span className="text-[10px] text-[#52ffab]">(VERIFIED)</span>
+              <span className="text-[10px] text-[#38bdf8]">(VERIFIED)</span>
             </div>
           </div>
         </div>
@@ -151,56 +153,56 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Available Balance */}
         <GlowCard className="p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#7ea594]">
+          <div className="flex items-center justify-between text-[#9AAEC5]">
             <span className="text-xs font-mono font-medium">TOTAL BALANCES</span>
-            <Wallet className="h-4 w-4 text-[#2dff9a]" />
+            <Wallet className="h-4 w-4 text-[#16BFFF]" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#eafff5]">
+          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#F4F8FF]">
             {loading ? <Skeleton className="h-8 w-28" /> : <SmoothPaiseCounter paise={totalPaise} />}
           </p>
-          <p className="text-[11px] font-mono text-[#7ea594]">
+          <p className="text-[11px] font-mono text-[#9AAEC5]">
             Across {accounts.length} active account{accounts.length === 1 ? '' : 's'}
           </p>
         </GlowCard>
 
         {/* Global Sum Invariant */}
         <GlowCard className="p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#7ea594]">
+          <div className="flex items-center justify-between text-[#9AAEC5]">
             <span className="text-xs font-mono font-medium">GLOBAL SUM (Σ)</span>
-            <ShieldCheck className="h-4 w-4 text-[#2dff9a]" />
+            <ShieldCheck className="h-4 w-4 text-[#16BFFF]" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#2dff9a]">
+          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#16BFFF]">
             0 PAISE
           </p>
-          <p className="text-[11px] font-mono text-[#7ea594]">
+          <p className="text-[11px] font-mono text-[#9AAEC5]">
             Zero-Sum Conservation Proof
           </p>
         </GlowCard>
 
         {/* Concurrency Guard */}
         <GlowCard className="p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#7ea594]">
+          <div className="flex items-center justify-between text-[#9AAEC5]">
             <span className="text-xs font-mono font-medium">CONCURRENCY LOCK</span>
-            <Lock className="h-4 w-4 text-[#eafff5]" />
+            <Lock className="h-4 w-4 text-[#387BFF]" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#eafff5]">
+          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#F4F8FF]">
             ORDER BY ASC
           </p>
-          <p className="text-[11px] font-mono text-[#7ea594]">
+          <p className="text-[11px] font-mono text-[#9AAEC5]">
             Deadlock-Free FOR UPDATE
           </p>
         </GlowCard>
 
         {/* Cryptographic Continuity */}
         <GlowCard className="p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#7ea594]">
+          <div className="flex items-center justify-between text-[#9AAEC5]">
             <span className="text-xs font-mono font-medium">IMMUTABILITY</span>
-            <Activity className="h-4 w-4 text-[#2dff9a]" />
+            <Activity className="h-4 w-4 text-[#8B7CFF]" />
           </div>
-          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#2dff9a]">
+          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#8B7CFF]">
             SHA-256
           </p>
-          <p className="text-[11px] font-mono text-[#7ea594]">
+          <p className="text-[11px] font-mono text-[#9AAEC5]">
             Append-Only Trigger Protected
           </p>
         </GlowCard>
@@ -210,14 +212,14 @@ export default function OverviewPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold font-mono text-[#eafff5]">
+            <h2 className="text-lg font-bold font-mono text-[#F4F8FF]">
               Active Financial Accounts
             </h2>
-            <p className="text-xs text-[#7ea594]">
+            <p className="text-xs text-[#9AAEC5]">
               Authorized accounts associated with this session
             </p>
           </div>
-          <Link to="/app/accounts" className="text-xs font-mono text-[#2dff9a] hover:underline flex items-center gap-1">
+          <Link to="/app/accounts" className="text-xs font-mono text-[#16BFFF] hover:underline flex items-center gap-1">
             <span>View All</span>
             <ArrowRight className="h-3 w-3" />
           </Link>
@@ -230,9 +232,9 @@ export default function OverviewPage() {
           </div>
         ) : accounts.length === 0 ? (
           <GlowCard className="p-8 text-center space-y-3">
-            <Wallet className="h-8 w-8 text-[#7ea594] mx-auto" />
-            <p className="text-sm font-mono text-[#eafff5]">No accounts loaded yet</p>
-            <p className="text-xs text-[#7ea594]">Sign in or contact system administrator to provision an account.</p>
+            <Wallet className="h-8 w-8 text-[#9AAEC5] mx-auto" />
+            <p className="text-sm font-mono text-[#F4F8FF]">No accounts loaded yet</p>
+            <p className="text-xs text-[#9AAEC5]">Sign in or contact system administrator to provision an account.</p>
           </GlowCard>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -240,32 +242,32 @@ export default function OverviewPage() {
               <GlowCard key={acc.id} className="p-5 space-y-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-[10px] font-mono text-[#7ea594]">
+                    <span className="text-[10px] font-mono text-[#9AAEC5]">
                       ACCOUNT #{String(acc.id).padStart(4, '0')}
                     </span>
-                    <h3 className="text-base font-bold font-mono text-[#eafff5] truncate">
+                    <h3 className="text-base font-bold font-mono text-[#F4F8FF] truncate">
                       {acc.name || `Account ${acc.id}`}
                     </h3>
                   </div>
-                  <Badge variant={acc.status === 'ACTIVE' ? 'emerald' : 'amber'} size="sm">
+                  <Badge variant={acc.status === 'ACTIVE' ? 'cyan' : 'amber'} size="sm">
                     {acc.status || 'ACTIVE'}
                   </Badge>
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-mono text-[#7ea594]">Settled Balance</span>
-                  <p className="text-xl font-bold font-mono text-[#2dff9a]">
+                  <span className="text-[11px] font-mono text-[#9AAEC5]">Settled Balance</span>
+                  <p className="text-xl font-bold font-mono text-[#16BFFF]">
                     <SmoothPaiseCounter paise={acc.balance_paise} />
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-[rgba(60,255,160,0.1)] flex items-center justify-between text-xs font-mono">
-                  <span className="text-[#7ea594]">
+                <div className="pt-2 border-t border-[rgba(22,191,255,0.12)] flex items-center justify-between text-xs font-mono">
+                  <span className="text-[#9AAEC5]">
                     {acc.is_external ? 'System Pool' : 'Standard User'}
                   </span>
                   <Link
                     to={`/app/accounts/${acc.id}`}
-                    className="text-[#2dff9a] hover:underline flex items-center gap-1"
+                    className="text-[#16BFFF] hover:underline flex items-center gap-1"
                   >
                     <span>Inspect Statement</span>
                     <ArrowRight className="h-3 w-3" />
@@ -280,16 +282,16 @@ export default function OverviewPage() {
       {/* Quick Action Route Shortcuts */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
         <Link to="/app/move" className="group">
-          <GlowCard className="p-5 space-y-2 h-full hover:border-[#2dff9a]/50 transition-colors">
+          <GlowCard className="p-5 space-y-2 h-full hover:border-[#16BFFF]/50 transition-colors">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#2dff9a]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/40 text-[#16BFFF]">
                 <ArrowLeftRight className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold font-mono text-[#eafff5] group-hover:text-[#2dff9a] transition-colors">
+                <h4 className="text-sm font-bold font-mono text-[#F4F8FF] group-hover:text-[#16BFFF] transition-colors">
                   Money Movement
                 </h4>
-                <p className="text-[11px] text-[#7ea594]">
+                <p className="text-[11px] text-[#9AAEC5]">
                   Transfers, withdrawals & admin deposits
                 </p>
               </div>
@@ -299,16 +301,16 @@ export default function OverviewPage() {
 
         {(role === 'admin' || role === 'auditor') && (
           <Link to="/app/audit" className="group">
-            <GlowCard className="p-5 space-y-2 h-full hover:border-[#2dff9a]/50 transition-colors">
+            <GlowCard className="p-5 space-y-2 h-full hover:border-[#387BFF]/50 transition-colors">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#2dff9a]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(56,123,255,0.15)] border border-[#387BFF]/40 text-[#387BFF]">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold font-mono text-[#eafff5] group-hover:text-[#2dff9a] transition-colors">
+                  <h4 className="text-sm font-bold font-mono text-[#F4F8FF] group-hover:text-[#387BFF] transition-colors">
                     Auditor & Duplicates
                   </h4>
-                  <p className="text-[11px] text-[#7ea594]">
+                  <p className="text-[11px] text-[#9AAEC5]">
                     Zero-sum proof and replay detection
                   </p>
                 </div>
@@ -319,16 +321,16 @@ export default function OverviewPage() {
 
         {(role === 'admin' || role === 'holder') && (
           <Link to="/app/attack-lab" className="group">
-            <GlowCard className="p-5 space-y-2 h-full hover:border-[#2dff9a]/50 transition-colors">
+            <GlowCard className="p-5 space-y-2 h-full hover:border-[#8B7CFF]/50 transition-colors">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#2dff9a]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(139,124,255,0.15)] border border-[#8B7CFF]/40 text-[#8B7CFF]">
                   <Zap className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold font-mono text-[#eafff5] group-hover:text-[#2dff9a] transition-colors">
+                  <h4 className="text-sm font-bold font-mono text-[#F4F8FF] group-hover:text-[#8B7CFF] transition-colors">
                     Attack Lab
                   </h4>
-                  <p className="text-[11px] text-[#7ea594]">
+                  <p className="text-[11px] text-[#9AAEC5]">
                     Concurrency race & replay testing
                   </p>
                 </div>
@@ -339,16 +341,16 @@ export default function OverviewPage() {
 
         {role === 'admin' && (
           <Link to="/app/admin" className="group">
-            <GlowCard className="p-5 space-y-2 h-full hover:border-[#2dff9a]/50 transition-colors">
+            <GlowCard className="p-5 space-y-2 h-full hover:border-[#16BFFF]/50 transition-colors">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#2dff9a]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/40 text-[#16BFFF]">
                   <Layers className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold font-mono text-[#eafff5] group-hover:text-[#2dff9a] transition-colors">
+                  <h4 className="text-sm font-bold font-mono text-[#F4F8FF] group-hover:text-[#16BFFF] transition-colors">
                     Admin Console
                   </h4>
-                  <p className="text-[11px] text-[#7ea594]">
+                  <p className="text-[11px] text-[#9AAEC5]">
                     Create accounts and manage users
                   </p>
                 </div>

@@ -25,10 +25,10 @@ export default function GlowCard({
       onMouseMove={handleMouseMove}
       onClick={onClick}
       style={{
-        background: `radial-gradient(500px circle at var(--x, -1000px) var(--y, -1000px), rgba(45, 255, 154, 0.07), transparent 75%), #07110d`,
+        background: `radial-gradient(550px circle at var(--x, -1000px) var(--y, -1000px), rgba(22, 191, 255, 0.09), transparent 70%), #101E33`,
       }}
-      className={`relative overflow-hidden rounded-2xl border border-[rgba(60,255,160,0.14)] transition-all duration-200 hover:border-[rgba(60,255,160,0.32)] shadow-xl ${
-        topGlow ? 'before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[#2dff9a] before:to-transparent before:opacity-75' : ''
+      className={`relative overflow-hidden rounded-2xl border border-[rgba(22,191,255,0.16)] transition-all duration-200 hover:border-[rgba(22,191,255,0.42)] shadow-xl shadow-[#050B18]/80 backdrop-blur-xl ${
+        topGlow ? 'before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[#16BFFF] before:to-transparent before:opacity-85' : ''
       } ${className}`}
       {...props}
     >

@@ -24,16 +24,16 @@ export default function Input({
     <div className={`w-full space-y-1.5 ${className}`}>
       {label && (
         <div className="flex items-center justify-between">
-          <label htmlFor={id} className="text-xs font-semibold tracking-wide text-[#7ea594]">
-            {label} {required && <span className="text-[#ff5d7a]">*</span>}
+          <label htmlFor={id} className="text-xs font-semibold tracking-wide text-[#9AAEC5]">
+            {label} {required && <span className="text-[#FF5B7A]">*</span>}
           </label>
-          {helper && <span className="text-[11px] text-[#7ea594]">{helper}</span>}
+          {helper && <span className="text-[11px] text-[#9AAEC5]">{helper}</span>}
         </div>
       )}
 
       <div className="relative flex items-center">
         {LeftIcon && (
-          <div className="pointer-events-none absolute left-3.5 flex items-center text-[#7ea594]">
+          <div className="pointer-events-none absolute left-3.5 flex items-center text-[#9AAEC5]">
             <LeftIcon className="h-4 w-4" />
           </div>
         )}
@@ -46,12 +46,12 @@ export default function Input({
           placeholder={placeholder}
           disabled={disabled}
           required={required}
-          className={`w-full rounded-xl bg-[#07110d] px-3.5 py-2.5 text-sm text-[#eafff5] placeholder-[#7ea594]/50 border transition-all duration-150 focus:outline-none ${
+          className={`w-full rounded-xl bg-[#0A1426] px-3.5 py-2.5 text-sm text-[#F4F8FF] placeholder-[#9AAEC5]/50 border transition-all duration-150 focus:outline-none ${
             LeftIcon ? 'pl-10' : ''
           } ${isPassword ? 'pr-11' : ''} ${
             error
-              ? 'border-[#ff5d7a] focus:ring-1 focus:ring-[#ff5d7a]'
-              : 'border-[rgba(60,255,160,0.14)] focus:border-[#2dff9a] focus:ring-1 focus:ring-[rgba(45,255,154,0.3)] hover:border-[rgba(60,255,160,0.25)]'
+              ? 'border-[#FF5B7A] focus:ring-1 focus:ring-[#FF5B7A]'
+              : 'border-[rgba(22,191,255,0.18)] focus:border-[#16BFFF] focus:ring-1 focus:ring-[rgba(22,191,255,0.35)] hover:border-[rgba(22,191,255,0.35)]'
           } disabled:opacity-50 disabled:cursor-not-allowed`}
           {...props}
         />
@@ -60,7 +60,7 @@ export default function Input({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3.5 text-[#7ea594] hover:text-[#eafff5] transition-colors cursor-pointer"
+            className="absolute right-3.5 flex items-center text-[#9AAEC5] hover:text-[#16BFFF] transition-colors focus:outline-none cursor-pointer"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -68,7 +68,11 @@ export default function Input({
         )}
       </div>
 
-      {error && <p className="text-xs text-[#ff5d7a] font-medium mt-1">{error}</p>}
+      {error && (
+        <p className="text-xs text-[#FF5B7A] flex items-center gap-1 font-mono">
+          <span>{error}</span>
+        </p>
+      )}
     </div>
   );
 }

@@ -16,21 +16,21 @@ const SEED_ACCOUNTS = [
     email: 'holder1@ledgerline.local',
     password: 'Holder1Password123!',
     tag: 'Primary Holder',
-    variant: 'emerald',
+    variant: 'cyan',
   },
   {
     role: 'Holder 2',
     email: 'holder2@ledgerline.local',
     password: 'Holder2Password123!',
     tag: 'Counterparty',
-    variant: 'cyan',
+    variant: 'blue',
   },
   {
     role: 'Admin',
     email: 'admin@ledgerline.local',
     password: 'AdminPassword123!',
     tag: 'L3 Root',
-    variant: 'amber',
+    variant: 'purple',
   },
   {
     role: 'Auditor',
@@ -59,22 +59,24 @@ export default function LoginPage() {
     setLocalError(null);
     setAuthError(null);
 
-    if (!email || !password) {
-      setLocalError('Please enter both your email address and password.');
+    if (!email.trim() || !password) {
+      setLocalError('Please enter both email and password.');
       return;
     }
 
     setLoading(true);
-    const result = await login(email, password);
+    const result = await login({ email: email.trim(), password });
     setLoading(false);
 
     if (result.success) {
       showToast({
-        title: 'Signed in successfully',
-        message: `Welcome back, ${result.user.name || result.user.email}!`,
+        title: 'Authentication Successful',
+        message: `Welcome back to BalanceVault, ${result.user?.name || result.user?.email}!`,
         type: 'success',
       });
       navigate(redirectPath, { replace: true });
+    } else {
+      setLocalError(result.error);
     }
   };
 
@@ -88,26 +90,26 @@ export default function LoginPage() {
   const errorMessage = localError || authError;
 
   return (
-    <div className="min-h-screen bg-[#020605] text-[#eafff5] flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#050B18] text-[#F4F8FF] flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
       {/* Cybersecurity Radar & Zero-Trust Sentinel Mesh Background */}
       <CyberBackground opacity={0.85} showRadar={true} showGrid={true} />
 
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-[rgba(60,255,160,0.18)] bg-[#07110d]/90 backdrop-blur-2xl overflow-hidden shadow-2xl shadow-black/90 relative z-10">
+      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-[rgba(22,191,255,0.22)] bg-[#101E33]/90 backdrop-blur-2xl overflow-hidden shadow-2xl shadow-[#050B18]/90 relative z-10">
         {/* Left: Glowing Ring Orb Visual Side */}
-        <div className="lg:col-span-5 relative hidden lg:flex flex-col justify-between p-10 bg-gradient-to-br from-[#030d08] via-[#07110d] to-[#020605] border-r border-[rgba(60,255,160,0.1)] overflow-hidden">
+        <div className="lg:col-span-5 relative hidden lg:flex flex-col justify-between p-10 bg-gradient-to-br from-[#071324] via-[#0A1A33] to-[#050B18] border-r border-[rgba(22,191,255,0.15)] overflow-hidden">
           {/* Background ambient gradient */}
-          <div className="absolute -top-32 -left-32 w-96 h-96 bg-[rgba(45,255,154,0.1)] rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-[rgba(22,191,255,0.12)] rounded-full blur-3xl pointer-events-none" />
 
           {/* Brand header */}
           <Link to="/" className="relative z-10 flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#2dff9a] shadow-[0_0_15px_rgba(45,255,154,0.3)] transition-transform group-hover:scale-105">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/50 text-[#16BFFF] shadow-[0_0_15px_rgba(22,191,255,0.35)] transition-transform group-hover:scale-105">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-lg font-bold font-mono tracking-tight text-[#eafff5]">
-                Balance<span className="text-[#2dff9a]">Vault</span>
+              <span className="text-lg font-bold font-mono tracking-tight text-[#F4F8FF]">
+                BALANCE<span className="text-[#16BFFF]">VAULT</span>
               </span>
-              <p className="text-[10px] font-mono uppercase text-[#7ea594] tracking-widest">
+              <p className="text-[10px] font-mono uppercase text-[#9AAEC5] tracking-widest">
                 LedgerLine Core Engine
               </p>
             </div>
@@ -119,8 +121,8 @@ export default function LoginPage() {
           </div>
 
           {/* Footer note */}
-          <div className="relative z-10 pt-4 border-t border-[rgba(60,255,160,0.1)] text-xs text-[#7ea594]">
-            <p className="font-mono text-[11px] text-[#2dff9a] mb-1">STRICT INVARIANTS ARMED</p>
+          <div className="relative z-10 pt-4 border-t border-[rgba(22,191,255,0.15)] text-xs text-[#9AAEC5]">
+            <p className="font-mono text-[11px] text-[#16BFFF] mb-1 font-bold">STRICT INVARIANTS ARMED</p>
             <p className="text-[11px] leading-relaxed">
               Every balance update is guarded by ordered row locks, append-only triggers, and integer paise precision.
             </p>
@@ -133,7 +135,7 @@ export default function LoginPage() {
             {/* Back to Home Link */}
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-xs font-mono text-[#7ea594] hover:text-[#2dff9a] transition-colors mb-6 group"
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-[#9AAEC5] hover:text-[#16BFFF] transition-colors mb-6 group"
             >
               <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
               <span>Back to home</span>
@@ -142,22 +144,22 @@ export default function LoginPage() {
             {/* Header */}
             <div className="mb-8">
               <Link to="/" className="flex items-center gap-2 mb-3 lg:hidden group">
-                <ShieldCheck className="h-6 w-6 text-[#2dff9a]" />
-                <span className="text-base font-bold font-mono text-[#eafff5] group-hover:text-[#2dff9a] transition-colors">
-                  BalanceVault
+                <ShieldCheck className="h-6 w-6 text-[#16BFFF]" />
+                <span className="text-base font-bold font-mono text-[#F4F8FF] group-hover:text-[#16BFFF] transition-colors">
+                  BALANCEVAULT
                 </span>
               </Link>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#eafff5]">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#F4F8FF] font-mono">
                 Sign in to your ledger
               </h1>
-              <p className="text-sm text-[#7ea594] mt-1.5">
+              <p className="text-sm text-[#9AAEC5] mt-1.5">
                 Access your balance, execute atomic transfers, or inspect cryptographic audit proofs.
               </p>
             </div>
 
             {/* Error Message banner */}
             {errorMessage && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl border border-[rgba(255,93,122,0.35)] bg-[rgba(255,93,122,0.1)] p-3.5 text-xs text-[#ff5d7a]">
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-[rgba(255,91,122,0.35)] bg-[rgba(255,91,122,0.12)] p-3.5 text-xs text-[#FF5B7A]">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <p className="leading-relaxed font-medium">{errorMessage}</p>
               </div>
@@ -166,11 +168,11 @@ export default function LoginPage() {
             {/* Seed reviewer role chips */}
             <div className="mb-7">
               <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs font-semibold text-[#7ea594] flex items-center gap-1.5 uppercase tracking-wider">
-                  <Sparkles className="h-3.5 w-3.5 text-[#2dff9a]" />
+                <span className="text-xs font-semibold text-[#9AAEC5] flex items-center gap-1.5 uppercase tracking-wider font-mono">
+                  <Sparkles className="h-3.5 w-3.5 text-[#16BFFF]" />
                   Demo Reviewer Accounts
                 </span>
-                <span className="text-[11px] text-[#2dff9a] font-mono">1-Click Fill</span>
+                <span className="text-[11px] text-[#16BFFF] font-mono">1-Click Fill</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {SEED_ACCOUNTS.map((acc) => (
@@ -178,17 +180,17 @@ export default function LoginPage() {
                     key={acc.email}
                     type="button"
                     onClick={() => fillPreset(acc)}
-                    className="flex flex-col items-start p-2.5 rounded-xl border border-[rgba(60,255,160,0.12)] bg-[#020605]/60 hover:bg-[#0d1e18] hover:border-[#2dff9a]/40 text-left transition-all duration-150 group cursor-pointer"
+                    className="flex flex-col items-start p-2.5 rounded-xl border border-[rgba(22,191,255,0.15)] bg-[#0A1426]/70 hover:bg-[#0E2038] hover:border-[#16BFFF]/50 text-left transition-all duration-150 group cursor-pointer"
                   >
                     <div className="flex items-center justify-between w-full mb-1">
-                      <span className="text-xs font-bold text-[#eafff5] group-hover:text-[#2dff9a] font-mono">
+                      <span className="text-xs font-bold text-[#F4F8FF] group-hover:text-[#16BFFF] font-mono">
                         {acc.role}
                       </span>
                       <Badge variant={acc.variant} size="sm">
                         {acc.tag}
                       </Badge>
                     </div>
-                    <span className="text-[10px] font-mono text-[#7ea594] truncate w-full">
+                    <span className="text-[10px] font-mono text-[#9AAEC5] truncate w-full">
                       {acc.email}
                     </span>
                   </button>
@@ -236,12 +238,12 @@ export default function LoginPage() {
             </form>
 
             {/* Footer Navigation */}
-            <div className="mt-8 text-center text-xs text-[#7ea594] space-y-2.5">
+            <div className="mt-8 text-center text-xs text-[#9AAEC5] space-y-2.5 font-mono">
               <div>
                 <span>Need an account? </span>
                 <Link
                   to="/signup"
-                  className="text-[#2dff9a] font-semibold hover:underline cursor-pointer"
+                  className="text-[#16BFFF] font-semibold hover:underline cursor-pointer"
                 >
                   Create one now
                 </Link>
@@ -249,7 +251,7 @@ export default function LoginPage() {
               <div>
                 <Link
                   to="/"
-                  className="inline-flex items-center gap-1 text-[#7ea594] hover:text-[#2dff9a] transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[#9AAEC5] hover:text-[#16BFFF] transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="h-3 w-3" />
                   <span>Back to home</span>

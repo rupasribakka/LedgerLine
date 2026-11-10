@@ -106,17 +106,17 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(60,255,160,0.12)] pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(22,191,255,0.12)] pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Badge variant="emerald" size="sm">
+            <Badge variant="cyan" size="sm">
               DOUBLE-ENTRY AUDIT JOURNAL
             </Badge>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#eafff5]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#F4F8FF]">
             Transactions & History
           </h1>
-          <p className="text-xs sm:text-sm text-[#7ea594] mt-1">
+          <p className="text-xs sm:text-sm text-[#9AAEC5] mt-1">
             Immutable transaction records and cryptographic SHA-256 hash-chained ledger rows.
           </p>
         </div>
@@ -149,13 +149,13 @@ export default function TransactionsPage() {
 
       {/* Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#07110d] border border-[rgba(60,255,160,0.14)]">
+        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#0A1426] border border-[rgba(22,191,255,0.14)]">
           <button
             onClick={() => setActiveTab('transactions')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
               activeTab === 'transactions'
-                ? 'bg-[#2dff9a] text-[#020605] shadow-[0_0_15px_rgba(45,255,154,0.35)]'
-                : 'text-[#7ea594] hover:text-[#eafff5]'
+                ? 'bg-[#16BFFF] text-[#050B18] shadow-[0_0_15px_rgba(22,191,255,0.35)]'
+                : 'text-[#9AAEC5] hover:text-[#F4F8FF]'
             }`}
           >
             <ArrowLeftRight className="h-3.5 w-3.5" />
@@ -167,8 +167,8 @@ export default function TransactionsPage() {
               onClick={() => setActiveTab('ledger')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
                 activeTab === 'ledger'
-                  ? 'bg-[#2dff9a] text-[#020605] shadow-[0_0_15px_rgba(45,255,154,0.35)]'
-                  : 'text-[#7ea594] hover:text-[#eafff5]'
+                  ? 'bg-[#16BFFF] text-[#050B18] shadow-[0_0_15px_rgba(22,191,255,0.35)]'
+                  : 'text-[#9AAEC5] hover:text-[#F4F8FF]'
               }`}
             >
               <BookOpen className="h-3.5 w-3.5" />
@@ -180,15 +180,15 @@ export default function TransactionsPage() {
         {/* Filter & Search Bar */}
         <div className="flex flex-wrap items-center gap-3">
           {activeTab === 'transactions' && (
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-[#07110d] border border-[rgba(60,255,160,0.14)] text-xs font-mono">
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0A1426] border border-[rgba(22,191,255,0.14)] text-xs font-mono">
               {['ALL', 'TRANSFER', 'DEPOSIT', 'WITHDRAWAL'].map((t) => (
                 <button
                   key={t}
                   onClick={() => setTypeFilter(t)}
                   className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
                     typeFilter === t
-                      ? 'bg-[rgba(45,255,154,0.2)] text-[#2dff9a] font-bold'
-                      : 'text-[#7ea594] hover:text-[#eafff5]'
+                      ? 'bg-[rgba(22,191,255,0.2)] text-[#16BFFF] font-bold'
+                      : 'text-[#9AAEC5] hover:text-[#F4F8FF]'
                   }`}
                 >
                   {t}
@@ -197,14 +197,14 @@ export default function TransactionsPage() {
             </div>
           )}
 
-          <div className="flex items-center gap-2 rounded-xl border border-[rgba(60,255,160,0.14)] bg-[#07110d] px-3 py-1.5 min-w-[240px]">
-            <Search className="h-3.5 w-3.5 text-[#7ea594]" />
+          <div className="flex items-center gap-2 rounded-xl border border-[rgba(22,191,255,0.14)] bg-[#0A1426] px-3 py-1.5 min-w-[240px]">
+            <Search className="h-3.5 w-3.5 text-[#9AAEC5]" />
             <input
               type="text"
               placeholder="Search by ID, hash, key..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent text-xs font-mono text-[#eafff5] placeholder-[#7ea594]/60 focus:outline-none"
+              className="w-full bg-transparent text-xs font-mono text-[#F4F8FF] placeholder-[#9AAEC5]/60 focus:outline-none"
             />
           </div>
         </div>
@@ -221,16 +221,16 @@ export default function TransactionsPage() {
             </div>
           ) : filteredTransactions.length === 0 ? (
             <GlowCard className="p-10 text-center space-y-3">
-              <ArrowLeftRight className="h-8 w-8 text-[#7ea594] mx-auto opacity-60" />
-              <h3 className="text-base font-bold font-mono text-[#eafff5]">No transactions recorded</h3>
-              <p className="text-xs text-[#7ea594]">
+              <ArrowLeftRight className="h-8 w-8 text-[#9AAEC5] mx-auto opacity-60" />
+              <h3 className="text-base font-bold font-mono text-[#F4F8FF]">No transactions recorded</h3>
+              <p className="text-xs text-[#9AAEC5]">
                 Completed financial operations will appear here automatically.
               </p>
             </GlowCard>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-[rgba(60,255,160,0.14)] bg-[#07110d]">
+            <div className="overflow-x-auto rounded-2xl border border-[rgba(22,191,255,0.14)] bg-[#0A1426]">
               <table className="w-full text-left text-xs font-mono">
-                <thead className="border-b border-[rgba(60,255,160,0.12)] bg-[#030a07] text-[#7ea594]">
+                <thead className="border-b border-[rgba(22,191,255,0.12)] bg-[#030a07] text-[#9AAEC5]">
                   <tr>
                     <th className="py-3 px-4">Transaction ID</th>
                     <th className="py-3 px-4">Type</th>
@@ -240,29 +240,29 @@ export default function TransactionsPage() {
                     <th className="py-3 px-4">Timestamp (UTC)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[rgba(60,255,160,0.08)]">
+                <tbody className="divide-y divide-[rgba(22,191,255,0.08)]">
                   {filteredTransactions.map((tx) => {
                     const isCredit = tx.type === 'deposit';
                     const isDebit = tx.type === 'withdrawal';
                     return (
                       <tr key={tx.id} className="hover:bg-[#030a07]/60 transition-colors">
-                        <td className="py-3 px-4 font-bold text-[#eafff5]">
+                        <td className="py-3 px-4 font-bold text-[#F4F8FF]">
                           <div className="flex items-center gap-1.5">
                             <span className="truncate max-w-[140px]">{tx.id}</span>
                             <button
                               onClick={() => handleCopy(tx.id, tx.id)}
-                              className="text-[#7ea594] hover:text-[#2dff9a] cursor-pointer"
+                              className="text-[#9AAEC5] hover:text-[#16BFFF] cursor-pointer"
                               title="Copy transaction ID"
                             >
                               {copiedId === tx.id ? (
-                                <Check className="h-3 w-3 text-[#2dff9a]" />
+                                <Check className="h-3 w-3 text-[#16BFFF]" />
                               ) : (
                                 <Copy className="h-3 w-3" />
                               )}
                             </button>
                           </div>
                           {tx.idempotency_key && (
-                            <span className="text-[10px] text-[#7ea594] block truncate max-w-[180px]">
+                            <span className="text-[10px] text-[#9AAEC5] block truncate max-w-[180px]">
                               key: {tx.idempotency_key}
                             </span>
                           )}
@@ -281,16 +281,16 @@ export default function TransactionsPage() {
                             {tx.type.toUpperCase()}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-[#7ea594]">
+                        <td className="py-3 px-4 text-[#9AAEC5]">
                           {tx.from_account_id ? `Acc #${tx.from_account_id}` : 'External Clearing'}
                           {' → '}
                           {tx.to_account_id ? `Acc #${tx.to_account_id}` : 'External Clearing'}
                         </td>
-                        <td className="py-3 px-4 text-right font-bold text-[#eafff5]">
-                          <span className={isCredit ? 'text-[#2dff9a]' : isDebit ? 'text-[#ff5d7a]' : 'text-cyan-400'}>
+                        <td className="py-3 px-4 text-right font-bold text-[#F4F8FF]">
+                          <span className={isCredit ? 'text-[#16BFFF]' : isDebit ? 'text-[#ff5d7a]' : 'text-cyan-400'}>
                             {formatPaiseToRupees(tx.amount_paise)}
                           </span>
-                          <span className="text-[10px] text-[#7ea594] block font-normal">
+                          <span className="text-[10px] text-[#9AAEC5] block font-normal">
                             {tx.amount_paise} paise
                           </span>
                         </td>
@@ -302,7 +302,7 @@ export default function TransactionsPage() {
                             {tx.status.toUpperCase()}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-[#7ea594]">
+                        <td className="py-3 px-4 text-[#9AAEC5]">
                           {new Date(tx.created_at).toLocaleString()}
                         </td>
                       </tr>
@@ -325,14 +325,14 @@ export default function TransactionsPage() {
             </div>
           ) : filteredLedger.length === 0 ? (
             <GlowCard className="p-10 text-center space-y-3">
-              <BookOpen className="h-8 w-8 text-[#7ea594] mx-auto opacity-60" />
-              <h3 className="text-base font-bold font-mono text-[#eafff5]">No ledger rows found</h3>
-              <p className="text-xs text-[#7ea594]">All posted transactions append immutable ledger rows.</p>
+              <BookOpen className="h-8 w-8 text-[#9AAEC5] mx-auto opacity-60" />
+              <h3 className="text-base font-bold font-mono text-[#F4F8FF]">No ledger rows found</h3>
+              <p className="text-xs text-[#9AAEC5]">All posted transactions append immutable ledger rows.</p>
             </GlowCard>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-[rgba(60,255,160,0.14)] bg-[#07110d]">
+            <div className="overflow-x-auto rounded-2xl border border-[rgba(22,191,255,0.14)] bg-[#0A1426]">
               <table className="w-full text-left text-xs font-mono">
-                <thead className="border-b border-[rgba(60,255,160,0.12)] bg-[#030a07] text-[#7ea594]">
+                <thead className="border-b border-[rgba(22,191,255,0.12)] bg-[#030a07] text-[#9AAEC5]">
                   <tr>
                     <th className="py-3 px-4">Row #</th>
                     <th className="py-3 px-4">Account ID</th>
@@ -343,10 +343,10 @@ export default function TransactionsPage() {
                     <th className="py-3 px-4">Timestamp</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[rgba(60,255,160,0.08)]">
+                <tbody className="divide-y divide-[rgba(22,191,255,0.08)]">
                   {filteredLedger.map((row) => (
                     <tr key={row.id} className="hover:bg-[#030a07]/60 transition-colors">
-                      <td className="py-3 px-4 font-bold text-[#eafff5]">#{row.id}</td>
+                      <td className="py-3 px-4 font-bold text-[#F4F8FF]">#{row.id}</td>
                       <td className="py-3 px-4 text-cyan-400">Account #{row.account_id}</td>
                       <td className="py-3 px-4">
                         <Badge
@@ -356,34 +356,34 @@ export default function TransactionsPage() {
                           {row.kind.toUpperCase()}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-[#eafff5]">
-                        <span className={row.kind === 'credit' ? 'text-[#2dff9a]' : 'text-amber-400'}>
+                      <td className="py-3 px-4 text-right font-bold text-[#F4F8FF]">
+                        <span className={row.kind === 'credit' ? 'text-[#16BFFF]' : 'text-amber-400'}>
                           {row.kind === 'credit' ? '+' : '-'}{formatPaiseToRupees(row.amount_paise)}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-[#eafff5]">
+                      <td className="py-3 px-4 text-right font-bold text-[#F4F8FF]">
                         {formatPaiseToRupees(row.balance_after_paise)}
                       </td>
-                      <td className="py-3 px-4 font-mono text-[10px] text-[#7ea594]">
+                      <td className="py-3 px-4 font-mono text-[10px] text-[#9AAEC5]">
                         <div className="flex items-center gap-1.5">
                           <span className="truncate max-w-[130px]">{row.hash}</span>
                           <button
                             onClick={() => handleCopy(row.hash, row.id)}
-                            className="text-[#7ea594] hover:text-[#2dff9a] cursor-pointer"
+                            className="text-[#9AAEC5] hover:text-[#16BFFF] cursor-pointer"
                             title="Copy SHA-256 Hash"
                           >
                             {copiedId === row.id ? (
-                              <Check className="h-3 w-3 text-[#2dff9a]" />
+                              <Check className="h-3 w-3 text-[#16BFFF]" />
                             ) : (
                               <Copy className="h-3 w-3" />
                             )}
                           </button>
                         </div>
-                        <span className="text-[9px] text-[#7ea594]/60 block truncate max-w-[130px]">
+                        <span className="text-[9px] text-[#9AAEC5]/60 block truncate max-w-[130px]">
                           prev: {row.prev_hash?.slice(0, 16)}...
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-[#7ea594]">
+                      <td className="py-3 px-4 text-[#9AAEC5]">
                         {new Date(row.created_at).toLocaleString()}
                       </td>
                     </tr>

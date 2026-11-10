@@ -62,8 +62,8 @@ const COMMANDS = [
   {
     id: 'nav-audit',
     group: 'Navigation',
-    label: 'Auditor & Invariant Console',
-    desc: 'Verify zero-sum mathematical scale and duplicate logs',
+    label: 'Auditor & Invariant Verifier',
+    desc: 'Run SHA-256 hash checks and inspect idempotency replays',
     icon: ShieldCheck,
     route: '/app/audit',
     roles: ['admin', 'auditor'],
@@ -71,8 +71,8 @@ const COMMANDS = [
   {
     id: 'nav-attack',
     group: 'Navigation',
-    label: 'Attack Lab & Concurrency Prover',
-    desc: 'Run multi-thread double spend races and replay storms',
+    label: 'Attack Laboratory',
+    desc: 'Simulate concurrent race conditions and replay attacks',
     icon: Zap,
     route: '/app/attack-lab',
     roles: ['admin', 'holder'],
@@ -80,70 +80,68 @@ const COMMANDS = [
   {
     id: 'nav-admin',
     group: 'Navigation',
-    label: 'Admin Administration Console',
-    desc: 'Register users and issue new account ledgers',
+    label: 'Admin Supervisory Center',
+    desc: 'Provision accounts and review runtime health',
     icon: KeyRound,
     route: '/app/admin',
     roles: ['admin'],
   },
 
-  // Actions
+  // Instant Demo Switchers
   {
-    id: 'act-verify',
-    group: 'Quick Actions',
-    label: 'Verify System Cryptographic Invariants',
-    desc: 'Audit global zero-sum equilibrium across all tables',
+    id: 'switch-holder-1',
+    group: 'Demo Switcher',
+    label: 'Switch to Holder 1 (Primary Customer)',
+    desc: 'Clearance: L1 Customer | Email: holder1@ledgerline.local',
+    icon: User,
+    persona: {
+      id: 2,
+      email: 'holder1@ledgerline.local',
+      role: 'holder',
+      name: 'Alice (Holder 1)',
+    },
+    roles: ['admin', 'auditor', 'holder'],
+  },
+  {
+    id: 'switch-holder-2',
+    group: 'Demo Switcher',
+    label: 'Switch to Holder 2 (Counterparty Customer)',
+    desc: 'Clearance: L1 Customer | Email: holder2@ledgerline.local',
+    icon: User,
+    persona: {
+      id: 3,
+      email: 'holder2@ledgerline.local',
+      role: 'holder',
+      name: 'Bob (Holder 2)',
+    },
+    roles: ['admin', 'auditor', 'holder'],
+  },
+  {
+    id: 'switch-auditor',
+    group: 'Demo Switcher',
+    label: 'Switch to Auditor (Read-Only Compliance)',
+    desc: 'Clearance: L2 Auditor | Email: auditor@ledgerline.local',
     icon: ShieldCheck,
-    action: 'verify-system',
-    route: '/app/audit',
-    roles: ['admin', 'auditor'],
-  },
-  {
-    id: 'act-race',
-    group: 'Quick Actions',
-    label: 'Simulate 80% Concurrency Double Spend',
-    desc: 'Test row-level pessimistic locking in the Attack Lab',
-    icon: Play,
-    action: 'simulate-race',
-    route: '/app/attack-lab',
-    roles: ['admin', 'holder'],
-  },
-
-  // Personas
-  {
-    id: 'persona-admin',
-    group: 'Demo Personas',
-    label: 'Switch to Root Admin (L3)',
-    desc: 'admin@ledgerline.local — Full access including deposits & user management',
-    icon: User,
-    persona: { id: 1, role: 'admin', email: 'admin@ledgerline.local', name: 'Root Administrator' },
+    persona: {
+      id: 4,
+      email: 'auditor@ledgerline.local',
+      role: 'auditor',
+      name: 'Carol (Auditor)',
+    },
     roles: ['admin', 'auditor', 'holder'],
   },
   {
-    id: 'persona-holder',
-    group: 'Demo Personas',
-    label: 'Switch to Account Holder 1 (L1)',
-    desc: 'holder1@ledgerline.local — Transfers, withdrawals & attack experiments',
-    icon: User,
-    persona: { id: 2, role: 'holder', email: 'holder1@ledgerline.local', name: 'Holder One' },
-    roles: ['admin', 'auditor', 'holder'],
-  },
-  {
-    id: 'persona-holder2',
-    group: 'Demo Personas',
-    label: 'Switch to Account Holder 2 (L1)',
-    desc: 'holder2@ledgerline.local — Counterparty receiver & transfers',
-    icon: User,
-    persona: { id: 3, role: 'holder', email: 'holder2@ledgerline.local', name: 'Holder Two' },
-    roles: ['admin', 'auditor', 'holder'],
-  },
-  {
-    id: 'persona-auditor',
-    group: 'Demo Personas',
-    label: 'Switch to Auditor (L2)',
-    desc: 'auditor@ledgerline.local — Read-only verification & replay inspection',
-    icon: User,
-    persona: { id: 3, role: 'auditor', email: 'auditor@ledgerline.local', name: 'Compliance Auditor' },
+    id: 'switch-admin',
+    group: 'Demo Switcher',
+    label: 'Switch to Admin (L3 Root Clearance)',
+    desc: 'Clearance: L3 Admin | Email: admin@ledgerline.local',
+    icon: KeyRound,
+    persona: {
+      id: 1,
+      email: 'admin@ledgerline.local',
+      role: 'admin',
+      name: 'Root Administrator',
+    },
     roles: ['admin', 'auditor', 'holder'],
   },
 ];
@@ -151,17 +149,19 @@ const COMMANDS = [
 export default function CommandPalette({ isOpen, onClose }) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef(null);
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const navigate = useNavigate();
-  const inputRef = useRef(null);
 
-  const currentRole = (user?.role || 'holder').toLowerCase();
+  const userRole = (user?.role || 'holder').toLowerCase();
 
-  // Filter commands by search term and role
+  // Filter commands by clearance role & search string
   const filteredCommands = COMMANDS.filter((cmd) => {
-    if (!cmd.roles.includes(currentRole)) return false;
+    const roleAllowed = cmd.roles.includes(userRole);
+    if (!roleAllowed) return false;
     if (!query.trim()) return true;
+
     const q = query.toLowerCase();
     return (
       cmd.label.toLowerCase().includes(q) ||
@@ -171,12 +171,9 @@ export default function CommandPalette({ isOpen, onClose }) {
   });
 
   useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
-  useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
+      setSelectedIndex(0);
     } else {
       setQuery('');
     }
@@ -232,12 +229,12 @@ export default function CommandPalette({ isOpen, onClose }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl rounded-2xl border border-[#2dff9a]/40 bg-[#030d08] shadow-[0_0_50px_rgba(45,255,154,0.25)] overflow-hidden flex flex-col font-sans"
+        className="w-full max-w-xl rounded-2xl border border-[#16BFFF]/45 bg-[#0A1426] shadow-[0_0_50px_rgba(22,191,255,0.25)] overflow-hidden flex flex-col font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[rgba(60,255,160,0.15)] bg-[#020605]">
-          <Search className="h-4 w-4 text-[#2dff9a] shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[rgba(22,191,255,0.18)] bg-[#050B18]">
+          <Search className="h-4 w-4 text-[#16BFFF] shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -245,11 +242,11 @@ export default function CommandPalette({ isOpen, onClose }) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search commands, navigate routes, or switch demo personas..."
-            className="w-full bg-transparent text-sm font-mono text-[#eafff5] placeholder-[#7ea594]/60 focus:outline-none"
+            className="w-full bg-transparent text-sm font-mono text-[#F4F8FF] placeholder-[#9AAEC5]/60 focus:outline-none"
           />
           <button
             onClick={onClose}
-            className="text-[#7ea594] hover:text-[#eafff5] p-1 rounded-lg"
+            className="text-[#9AAEC5] hover:text-[#F4F8FF] p-1 rounded-lg cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -258,7 +255,7 @@ export default function CommandPalette({ isOpen, onClose }) {
         {/* Command List Results */}
         <div className="max-h-80 overflow-y-auto p-2 space-y-1">
           {filteredCommands.length === 0 ? (
-            <div className="py-8 text-center text-xs font-mono text-[#7ea594]">
+            <div className="py-8 text-center text-xs font-mono text-[#9AAEC5]">
               No matching commands found for "{query}".
             </div>
           ) : (
@@ -273,30 +270,30 @@ export default function CommandPalette({ isOpen, onClose }) {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${
                     isSelected
-                      ? 'bg-[rgba(45,255,154,0.15)] border border-[#2dff9a]/40 text-[#eafff5] shadow-[0_0_15px_rgba(45,255,154,0.1)]'
-                      : 'hover:bg-[#06150e] text-[#7ea594] border border-transparent'
+                      ? 'bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/50 text-[#F4F8FF] shadow-[0_0_15px_rgba(22,191,255,0.15)]'
+                      : 'hover:bg-[#101E33] text-[#9AAEC5] border border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`p-2 rounded-lg border ${
                         isSelected
-                          ? 'bg-[#031e13] border-[#2dff9a]/50 text-[#2dff9a]'
-                          : 'bg-[#020605] border-[rgba(60,255,160,0.1)] text-[#7ea594]'
+                          ? 'bg-[#0E2A54] border-[#16BFFF]/60 text-[#16BFFF]'
+                          : 'bg-[#050B18] border-[rgba(22,191,255,0.14)] text-[#9AAEC5]'
                       }`}
                     >
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-[#eafff5] truncate">
+                        <span className="text-xs font-mono font-bold text-[#F4F8FF] truncate">
                           {cmd.label}
                         </span>
-                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#020605] border border-[rgba(60,255,160,0.12)] text-[#7ea594]">
+                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#050B18] border border-[rgba(22,191,255,0.14)] text-[#9AAEC5]">
                           {cmd.group}
                         </span>
                       </div>
-                      <p className="text-[11px] font-mono text-[#7ea594] truncate">
+                      <p className="text-[11px] font-mono text-[#9AAEC5] truncate">
                         {cmd.desc}
                       </p>
                     </div>
@@ -304,7 +301,7 @@ export default function CommandPalette({ isOpen, onClose }) {
 
                   <ArrowRight
                     className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-                      isSelected ? 'text-[#2dff9a] translate-x-1' : 'opacity-0'
+                      isSelected ? 'text-[#16BFFF] translate-x-1' : 'opacity-0'
                     }`}
                   />
                 </div>
@@ -314,13 +311,13 @@ export default function CommandPalette({ isOpen, onClose }) {
         </div>
 
         {/* Footer Shortcut Bar */}
-        <div className="px-4 py-2 border-t border-[rgba(60,255,160,0.12)] bg-[#020605] flex items-center justify-between text-[10px] font-mono text-[#7ea594]">
+        <div className="px-4 py-2 border-t border-[rgba(22,191,255,0.14)] bg-[#050B18] flex items-center justify-between text-[10px] font-mono text-[#9AAEC5]">
           <div className="flex items-center gap-3">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
             <span>ESC Close</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[#2dff9a]">
+          <div className="flex items-center gap-1.5 text-[#16BFFF]">
             <Sparkles className="h-3 w-3" />
             <span>Instant Demo Switcher Ready</span>
           </div>

@@ -321,14 +321,14 @@ export default function AttackLabPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="border-b border-[rgba(60,255,160,0.12)] pb-6">
+      <div className="border-b border-[rgba(22,191,255,0.12)] pb-6">
         <Badge variant="amber" size="sm" className="mb-2">
           FINANCIAL CONCURRENCY LAB
         </Badge>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#eafff5]">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#F4F8FF]">
           Attack Lab & Concurrency Prover
         </h1>
-        <p className="text-xs sm:text-sm text-[#7ea594] mt-1">
+        <p className="text-xs sm:text-sm text-[#9AAEC5] mt-1">
           Execute real-time race conditions, replay storms, and overdraft attacks against the live ledger.
         </p>
       </div>
@@ -336,10 +336,10 @@ export default function AttackLabPage() {
       {/* Account Selector for Attack Target */}
       <GlowCard className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <label className="text-xs font-mono font-bold text-[#eafff5]">
+          <label className="text-xs font-mono font-bold text-[#F4F8FF]">
             Target Test Account
           </label>
-          <p className="text-[11px] text-[#7ea594]">
+          <p className="text-[11px] text-[#9AAEC5]">
             Select which account will receive concurrent attack traffic
           </p>
         </div>
@@ -347,10 +347,10 @@ export default function AttackLabPage() {
         <select
           value={activeAccount}
           onChange={(e) => setActiveAccount(e.target.value)}
-          className="rounded-xl border border-[rgba(60,255,160,0.18)] bg-[#020605] px-4 py-2 text-xs font-mono text-[#eafff5] focus:outline-none focus:border-[#2dff9a]"
+          className="rounded-xl border border-[rgba(22,191,255,0.18)] bg-[#050B18] px-4 py-2 text-xs font-mono text-[#F4F8FF] focus:outline-none focus:border-[#16BFFF]"
         >
           {accounts.map((a) => (
-            <option key={a.id} value={a.id} className="bg-[#07110d] text-[#eafff5]">
+            <option key={a.id} value={a.id} className="bg-[#0A1426] text-[#F4F8FF]">
               #{a.id} — {a.name} ({formatPaiseToRupees(a.balance_paise)})
             </option>
           ))}
@@ -358,37 +358,37 @@ export default function AttackLabPage() {
       </GlowCard>
 
       {/* Multi-Thread Concurrency Waveform Telemetry Visualizer */}
-      <GlowCard className="p-6 border-[#2dff9a]/40 bg-[#020905] space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[rgba(60,255,160,0.12)] pb-4">
+      <GlowCard className="p-6 border-[#16BFFF]/40 bg-[#020905] space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[rgba(22,191,255,0.12)] pb-4">
           <div className="flex items-center gap-2">
-            <Radio className="h-4 w-4 text-[#2dff9a] animate-pulse" />
-            <h2 className="text-sm font-bold font-mono text-[#eafff5] uppercase tracking-wider">
+            <Radio className="h-4 w-4 text-[#16BFFF] animate-pulse" />
+            <h2 className="text-sm font-bold font-mono text-[#F4F8FF] uppercase tracking-wider">
               Multi-Thread Waveform Telemetry
             </h2>
-            <Badge variant="emerald" size="sm">
+            <Badge variant="cyan" size="sm">
               LIVE WAVEFORM
             </Badge>
           </div>
-          <div className="flex items-center gap-3 text-[11px] font-mono text-[#7ea594]">
-            <span>Scenario: <strong className="text-[#2dff9a]">{telemetryEvent.scenario}</strong></span>
+          <div className="flex items-center gap-3 text-[11px] font-mono text-[#9AAEC5]">
+            <span>Scenario: <strong className="text-[#16BFFF]">{telemetryEvent.scenario}</strong></span>
             <span>•</span>
-            <span>Locks: <strong className="text-[#eafff5]">ORDER BY id ASC FOR UPDATE</strong></span>
+            <span>Locks: <strong className="text-[#F4F8FF]">ORDER BY id ASC FOR UPDATE</strong></span>
           </div>
         </div>
 
         {/* Telemetry Tracks */}
         <div className="space-y-4">
           {/* Thread 1 Waveform Track */}
-          <div className="p-4 rounded-xl bg-[#041209] border border-[rgba(60,255,160,0.2)] space-y-2.5">
+          <div className="p-4 rounded-xl bg-[#041209] border border-[rgba(22,191,255,0.2)] space-y-2.5">
             <div className="flex items-center justify-between text-xs font-mono">
               <div className="flex items-center gap-2">
-                <Cpu className="h-3.5 w-3.5 text-[#2dff9a]" />
-                <span className="font-bold text-[#eafff5]">{telemetryEvent.thread1.id}</span>
-                <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread1.action}</span>
+                <Cpu className="h-3.5 w-3.5 text-[#16BFFF]" />
+                <span className="font-bold text-[#F4F8FF]">{telemetryEvent.thread1.id}</span>
+                <span className="text-[10px] text-[#9AAEC5]">{telemetryEvent.thread1.action}</span>
               </div>
               <div className="flex items-center gap-2">
                 {telemetryEvent.thread1.latencyMs != null && (
-                  <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread1.latencyMs}ms</span>
+                  <span className="text-[10px] text-[#9AAEC5]">{telemetryEvent.thread1.latencyMs}ms</span>
                 )}
                 <Badge
                   variant={telemetryEvent.thread1.status === 'SUCCESS' ? 'emerald' : 'error'}
@@ -401,20 +401,20 @@ export default function AttackLabPage() {
 
             {/* Simulated Execution Timeline Bar */}
             <div className="space-y-1">
-              <div className="flex justify-between text-[9px] font-mono text-[#7ea594]/70">
+              <div className="flex justify-between text-[9px] font-mono text-[#9AAEC5]/70">
                 <span>Timeline Trace</span>
               </div>
-              <div className="h-2 rounded-full bg-[#020605] overflow-hidden relative">
+              <div className="h-2 rounded-full bg-[#050B18] overflow-hidden relative">
                 <div
-                  className="h-full bg-gradient-to-r from-[#2dff9a]/40 via-[#2dff9a] to-[#7ea594] rounded-full transition-all duration-700"
+                  className="h-full bg-gradient-to-r from-[#16BFFF]/40 via-[#16BFFF] to-[#9AAEC5] rounded-full transition-all duration-700"
                   style={{ width: '100%' }}
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[10px] font-mono text-[#7ea594]">
+            <div className="flex items-center justify-between text-[10px] font-mono text-[#9AAEC5]">
               <span className="truncate">{telemetryEvent.thread1.sql}</span>
-              <span className="text-[#2dff9a] shrink-0 font-bold ml-2">
+              <span className="text-[#16BFFF] shrink-0 font-bold ml-2">
                 {telemetryEvent.thread1.step}
               </span>
             </div>
@@ -425,12 +425,12 @@ export default function AttackLabPage() {
             <div className="flex items-center justify-between text-xs font-mono">
               <div className="flex items-center gap-2">
                 <Cpu className="h-3.5 w-3.5 text-[#ff5d7a]" />
-                <span className="font-bold text-[#eafff5]">{telemetryEvent.thread2.id}</span>
-                <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread2.action}</span>
+                <span className="font-bold text-[#F4F8FF]">{telemetryEvent.thread2.id}</span>
+                <span className="text-[10px] text-[#9AAEC5]">{telemetryEvent.thread2.action}</span>
               </div>
               <div className="flex items-center gap-2">
                 {telemetryEvent.thread2.latencyMs != null && (
-                  <span className="text-[10px] text-[#7ea594]">{telemetryEvent.thread2.latencyMs}ms</span>
+                  <span className="text-[10px] text-[#9AAEC5]">{telemetryEvent.thread2.latencyMs}ms</span>
                 )}
                 <Badge
                   variant={telemetryEvent.thread2.status === 'SUCCESS' ? 'emerald' : telemetryEvent.thread2.status === 'CACHED' ? 'cyan' : 'error'}
@@ -443,21 +443,21 @@ export default function AttackLabPage() {
 
             {/* Simulated Execution Timeline Bar */}
             <div className="space-y-1">
-              <div className="flex justify-between text-[9px] font-mono text-[#7ea594]/70">
+              <div className="flex justify-between text-[9px] font-mono text-[#9AAEC5]/70">
                 <span>Timeline Trace</span>
               </div>
-              <div className="h-2 rounded-full bg-[#020605] overflow-hidden relative">
+              <div className="h-2 rounded-full bg-[#050B18] overflow-hidden relative">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ${
                     telemetryEvent.thread2.status === 'CACHED'
-                      ? 'bg-gradient-to-r from-cyan-500/40 via-cyan-400 to-[#2dff9a] w-full'
+                      ? 'bg-gradient-to-r from-cyan-500/40 via-cyan-400 to-[#16BFFF] w-full'
                       : 'bg-gradient-to-r from-amber-500 via-[#ff5d7a] to-[#ff5d7a] w-3/4'
                   }`}
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[10px] font-mono text-[#7ea594]">
+            <div className="flex items-center justify-between text-[10px] font-mono text-[#9AAEC5]">
               <span className="truncate">{telemetryEvent.thread2.sql}</span>
               <span
                 className={`shrink-0 font-bold ml-2 ${
@@ -472,42 +472,42 @@ export default function AttackLabPage() {
 
         {/* Invariant Health Indicators */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-[10px] font-mono">
-          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
+          <div className="p-2.5 rounded-lg bg-[#050B18] border border-[rgba(22,191,255,0.15)] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Lock className="h-3.5 w-3.5 text-[#2dff9a]" />
+              <Lock className="h-3.5 w-3.5 text-[#16BFFF]" />
               <div>
-                <p className="text-[#eafff5] font-bold">ROW LOCKING</p>
-                <p className="text-[#7ea594]">Pessimistic Active</p>
+                <p className="text-[#F4F8FF] font-bold">ROW LOCKING</p>
+                <p className="text-[#9AAEC5]">Pessimistic Active</p>
               </div>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
+          <div className="p-2.5 rounded-lg bg-[#050B18] border border-[rgba(22,191,255,0.15)] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-3.5 w-3.5 text-[#2dff9a]" />
+              <ShieldCheck className="h-3.5 w-3.5 text-[#16BFFF]" />
               <div>
-                <p className="text-[#eafff5] font-bold">OVERDRAFT GUARD</p>
-                <p className="text-[#7ea594]">chk_no_overdraft</p>
+                <p className="text-[#F4F8FF] font-bold">OVERDRAFT GUARD</p>
+                <p className="text-[#9AAEC5]">chk_no_overdraft</p>
               </div>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
+          <div className="p-2.5 rounded-lg bg-[#050B18] border border-[rgba(22,191,255,0.15)] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <RotateCcw className="h-3.5 w-3.5 text-cyan-400" />
               <div>
-                <p className="text-[#eafff5] font-bold">IDEMPOTENCY</p>
-                <p className="text-[#7ea594]">UUID v4 Deduplicated</p>
+                <p className="text-[#F4F8FF] font-bold">IDEMPOTENCY</p>
+                <p className="text-[#9AAEC5]">UUID v4 Deduplicated</p>
               </div>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-lg bg-[#020605] border border-[rgba(60,255,160,0.15)] flex items-center justify-between">
+          <div className="p-2.5 rounded-lg bg-[#050B18] border border-[rgba(22,191,255,0.15)] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Activity className="h-3.5 w-3.5 text-[#2dff9a]" />
+              <Activity className="h-3.5 w-3.5 text-[#16BFFF]" />
               <div>
-                <p className="text-[#eafff5] font-bold">CONSERVATION</p>
-                <p className="text-[#7ea594]">Sum(Balances) == 0</p>
+                <p className="text-[#F4F8FF] font-bold">CONSERVATION</p>
+                <p className="text-[#9AAEC5]">Sum(Balances) == 0</p>
               </div>
             </div>
           </div>
@@ -520,13 +520,13 @@ export default function AttackLabPage() {
         <GlowCard className="p-6 space-y-4 flex flex-col justify-between">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-[#2dff9a] font-bold">SCENARIO 01</span>
-              <Badge variant="emerald" size="sm">RACE GUARD</Badge>
+              <span className="text-[10px] font-mono text-[#16BFFF] font-bold">SCENARIO 01</span>
+              <Badge variant="cyan" size="sm">RACE GUARD</Badge>
             </div>
-            <h3 className="text-base font-bold font-mono text-[#eafff5]">
+            <h3 className="text-base font-bold font-mono text-[#F4F8FF]">
               Simultaneous 80% Double Spend
             </h3>
-            <p className="text-xs text-[#7ea594] leading-relaxed">
+            <p className="text-xs text-[#9AAEC5] leading-relaxed">
               Fires 2 simultaneous withdrawals of 80% balance with different idempotency keys. Pessimistic row locks ensure exactly 1 succeeds and 0 overdrafts occur.
             </p>
           </div>
@@ -547,13 +547,13 @@ export default function AttackLabPage() {
         <GlowCard className="p-6 space-y-4 flex flex-col justify-between">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-[#2dff9a] font-bold">SCENARIO 02</span>
+              <span className="text-[10px] font-mono text-[#16BFFF] font-bold">SCENARIO 02</span>
               <Badge variant="cyan" size="sm">IDEMPOTENCY</Badge>
             </div>
-            <h3 className="text-base font-bold font-mono text-[#eafff5]">
+            <h3 className="text-base font-bold font-mono text-[#F4F8FF]">
               10x Replay Storm
             </h3>
-            <p className="text-xs text-[#7ea594] leading-relaxed">
+            <p className="text-xs text-[#9AAEC5] leading-relaxed">
               Transmits 10 identical requests with identical UUID v4 key at the same millisecond. Proves exactly one debit executes and 9 replays return cached payload.
             </p>
           </div>
@@ -574,14 +574,14 @@ export default function AttackLabPage() {
         <GlowCard className="p-6 space-y-4 flex flex-col justify-between">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-[#2dff9a] font-bold">SCENARIO 03</span>
+              <span className="text-[10px] font-mono text-[#16BFFF] font-bold">SCENARIO 03</span>
               <Badge variant="error" size="sm">CONSTRAINT</Badge>
             </div>
-            <h3 className="text-base font-bold font-mono text-[#eafff5]">
+            <h3 className="text-base font-bold font-mono text-[#F4F8FF]">
               Overdraft Attack
             </h3>
-            <p className="text-xs text-[#7ea594] leading-relaxed">
-              Attempts to withdraw ₹10,000,000.00 from an account with regular funds. Proves PostgreSQL DB check constraint <code className="text-[#2dff9a]">chk_no_overdraft</code> rejects the SQL statement.
+            <p className="text-xs text-[#9AAEC5] leading-relaxed">
+              Attempts to withdraw ₹10,000,000.00 from an account with regular funds. Proves PostgreSQL DB check constraint <code className="text-[#16BFFF]">chk_no_overdraft</code> rejects the SQL statement.
             </p>
           </div>
 
@@ -599,33 +599,33 @@ export default function AttackLabPage() {
       </div>
 
       {/* Terminal Live Execution Log */}
-      <div className="rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#020605] p-5 space-y-3 font-mono text-xs">
-        <div className="flex items-center justify-between border-b border-[rgba(60,255,160,0.1)] pb-2.5">
-          <div className="flex items-center gap-2 text-[#2dff9a]">
+      <div className="rounded-2xl border border-[rgba(22,191,255,0.18)] bg-[#050B18] p-5 space-y-3 font-mono text-xs">
+        <div className="flex items-center justify-between border-b border-[rgba(22,191,255,0.1)] pb-2.5">
+          <div className="flex items-center gap-2 text-[#16BFFF]">
             <Terminal className="h-4 w-4" />
             <span className="font-bold">CONCURRENCY & INVARIANT EXECUTION LOG</span>
           </div>
           <button
             onClick={() => setAttackLogs([])}
-            className="text-[10px] text-[#7ea594] hover:text-[#eafff5] cursor-pointer"
+            className="text-[10px] text-[#9AAEC5] hover:text-[#F4F8FF] cursor-pointer"
           >
             Clear Log
           </button>
         </div>
 
-        <div className="h-48 overflow-y-auto space-y-1.5 text-[11px] text-[#7ea594] pr-2">
+        <div className="h-48 overflow-y-auto space-y-1.5 text-[11px] text-[#9AAEC5] pr-2">
           {attackLogs.length === 0 ? (
-            <p className="text-[#7ea594]/60 italic">Ready. Click any attack scenario above to stream live concurrency results.</p>
+            <p className="text-[#9AAEC5]/60 italic">Ready. Click any attack scenario above to stream live concurrency results.</p>
           ) : (
             attackLogs.map((log, i) => (
               <p
                 key={i}
                 className={
                   log.includes('PASS')
-                    ? 'text-[#2dff9a] font-semibold'
+                    ? 'text-[#16BFFF] font-semibold'
                     : log.includes('FAIL')
                     ? 'text-[#ff5d7a] font-semibold'
-                    : 'text-[#eafff5]'
+                    : 'text-[#F4F8FF]'
                 }
               >
                 {log}

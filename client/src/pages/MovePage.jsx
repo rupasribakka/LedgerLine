@@ -25,7 +25,6 @@ import {
 import GlowCard from '../components/ui/GlowCard';
 import GlowButton from '../components/ui/GlowButton';
 import Skeleton from '../components/ui/Skeleton';
-import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
 
 export default function MovePage() {
@@ -100,91 +99,74 @@ export default function MovePage() {
     try {
       if (activeTab === 'transfer') {
         if (!sourceAccountId || !targetAccountId) {
-          showToast({ title: 'Error', message: 'Select both accounts.', type: 'error' });
+          showToast({
+            title: 'Account required',
+            message: 'Please select both source and destination accounts.',
+            type: 'error',
+          });
           setSubmitting(false);
           return;
         }
+
         if (sourceAccountId === targetAccountId) {
           showToast({
-            title: 'Invalid transfer',
+            title: 'Distinct accounts required',
             message: 'Source and destination accounts must be different.',
             type: 'error',
           });
           setSubmitting(false);
           return;
         }
+
         res = await executeTransfer({
-          fromAccountId: sourceAccountId,
-          toAccountId: targetAccountId,
-          amountPaise: paise,
-          idempotencyKey,
+          from_account_id: parseInt(sourceAccountId, 10),
+          to_account_id: parseInt(targetAccountId, 10),
+          amount_paise: paise,
+          description: `Transfer from #${sourceAccountId} to #${targetAccountId}`,
+          idempotency_key: idempotencyKey,
         });
       } else if (activeTab === 'withdraw') {
-        if (!sourceAccountId) {
-          showToast({ title: 'Error', message: 'Select an account.', type: 'error' });
-          setSubmitting(false);
-          return;
-        }
         res = await executeWithdrawal({
-          accountId: sourceAccountId,
-          amountPaise: paise,
-          idempotencyKey,
+          account_id: parseInt(sourceAccountId, 10),
+          amount_paise: paise,
+          idempotency_key: idempotencyKey,
         });
       } else if (activeTab === 'deposit') {
-        if (!isAdmin) {
-          showToast({
-            title: 'Permission denied',
-            message: 'Only administrators may initiate deposit operations.',
-            type: 'error',
-          });
-          setSubmitting(false);
-          return;
-        }
         res = await executeDeposit({
-          accountId: sourceAccountId,
-          amountPaise: paise,
-          idempotencyKey,
+          account_id: parseInt(sourceAccountId, 10),
+          amount_paise: paise,
+          idempotency_key: idempotencyKey,
         });
       }
 
-      if (res && res.ok) {
-        const isReplay = res.isReplay;
+      if (res.ok) {
         showToast({
-          title: isReplay ? 'Idempotent Replay Verified' : 'Transaction Committed',
-          message: isReplay
-            ? 'Backend recognized identical idempotency key; returned cached state without re-debiting.'
-            : `Successfully processed ${formatPaiseToRupees(paise)}.`,
-          type: isReplay ? 'info' : 'success',
+          title: res.isReplay ? 'Idempotent Replay (Cached)' : 'Transaction Committed',
+          message: `${formatPaiseToRupees(paise)} successfully processed.`,
+          type: res.isReplay ? 'info' : 'success',
         });
-
         setResultMessage({
           success: true,
-          isReplay,
-          data: res.data,
+          isReplay: res.isReplay,
           amountPaise: paise,
         });
-
-        // Generate fresh key for next payment
-        setIdempotencyKey(generateIdempotencyKey());
         setAmountInput('');
         loadAccounts();
       } else {
-        const errMsg = res?.error || 'Operation rejected by ledger invariants.';
         showToast({
-          title: 'Transaction Refused',
-          message: errMsg,
+          title: 'Transaction Failed',
+          message: res.error || 'The ledger refused to commit this transaction.',
           type: 'error',
         });
         setResultMessage({
           success: false,
-          error: errMsg,
+          error: res.error || 'Transaction refused by ledger constraints.',
         });
       }
     } catch (err) {
-      showToast({
-        title: 'Network error',
-        message: err.message,
-        type: 'error',
+      setResultMessage({
+        success: false,
+        error: err.message,
       });
     } finally {
       setSubmitting(false);
@@ -201,26 +183,26 @@ export default function MovePage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="border-b border-[rgba(60,255,160,0.12)] pb-6">
-        <Badge variant="emerald" size="sm" className="mb-2">
+      <div className="border-b border-[rgba(22,191,255,0.16)] pb-6">
+        <Badge variant="cyan" size="sm" className="mb-2">
           ACID SETTLEMENT ENGINE
         </Badge>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#eafff5]">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#F4F8FF]">
           Money Movement
         </h1>
-        <p className="text-xs sm:text-sm text-[#7ea594] mt-1">
+        <p className="text-xs sm:text-sm text-[#9AAEC5] mt-1">
           Atomic transfers, withdrawals, and administrator liquidity deposits.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-[#07110d] border border-[rgba(60,255,160,0.14)] w-fit">
+      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-[#0A1426] border border-[rgba(22,191,255,0.18)] w-fit">
         <button
           onClick={() => setActiveTab('transfer')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
             activeTab === 'transfer'
-              ? 'bg-[#2dff9a] text-[#020605] shadow-[0_0_15px_rgba(45,255,154,0.35)]'
-              : 'text-[#7ea594] hover:text-[#eafff5]'
+              ? 'bg-gradient-to-r from-[#16BFFF] to-[#387BFF] text-[#050B18] shadow-[0_0_15px_rgba(22,191,255,0.4)]'
+              : 'text-[#9AAEC5] hover:text-[#F4F8FF]'
           }`}
         >
           <ArrowLeftRight className="h-4 w-4" />
@@ -231,8 +213,8 @@ export default function MovePage() {
           onClick={() => setActiveTab('withdraw')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
             activeTab === 'withdraw'
-              ? 'bg-[#2dff9a] text-[#020605] shadow-[0_0_15px_rgba(45,255,154,0.35)]'
-              : 'text-[#7ea594] hover:text-[#eafff5]'
+              ? 'bg-gradient-to-r from-[#16BFFF] to-[#387BFF] text-[#050B18] shadow-[0_0_15px_rgba(22,191,255,0.4)]'
+              : 'text-[#9AAEC5] hover:text-[#F4F8FF]'
           }`}
         >
           <ArrowUpRight className="h-4 w-4" />
@@ -245,8 +227,8 @@ export default function MovePage() {
             onClick={() => setActiveTab('deposit')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
               activeTab === 'deposit'
-                ? 'bg-[#2dff9a] text-[#020605] shadow-[0_0_15px_rgba(45,255,154,0.35)]'
-                : 'text-[#7ea594] hover:text-[#eafff5]'
+                ? 'bg-gradient-to-r from-[#16BFFF] to-[#387BFF] text-[#050B18] shadow-[0_0_15px_rgba(22,191,255,0.4)]'
+                : 'text-[#9AAEC5] hover:text-[#F4F8FF]'
             }`}
           >
             <ArrowDownLeft className="h-4 w-4" />
@@ -255,7 +237,7 @@ export default function MovePage() {
         ) : (
           <div
             title="Deposit operations require Administrator clearance (POST /deposits)"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono text-[#7ea594]/50 cursor-not-allowed border border-dashed border-slate-800"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono text-[#9AAEC5]/50 cursor-not-allowed border border-dashed border-[#101E33]"
           >
             <Lock className="h-3.5 w-3.5" />
             <span>Deposit (Admin Only)</span>
@@ -268,7 +250,7 @@ export default function MovePage() {
         <form onSubmit={handleAction} className="space-y-6">
           {/* Source Account Selector */}
           <div className="space-y-2">
-            <label className="text-xs font-mono font-bold text-[#eafff5]">
+            <label className="text-xs font-mono font-bold text-[#F4F8FF]">
               {activeTab === 'transfer'
                 ? 'Source Account (Debit)'
                 : activeTab === 'withdraw'
@@ -278,19 +260,19 @@ export default function MovePage() {
             <select
               value={sourceAccountId}
               onChange={(e) => setSourceAccountId(e.target.value)}
-              className="w-full rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#020605] px-4 py-3 text-xs sm:text-sm font-mono text-[#eafff5] focus:border-[#2dff9a] focus:outline-none"
+              className="w-full rounded-2xl border border-[rgba(22,191,255,0.18)] bg-[#0A1426] px-4 py-3 text-xs sm:text-sm font-mono text-[#F4F8FF] focus:border-[#16BFFF] focus:outline-none"
             >
               {(activeTab === 'transfer' ? transferAccounts : accounts).map((acc) => (
-                <option key={acc.id} value={acc.id} className="bg-[#07110d] text-[#eafff5]">
+                <option key={acc.id} value={acc.id} className="bg-[#0A1426] text-[#F4F8FF]">
                   #{acc.id} — {acc.name} ({formatPaiseToRupees(acc.balance_paise)})
                 </option>
               ))}
             </select>
 
             {selectedSourceAccount && activeTab !== 'deposit' && (
-              <p className="text-xs font-mono text-[#9abfb0]">
+              <p className="text-xs font-mono text-[#9AAEC5]">
                 Available balance:{' '}
-                <span className="text-[#2dff9a] font-bold">
+                <span className="text-[#16BFFF] font-bold">
                   {formatPaiseToRupees(selectedSourceAccount.balance_paise)}
                 </span>{' '}
                 ({selectedSourceAccount.balance_paise} paise)
@@ -301,16 +283,16 @@ export default function MovePage() {
           {/* Destination Account Selector (Transfer only) */}
           {activeTab === 'transfer' && (
             <div className="space-y-2">
-              <label className="text-xs font-mono font-bold text-[#eafff5]">
+              <label className="text-xs font-mono font-bold text-[#F4F8FF]">
                 Destination Account (Credit)
               </label>
               <select
                 value={targetAccountId}
                 onChange={(e) => setTargetAccountId(e.target.value)}
-                className="w-full rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#020605] px-4 py-3 text-xs sm:text-sm font-mono text-[#eafff5] focus:border-[#2dff9a] focus:outline-none"
+                className="w-full rounded-2xl border border-[rgba(22,191,255,0.18)] bg-[#0A1426] px-4 py-3 text-xs sm:text-sm font-mono text-[#F4F8FF] focus:border-[#16BFFF] focus:outline-none"
               >
                 {transferAccounts.map((acc) => (
-                  <option key={acc.id} value={acc.id} className="bg-[#07110d] text-[#eafff5]">
+                  <option key={acc.id} value={acc.id} className="bg-[#0A1426] text-[#F4F8FF]">
                     #{acc.id} — {acc.name} ({formatPaiseToRupees(acc.balance_paise)})
                   </option>
                 ))}
@@ -320,14 +302,14 @@ export default function MovePage() {
 
           {/* Monetary Amount Input (Strict Paise Conversion) */}
           <div className="space-y-2">
-            <label className="text-xs font-mono font-bold text-[#eafff5] flex items-center justify-between">
+            <label className="text-xs font-mono font-bold text-[#F4F8FF] flex items-center justify-between">
               <span>Amount (₹ Rupees)</span>
-              <span className="text-xs text-[#9abfb0] font-normal">
+              <span className="text-xs text-[#9AAEC5] font-normal">
                 Stored strictly as integer paise
               </span>
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-base text-[#9abfb0]">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-base text-[#9AAEC5]">
                 ₹
               </span>
               <input
@@ -335,27 +317,27 @@ export default function MovePage() {
                 placeholder="100.00"
                 value={amountInput}
                 onChange={(e) => setAmountInput(e.target.value)}
-                className="w-full rounded-2xl border border-[rgba(60,255,160,0.18)] bg-[#020605] pl-9 pr-4 py-3 text-sm sm:text-base font-mono text-[#eafff5] placeholder-[#9abfb0]/60 focus:border-[#2dff9a] focus:outline-none"
+                className="w-full rounded-2xl border border-[rgba(22,191,255,0.18)] bg-[#0A1426] pl-9 pr-4 py-3 text-sm sm:text-base font-mono text-[#F4F8FF] placeholder-[#9AAEC5]/60 focus:border-[#16BFFF] focus:outline-none"
               />
             </div>
             {amountInput && parseRupeesToPaise(amountInput) !== null && (
-              <p className="text-xs font-mono text-[#2dff9a]">
+              <p className="text-xs font-mono text-[#16BFFF]">
                 Exact Integer Value: {parseRupeesToPaise(amountInput)} paise
               </p>
             )}
           </div>
 
           {/* Idempotency Key Configuration */}
-          <div className="rounded-2xl border border-[rgba(60,255,160,0.12)] bg-[#020605] p-4 space-y-2">
+          <div className="rounded-2xl border border-[rgba(22,191,255,0.16)] bg-[#050B18] p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-[#eafff5] flex items-center gap-1.5">
-                <Repeat className="h-3.5 w-3.5 text-[#2dff9a]" />
+              <span className="text-xs font-mono font-bold text-[#F4F8FF] flex items-center gap-1.5">
+                <Repeat className="h-3.5 w-3.5 text-[#16BFFF]" />
                 <span>Client Idempotency Key (UUID v4)</span>
               </span>
               <button
                 type="button"
                 onClick={handleRegenerateKey}
-                className="text-xs font-mono text-[#2dff9a] hover:underline cursor-pointer"
+                className="text-xs font-mono text-[#16BFFF] hover:underline cursor-pointer"
               >
                 Regenerate
               </button>
@@ -364,9 +346,9 @@ export default function MovePage() {
               type="text"
               value={idempotencyKey}
               onChange={(e) => setIdempotencyKey(e.target.value)}
-              className="w-full bg-transparent text-xs font-mono text-[#9abfb0] focus:outline-none focus:text-[#eafff5]"
+              className="w-full bg-transparent text-xs font-mono text-[#9AAEC5] focus:outline-none focus:text-[#F4F8FF]"
             />
-            <p className="text-xs text-[#9abfb0] leading-relaxed">
+            <p className="text-xs text-[#9AAEC5] leading-relaxed">
               Prevents double processing. Submitting with the same key replays the cached result without duplicate ledger debit; submitting with an altered payload returns HTTP 422.
             </p>
           </div>
@@ -375,40 +357,40 @@ export default function MovePage() {
           {loadingAccounts ? (
             <Skeleton className="h-40 rounded-2xl" />
           ) : selectedSourceAccount && (
-            <div className="rounded-2xl border border-[rgba(60,255,160,0.2)] bg-[#03100a] p-4 sm:p-5 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[rgba(60,255,160,0.12)] pb-2.5">
+            <div className="rounded-2xl border border-[rgba(22,191,255,0.22)] bg-[#0A1426] p-4 sm:p-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[rgba(22,191,255,0.14)] pb-2.5">
                 <div className="flex items-center gap-2">
-                  <Scale className="h-4 w-4 text-[#2dff9a]" />
-                  <span className="text-xs font-mono font-bold text-[#eafff5] uppercase tracking-wider">
+                  <Scale className="h-4 w-4 text-[#16BFFF]" />
+                  <span className="text-xs font-mono font-bold text-[#F4F8FF] uppercase tracking-wider">
                     Balance Preview
                   </span>
                 </div>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#041d12] text-[#2dff9a] border border-[#2dff9a]/30 font-mono font-semibold">
-                  Preview, the server decides
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[rgba(22,191,255,0.12)] text-[#16BFFF] border border-[#16BFFF]/30 font-mono font-semibold">
+                  Server-enforced balance
                 </span>
               </div>
 
               {/* Balances & Arithmetic Breakdown */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
                 {/* Source Account Impact */}
-                <div className="p-3 rounded-xl bg-[#020605] border border-[rgba(60,255,160,0.12)] space-y-1.5">
-                  <div className="flex items-center justify-between text-[#9abfb0]">
+                <div className="p-3 rounded-xl bg-[#050B18] border border-[rgba(22,191,255,0.14)] space-y-1.5">
+                  <div className="flex items-center justify-between text-[#9AAEC5]">
                     <span>
                       {activeTab === 'deposit' ? 'Target Account' : 'Source Account'} #{selectedSourceAccount.id}
                     </span>
-                    <span className="font-bold text-[#eafff5]">{selectedSourceAccount.account_no}</span>
+                    <span className="font-bold text-[#F4F8FF]">{selectedSourceAccount.account_no}</span>
                   </div>
-                  <div className="flex justify-between text-[#9abfb0]">
+                  <div className="flex justify-between text-[#9AAEC5]">
                     <span>Current Balance:</span>
-                    <span className="text-[#eafff5]">
+                    <span className="text-[#F4F8FF]">
                       {formatPaiseToRupees(selectedSourceAccount.balance_paise)} ({selectedSourceAccount.balance_paise} paise)
                     </span>
                   </div>
-                  <div className="flex justify-between border-t border-[rgba(60,255,160,0.1)] pt-1">
-                    <span className="text-[#9abfb0]">
+                  <div className="flex justify-between border-t border-[rgba(22,191,255,0.1)] pt-1">
+                    <span className="text-[#9AAEC5]">
                       {activeTab === 'deposit' ? 'After Credit (+):' : 'After Debit (-):'}
                     </span>
-                    <span className="font-bold text-[#2dff9a]">
+                    <span className="font-bold text-[#16BFFF]">
                       {activeTab === 'deposit'
                         ? `${formatPaiseToRupees(Number(selectedSourceAccount.balance_paise) + (parseRupeesToPaise(amountInput) || 0))} (${Number(selectedSourceAccount.balance_paise) + (parseRupeesToPaise(amountInput) || 0)} paise)`
                         : `${formatPaiseToRupees(Math.max(Number(selectedSourceAccount.balance_paise) - (parseRupeesToPaise(amountInput) || 0), 0))} (${Number(selectedSourceAccount.balance_paise) - (parseRupeesToPaise(amountInput) || 0)} paise)`}
@@ -417,14 +399,14 @@ export default function MovePage() {
                 </div>
 
                 {/* Counterparty / Target Account Impact */}
-                <div className="p-3 rounded-xl bg-[#020605] border border-[rgba(60,255,160,0.12)] space-y-1.5">
-                  <div className="flex items-center justify-between text-[#9abfb0]">
+                <div className="p-3 rounded-xl bg-[#050B18] border border-[rgba(22,191,255,0.14)] space-y-1.5">
+                  <div className="flex items-center justify-between text-[#9AAEC5]">
                     <span>
                       {activeTab === 'transfer'
                         ? `Target Account #${selectedTargetAccount?.id || '—'}`
                         : 'Clearing Reserve'}
                     </span>
-                    <span className="font-bold text-[#eafff5]">
+                    <span className="font-bold text-[#F4F8FF]">
                       {activeTab === 'transfer'
                         ? selectedTargetAccount?.account_no || 'None Selected'
                         : 'ACC-EXTERNAL'}
@@ -432,30 +414,30 @@ export default function MovePage() {
                   </div>
                   {activeTab === 'transfer' && selectedTargetAccount ? (
                     <>
-                      <div className="flex justify-between text-[#9abfb0]">
+                      <div className="flex justify-between text-[#9AAEC5]">
                         <span>Current Balance:</span>
-                        <span className="text-[#eafff5]">
+                        <span className="text-[#F4F8FF]">
                           {formatPaiseToRupees(selectedTargetAccount.balance_paise)} ({selectedTargetAccount.balance_paise} paise)
                         </span>
                       </div>
-                      <div className="flex justify-between border-t border-[rgba(60,255,160,0.1)] pt-1">
-                        <span className="text-[#9abfb0]">After Credit (+):</span>
-                        <span className="font-bold text-[#2dff9a]">
+                      <div className="flex justify-between border-t border-[rgba(22,191,255,0.1)] pt-1">
+                        <span className="text-[#9AAEC5]">After Credit (+):</span>
+                        <span className="font-bold text-[#16BFFF]">
                           {formatPaiseToRupees(Number(selectedTargetAccount.balance_paise) + (parseRupeesToPaise(amountInput) || 0))} ({Number(selectedTargetAccount.balance_paise) + (parseRupeesToPaise(amountInput) || 0)} paise)
                         </span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="flex justify-between text-[#9abfb0]">
+                      <div className="flex justify-between text-[#9AAEC5]">
                         <span>Counterparty:</span>
-                        <span className="text-[#eafff5]">External Clearing Invariant</span>
+                        <span className="text-[#F4F8FF]">External Clearing Invariant</span>
                       </div>
-                      <div className="flex justify-between border-t border-[rgba(60,255,160,0.1)] pt-1">
-                        <span className="text-[#9abfb0]">
+                      <div className="flex justify-between border-t border-[rgba(22,191,255,0.1)] pt-1">
+                        <span className="text-[#9AAEC5]">
                           {activeTab === 'deposit' ? 'Debited Reserve:' : 'Credited Reserve:'}
                         </span>
-                        <span className="font-bold text-[#2dff9a]">
+                        <span className="font-bold text-[#16BFFF]">
                           {parseRupeesToPaise(amountInput) ? `${parseRupeesToPaise(amountInput)} paise` : '0 paise'}
                         </span>
                       </div>
@@ -465,12 +447,12 @@ export default function MovePage() {
               </div>
 
               {/* Debit Equals Credit Double-Entry Invariant Proof */}
-              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-[#020605] border border-[rgba(60,255,160,0.1)] text-xs font-mono">
-                <span className="text-[#9abfb0] flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#2dff9a]" />
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-[#050B18] border border-[rgba(22,191,255,0.1)] text-xs font-mono">
+                <span className="text-[#9AAEC5] flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#16BFFF]" />
                   <span>Double-Entry Balance Invariant:</span>
                 </span>
-                <span className="text-[#2dff9a] font-bold">
+                <span className="text-[#16BFFF] font-bold">
                   Debit ≡ Credit ({parseRupeesToPaise(amountInput) || 0} paise)
                 </span>
               </div>
@@ -502,8 +484,8 @@ export default function MovePage() {
           <div
             className={`p-4 rounded-2xl border text-xs font-mono space-y-2 ${
               resultMessage.success
-                ? 'bg-[#05150d] border-[#2dff9a]/40 text-[#2dff9a]'
-                : 'bg-[#18070b] border-[rgba(255,93,122,0.4)] text-[#ff5d7a]'
+                ? 'bg-[#0A1F3D] border-[#16BFFF]/50 text-[#16BFFF]'
+                : 'bg-[rgba(255,91,122,0.12)] border-[rgba(255,91,122,0.4)] text-[#FF5B7A]'
             }`}
           >
             <div className="flex items-center gap-2 font-bold">
@@ -520,7 +502,7 @@ export default function MovePage() {
                   : 'Transaction Refused by Invariant Guard'}
               </span>
             </div>
-            <p className="text-slate-300">
+            <p className="text-[#9AAEC5]">
               {resultMessage.success
                 ? `Operation finalized in whole integer paise (${resultMessage.amountPaise} paise). Check statement to inspect hash chain.`
                 : resultMessage.error}

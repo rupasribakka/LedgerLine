@@ -70,15 +70,15 @@ export default function SmoothPaiseCounter({
     <span
       className={`inline-flex items-baseline gap-1 font-mono transition-colors duration-300 ${
         flashType === 'credit'
-          ? 'text-[#2dff9a] drop-shadow-[0_0_12px_rgba(45,255,154,0.6)]'
+          ? 'text-[#16BFFF] drop-shadow-[0_0_12px_rgba(22,191,255,0.7)]'
           : flashType === 'debit'
-          ? 'text-[#ff5d7a] drop-shadow-[0_0_12px_rgba(255,93,122,0.6)]'
+          ? 'text-[#FF5B7A] drop-shadow-[0_0_12px_rgba(255,91,122,0.7)]'
           : ''
       } ${className}`}
     >
       <span>{formatted}</span>
       {showDetail && (
-        <span className="text-[10px] text-[#7ea594] font-normal font-mono">
+        <span className="text-[10px] text-[#9AAEC5] font-normal font-mono">
           ({displayPaise} paise)
         </span>
       )}

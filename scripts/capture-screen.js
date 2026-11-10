@@ -124,7 +124,7 @@ async function run() {
       } catch {}
     }
 
-    await page.screenshot({ path: outputPath, fullPage: false });
+    await page.screenshot({ path: outputPath, fullPage: process.env.FULL_PAGE === 'true' });
     console.log(`[SCREENSHOT] Successfully saved to: ${outputPath}`);
   } finally {
     if (browser) await browser.close();
