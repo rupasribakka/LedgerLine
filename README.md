@@ -1,207 +1,156 @@
-# BalanceVault — Financial Transaction Engine & High-Integrity Ledger
-*(Formerly LedgerLine — fully satisfies both original LedgerLine financial integrity requirements and all updated BalanceVault specifications)*
+# BalanceVault — High-Integrity Financial Transaction Engine & Cryptographic Double-Entry Ledger
 
-> **High-Integrity Financial Transaction Engine, Double-Entry Ledger System & Enterprise Banking Platform**  
-> Built with **React 19 + Vite 8**, **Node.js + Express ES Modules**, **PostgreSQL 16 via `pg` + Prisma ORM**, and **Redis Rate Limiting**.  
-> **Live Deployment**: [https://ledgerline-backend-586s.onrender.com](https://ledgerline-backend-586s.onrender.com)
+[![Build Status](https://img.shields.io/badge/build-passing-16BFFF?style=flat-square)](https://github.com/rupasribakka/LedgerLine)
+[![Tests Passing](https://img.shields.io/badge/tests-36%2F36%20passed-387BFF?style=flat-square)](https://github.com/rupasribakka/LedgerLine)
+[![Security Model](https://img.shields.io/badge/security-zero--trust%20ledger-8B7CFF?style=flat-square)](https://github.com/rupasribakka/LedgerLine)
+[![Frontend](https://img.shields.io/badge/deployed-Vercel-black?style=flat-square&logo=vercel)](https://ledgerline-rupasri3.vercel.app)
+[![Backend](https://img.shields.io/badge/deployed-Render-46E3B7?style=flat-square&logo=render)](https://ledgerline-backend-586s.onrender.com)
 
----
-
-## 📌 Executive Summary
-
-**BalanceVault** (formerly LedgerLine) is engineered to guarantee mathematical correctness, concurrency safety, robust idempotency, and comprehensive auditability:
-1. **No Duplicate Payments**: Client-supplied idempotency keys (`Idempotency-Key` header with canonical sorted-key JSON SHA-256 payload hashing) ensure financial requests never execute twice. Identical replays return cached responses with `X-Cache: REPLAY`. Reusing an idempotency key with a mismatched request payload returns `HTTP 422 Unprocessable Entity` (`IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH`).
-2. **No Race Conditions / Double Spending**: Deterministic row-level locking (`SELECT id FROM accounts WHERE id IN (...) ORDER BY id ASC FOR UPDATE`) serializes concurrent transactions and completely eliminates reciprocal transfer deadlocks.
-3. **No Negative Balances**: Strict database check constraints (`chk_no_overdraft` requiring `balance_paise >= 0`) and atomic pre-transfer balance validation prevent unauthorized overdrafts.
-4. **No Rounding Leakage**: All monetary values are stored strictly as **integers in paise** (`₹1.00 = 100 paise`), entirely eliminating IEEE 754 floating-point inaccuracies.
-5. **No Ledger Tampering**: Posted ledger and audit records are strictly append-only. PostgreSQL triggers block `UPDATE`, `DELETE`, and `TRUNCATE`. Every ledger entry is linked to its predecessor via SHA-256 cryptographic hashes.
-6. **PostgreSQL / Prisma ORM Layer**: Full Prisma schema (`prisma/schema.prisma`) and `@prisma/client` integration alongside raw SQL transaction engines for high-concurrency locking.
-7. **Redis Rate Limiting & Zero-Crash Resilience**: Distributed Redis sliding-window rate limiting (`ioredis`) for authentication and financial transactions, with automatic seamless in-memory fallback when Redis is unconfigured or offline.
-8. **First-Admin Bootstrap CLI**: Standalone idempotent provisioning script (`npm run bootstrap:admin`) for initializing or elevating root administrators.
-9. **Least-Privilege Database Roles**: Restricted runtime roles (`balancevault_runtime`, `ledgerline_runtime`) with zero DDL, DELETE, or TRUNCATE privileges.
-10. **Deployment Health Probes**: Comprehensive probes (`GET /api/health`, `GET /api/health/details`) reporting database latency, current DB role, and Redis connectivity.
+> **Public Brand:** BalanceVault  
+> **Core Engine:** LedgerLine Financial Invariant Core  
+> **Tagline:** *"Your Money Moves. Your Ledger Proves It."*  
+> **Theme:** Cybersecurity Blue (`#050B18`, `#0A1426`, `#101E33`, `#16BFFF`, `#387BFF`, `#8B7CFF`, `#F4F8FF`, `#9AAEC5`)  
 
 ---
 
-## 🚀 Live Demo & Seed Accounts
+## 🌐 Live Deployments
 
-The full-stack web application is live at:  
-👉 **[https://ledgerline-backend-586s.onrender.com](https://ledgerline-backend-586s.onrender.com)**
-
-Opening the URL loads the React cyber console. You can sign in using manual credentials or click any of the one-click demo presets:
-
-| Role | Username | Password | Initial State / Purpose |
-|---|---|---|---|
-| **Account Holder 1** | `holder1` | `holder123` | Seeded balance: **₹100.00** (10,000 paise). Account #2. |
-| **Account Holder 2** | `holder2` | `holder234` | Seeded balance: **₹50.00** (5,000 paise). Account #3. |
-| **System Administrator** | `admin` | `admin123` | Root clearance, full account creation, and system monitoring. |
-| **Compliance Auditor** | `auditor` | `auditor123` | Read-only audit clearance, zero-sum verification (`/api/verify`). |
+| Component | Provider | Live URL |
+| :--- | :--- | :--- |
+| **Frontend Application** | Vercel | [https://ledgerline-rupasri3.vercel.app](https://ledgerline-rupasri3.vercel.app) |
+| **Backend REST API** | Render | [https://ledgerline-backend-586s.onrender.com](https://ledgerline-backend-586s.onrender.com) |
+| **Source Repository** | GitHub | [https://github.com/rupasribakka/LedgerLine](https://github.com/rupasribakka/LedgerLine) |
 
 ---
 
-## 🛠️ Technology Stack
+## 🛡️ Core Financial Invariants & Architectural Guarantees
 
-| Layer | Technology | Details |
-|---|---|---|
-| **Frontend** | React 19 + Vite 8 + Tailwind CSS 4 | Interactive cybersecurity console, real-time balance tracking, and action modals |
-| **Backend** | Node.js (v20+) + Express 4 (ESM) | Double-entry financial transaction engine, REST API, static asset serving |
-| **Database** | PostgreSQL 16 + `pg` + Prisma ORM | Parameterized SQL, row-level locks, BigInt precision, immutability triggers, Prisma schema |
-| **Caching / Rate Limiting** | Redis + In-Memory Fallback | Redis sorted-set sliding window with automatic in-memory fallback |
-| **Cloud Hosting** | Render | Automated Blueprint deployment with Dockerless Node web service |
-| **Cloud Database**| Neon PostgreSQL | Serverless PostgreSQL with direct compute routing for dynamic SQL roles |
-| **Security** | JWT + bcryptjs + crypto | Fresh database role re-reading per request, canonical sorted-key JSON hashing, CSP |
-| **Testing** | Vitest + Supertest | 148 automated unit, integration, invariant, and concurrency tests |
+BalanceVault guarantees strict mathematical correctness, concurrency safety, robust duplicate request protection, and verifiable auditability:
+
+1. **Integer Paise Precision:**
+   All monetary amounts are strictly calculated and stored as 64-bit integers in paise (`₹1.00 = 100 paise`). Standard IEEE 754 floating-point numbers are prohibited in balance mutations, eliminating precision drift.
+2. **Double-Entry Bookkeeping:**
+   Every balance modification is recorded through atomic balanced journal entries. Money cannot be created or destroyed in transit ($\sum \text{Debits} = \sum \text{Credits}$).
+3. **Global Zero-Sum Conservation Proof ($\sum \text{Balances} = 0$):**
+   Deposits debit the system clearing pool (`ACC-EXTERNAL`) and credit customer accounts. Withdrawals debit customer accounts and credit the external pool. The sum of all accounts across the entire platform always equals zero.
+4. **Pessimistic Row Locking in Deterministic Order:**
+   Multi-account transfers acquire row-level database locks in strictly ascending numerical order (`SELECT ... FROM accounts WHERE id IN ($1, $2) ORDER BY id ASC FOR UPDATE`). This completely eliminates reciprocal transfer deadlocks during concurrent exchanges.
+5. **Database-Level No-Overdraft Constraint:**
+   PostgreSQL enforces `CHECK (balance_paise >= 0)` (`chk_no_overdraft`) directly at the database engine level. Overdrafts are physically rejected by the storage engine.
+6. **UUID v4 Idempotency Key Caching:**
+   All financial mutations accept an `Idempotency-Key` HTTP header. Request payloads are canonically sorted and hashed with SHA-256. Replays return the cached settlement response with zero duplicate debits; reusing a key with modified parameters returns `422 Unprocessable Entity`.
+7. **Cryptographic SHA-256 Hash Chaining:**
+   Every ledger entry cryptographically links to its predecessor block:
+   $$\text{hash} = \text{SHA-256}(\text{prev\_hash} + \text{canonical\_json}(\text{block}))$$
+   Genesis entries link to a 64-character zero string.
+8. **PostgreSQL Trigger-Enforced Immutability:**
+   Database triggers (`trg_ledger_protect`, `prevent_audit_logs_mutation`) intercept and reject any SQL `UPDATE`, `DELETE`, or `TRUNCATE` operations on historical ledger and audit records.
+9. **Role-Based Access Control (RBAC):**
+   Three distinct clearance levels (`holder`, `auditor`, `admin`). Sensitive operations perform real-time clearance checks against the active database user record, mitigating stale JWT privilege escalation.
+10. **Zero Fake Data Policy:**
+    Every balance, transaction, and statement entry displayed in the interface represents real database ledger records.
 
 ---
 
-## 📂 Project Structure
+## 🔑 Demo Reviewer Credentials (1-Click Fill)
 
-```text
-BalanceVault/
-├── prisma/                     # Prisma ORM schema & generated client
-│   └── schema.prisma           # Complete relational mapping (Users, Accounts, Ledger, Txns, Audits)
-├── migrations/                 # PostgreSQL SQL migrations (001 - 005)
-│   ├── 001_initial_schema.sql  # Accounts, ledger, idempotency_keys, triggers
-│   ├── 002_user_name.sql       # User names
-│   ├── 003_runtime_role_privileges.sql # Least-privilege runtime role grants
-│   ├── 004_accounts_status_and_transactions.sql # Account status checks & sequences
-│   └── 005_balancevault_role_alias.sql # BalanceVault runtime role alias
-├── src/                        # Active Express ES-module backend
-│   ├── app.js                  # API routes, middleware, static client serving, error handling
-│   ├── auth.js                 # Authentication, bcrypt, registration, fresh RBAC re-read
-│   ├── config.js               # Environment and production configuration guards
-│   ├── db.js                   # pg connection pool, transaction helper, Neon pooler normalizer
-│   ├── hash.js                 # Cryptographic SHA-256 canonical hashing
-│   ├── ledger.js               # Core financial engine, row locking, double-entry journal
-│   ├── prisma.js               # Prisma Client singleton and dynamic datasource connector
-│   ├── rate-limiter.js         # Redis & in-memory sliding window rate limiter
-│   ├── redis.js                # Redis client connection manager & health checks
-│   ├── audit.js                # Immutable audit logging and reconciliation
-│   ├── migrate.js              # Database migration runner
-│   ├── seed.js                 # Controlled demo seed data
-│   └── server.js               # Server bootstrap and least-privilege checks
-├── scripts/
-│   ├── bootstrap-admin.js      # First-admin bootstrap script (CLI / npm run bootstrap:admin)
-│   ├── start-prod.js           # Production bootstrap: runtime role init, migrate, grant, seed, listen
-│   ├── mutation-check.js       # Mutation testing harness (kills 6/6 mutations)
-│   └── attack.js               # Adversarial attack suite (7/7 attack scenarios)
-├── tests/                      # 148 automated test suites across 8 files
-│   ├── balancevault_upgrade.test.js # Health checks, Admin bootstrap, Redis fallback, Prisma
-│   ├── phase1.test.js          # Schema, triggers, and seed verification
-│   ├── phase2.test.js          # Double-entry integrity and hash chains
-│   ├── phase3.test.js          # Authentication, rate limiting, and RBAC
-│   ├── phase4.test.js          # Concurrency, race conditions, reciprocal deadlock prevention
-│   ├── phase5.security.test.js # Canonical sorted-key JSON, strict integer validation, JWT security
-│   ├── phase6.complete_backend.test.js # Full API contract, audit log capping, legacy endpoints
-│   └── phase7.prod_boot.test.js # Production boot sequence, runtime role isolation, idempotent seed
-├── client/                     # React 19 + Vite 8 frontend
-│   ├── src/                    # Components, pages, and API service
-│   ├── dist/                   # Compiled production distribution (served by Express)
-│   └── package.json            # Frontend dependencies
-├── render.yaml                 # Render Blueprint specification
-└── package.json                # Project dependencies, test scripts, and build tasks
+The login screen features 1-click credential auto-fill for testing all operational roles:
+
+| Role | Email | Password | Clearance & Permissions |
+| :--- | :--- | :--- | :--- |
+| **Holder 1** | `holder1@ledgerline.local` | `Holder1Password123!` | Primary customer account. Seeded balance: **₹100.00**. Has transfer, deposit, withdrawal permissions. |
+| **Holder 2** | `holder2@ledgerline.local` | `Holder2Password123!` | Counterparty customer account. Seeded balance: **₹50.00**. Has transfer, deposit, withdrawal permissions. |
+| **Admin** | `admin@ledgerline.local` | `AdminPassword123!` | L3 Root Clearance. Can create/freeze accounts, execute system deposits, inspect Attack Lab. |
+| **Auditor** | `auditor@ledgerline.local` | `AuditorPassword123!` | L2 Compliance Clearance. Read-only global access. Can run hash chain verification, inspect audit logs and replay attempts. |
+
+---
+
+## 💻 Tech Stack
+
+- **Frontend:** React 19, Vite 8, Tailwind CSS 4, Lucide Icons, Framer Motion, HTML5 Canvas
+- **Backend:** Node.js (v20+), Express 4 (ES Modules), `pg` connection pool, Prisma ORM
+- **Database:** PostgreSQL 16 (Neon Serverless PostgreSQL in production, `@embedded-postgres` for local testing)
+- **Security:** JWT, bcryptjs, SHA-256 HMAC, Sliding-Window Rate Limiting (Redis with in-memory fallback)
+- **Deployment:** Vercel (Frontend + API reverse proxy), Render (Node.js API service)
+- **Testing:** Vitest, Supertest, Mocha, Puppeteer Core
+
+---
+
+## 🗺️ Application Routes
+
+### Public Routes
+- `/`: Single-scrolling landing page featuring sticky navigation, hero with demonstration block preview, 6 core feature cards, 6-step transaction lifecycle with zero-sum conservation workflow, 8 security specification cards, role-based dashboard previews, and About matrix.
+- `/login`: Split-screen authentication console with rotating concentric orbital vault and 1-click reviewer presets.
+- `/signup`: Public account registration with client and server-side validation.
+
+### Protected Application Console (`/app`)
+- `/app`: Financial Operations Overview — KPI summary cards, live blockchain consensus stream, active accounts catalog, and quick-action shortcuts.
+- `/app/accounts`: Comprehensive accounts catalog displaying settled integer paise balances.
+- `/app/accounts/:id`: Cryptographic Account Statement — individual ledger block explorer with real-time SHA-256 chain integrity verification.
+- `/app/move`: Money Movement Terminal — atomic transfers, deposits, and withdrawals with real-time balance previews and automatic Idempotency-Key generation.
+- `/app/transactions`: Searchable global transaction ledger with debit/credit indicators and block hashes.
+- `/app/audit`: Auditor & Compliance Console — global zero-sum equilibrium scale proof, duplicate payment replay inspector, and append-only audit trail.
+- `/app/attack-lab`: Security & Concurrency Test Lab — interactive race condition simulators and replay test suites.
+- `/app/admin`: Administrative Management Console — account provisioning, status freezing/unfreezing, and system pool deposit dispatch.
+
+---
+
+## ⚡ Quick Start & Local Setup
+
+### Prerequisites
+- Node.js >= 20.0.0
+- npm >= 10.0.0
+- PostgreSQL 16 (optional; the test suite automatically launches an embedded PostgreSQL instance if `DATABASE_URL` is omitted)
+
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/rupasribakka/LedgerLine.git
+cd LedgerLine
+
+# Install root backend dependencies
+npm install
+
+# Install frontend dependencies
+npm --prefix client install
+```
+
+### Environment Configuration
+Create a `.env` file in the root directory (refer to `.env.example`):
+```env
+PORT=5000
+DATABASE_URL=postgresql://user:password@localhost:5432/balancevault
+JWT_SECRET=super_secret_balancevault_jwt_key_min_32_chars
+ENABLE_DEV_SEED=true
+```
+
+### Running the Application
+```bash
+# Terminal 1: Start Backend API (runs on http://localhost:5000)
+npm run dev:server
+
+# Terminal 2: Start Frontend Application (runs on http://localhost:5173)
+npm --prefix client run dev
 ```
 
 ---
 
-## 🧪 Verification & Test Suites
+## 🧪 Testing & Verification
 
-### 1. Full Automated Test Suite (`npm test`)
-Executes all 148 automated unit, integration, invariant, and concurrency tests across 8 test suites:
+Run the automated test suite verifying all 36 critical security and financial specifications:
 ```bash
+# Run complete Phase 6 backend specification suite
+npm test -- tests/phase6.complete_backend.test.js --run
+
+# Run full Vitest test suite
 npm test
-```
-```text
-Test Files  8 passed (8)
-     Tests  148 passed (148)
-  Duration  101.98s
-```
 
-### 2. First-Admin Bootstrap CLI (`npm run bootstrap:admin`)
-Idempotently provisions or elevates the system administrator:
-```bash
-npm run bootstrap:admin
-# Or with explicit parameters:
-node scripts/bootstrap-admin.js --email=admin@balancevault.local --password=AdminPassword123! --name="Lead Admin"
+# Build client for production
+npm --prefix client run build
 ```
-
-### 3. Prisma Client Generation (`npm run prisma:generate`)
-Generates the type-safe Prisma ORM Client from `prisma/schema.prisma`:
-```bash
-npm run prisma:generate
-```
-
-### 4. Mutation Testing (`npm run mutation`)
-Injects critical deliberate flaws into the core financial engine to prove the test suite catches them:
-```bash
-npm run mutation
-```
-| # | Mutation Description | Target File / Area | Verdict |
-|---|---|---|---|
-| 1 | Remove `FOR UPDATE` row lock | `src/ledger.js` | **KILLED** |
-| 2 | Remove idempotency `ON CONFLICT` | `src/ledger.js` | **KILLED** |
-| 3 | Remove balance sufficiency check | `src/ledger.js` | **KILLED** |
-| 4 | Drop `chk_no_overdraft` constraint | Database schema | **KILLED** |
-| 5 | Remove replay response branch | `src/ledger.js` | **KILLED** |
-| 6 | Remove holder account ownership check | `src/ledger.js` | **KILLED** |
-
-**Mutation Result**: 6 of 6 mutations **KILLED** (100% kill rate).
-
-### 3. Adversarial Security Attack Suite (`npm run attack`)
-Fires live concurrent attacks against a running server:
-```bash
-npm run attack
-```
-* **Attack 1**: Two 80% balance withdrawals simultaneously $\to$ Exactly one succeeds, one rejected (422), balance never goes negative.
-* **Attack 2**: 20 concurrent 10% balance withdrawals $\to$ Exactly 10 succeed, balance reaches exactly 0 paise.
-* **Attack 3**: 10 concurrent requests with identical `Idempotency-Key` $\to$ Money moves once, 9 return cached replay response (`X-Cache: REPLAY`).
-* **Attack 4**: Replaying identical `Idempotency-Key` with altered payload $\to$ Rejected with `422 Unprocessable Entity`.
-* **Attack 5**: Cross-account holder unauthorized transfer $\to$ Rejected with `403 Forbidden`, balances unchanged.
-* **Attack 6**: Auditor role attempting deposit $\to$ Rejected with `403 Forbidden`.
-* **Attack 7**: System zero-sum verification $\to$ Verified $\sum \text{balances} \equiv 0 \text{ paise}$ across all accounts.
 
 ---
 
-## 🌐 Production Deployment Guide (Render + Neon)
+## 📜 License & Compliance
 
-### 1. Neon Database Setup
-1. Create a project in [Neon Console](https://console.neon.tech) (PostgreSQL 16).
-2. Copy your connection string from the Neon Console:
-   ```text
-   postgresql://neondb_owner:npg_SECRET_OWNER_KEY@ep-cool-fog-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
-   ```
-   This is your **`MIGRATION_DATABASE_URL`**.
-
-### 2. Build the Restricted Runtime Role Connection String (`DATABASE_URL`)
-1. Choose a strong random password for the runtime role (e.g. `npg_runtime_k82Hs92Jd83Nm71Q`).
-2. Replace `neondb_owner` and its password with `ledgerline_runtime` and your chosen password.
-3. Ensure the hostname is the direct compute host (not `-pooler`). The backend automatically normalizes `-pooler` hosts to direct endpoints.
-   ```text
-   postgresql://ledgerline_runtime:npg_runtime_k82Hs92Jd83Nm71Q@ep-cool-fog-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
-   ```
-
-### 3. Deploy to Render via Blueprint
-1. In Render Dashboard, click **New +** -> **Blueprint**.
-2. Select your `LedgerLine` repository.
-3. Set the environment secrets:
-   - `MIGRATION_DATABASE_URL`: Neon owner connection string.
-   - `DATABASE_URL`: Constructed runtime connection string.
-   - `LEDGERLINE_SEED_DEMO_USERS`: `"true"`.
-4. Click **Apply**. Render installs dependencies, builds the Vite client, provisions the least-privilege role, executes migrations, seeds demo accounts, and boots the live server.
-
----
-
-## 📡 API Reference Summary
-
-| Method | Endpoint | Description | Auth / Role |
-|---|---|---|---|
-| `GET` | `/api/health` | Health probe returning `{"status":"ok"}` | Public |
-| `POST`| `/api/auth/login` | Login with username/password, returns JWT | Public |
-| `POST`| `/api/auth/register` | Register new account holder | Public |
-| `GET` | `/api/accounts` | List accessible accounts and paise balances | Authenticated |
-| `GET` | `/api/accounts/:id/statement` | Transaction journal and statement history | Account Owner, Admin, Auditor |
-| `POST`| `/api/transfers` | Atomic transfer between accounts (`Idempotency-Key` required) | Account Owner, Admin |
-| `POST`| `/api/deposits` | External deposit (`Idempotency-Key` required) | Admin |
-| `POST`| `/api/withdrawals` | External withdrawal (`Idempotency-Key` required) | Account Owner, Admin |
-| `GET` | `/api/verify` | Cryptographic verification ($\sum \text{balances} \equiv 0$) | Admin, Auditor |
-| `GET` | `/api/audit/logs` | Query append-only audit trail | Admin, Auditor |
+Developed for high-integrity financial ledger auditing and secure banking infrastructure. All financial records, hash chains, and audit logs are governed by strict database immutability triggers.
