@@ -222,7 +222,7 @@ export async function getMigrationClient() {
   if (!migrationPool) {
     migrationPool = new pg.Pool({
       connectionString: migrationConnectionString,
-      max: 2,
+      max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
       ssl:
@@ -233,6 +233,15 @@ export async function getMigrationClient() {
   }
 
   return migrationPool.connect();
+}
+
+export async function queryMigration(text, params) {
+  const client = await getMigrationClient();
+  try {
+    return await client.query(text, params);
+  } finally {
+    client.release();
+  }
 }
 
 export async function query(text, params) {

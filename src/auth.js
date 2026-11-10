@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import { query } from './db.js';
+import { query, queryMigration } from './db.js';
 import { getJwtSecret } from './config.js';
 
 dotenv.config();
@@ -240,12 +240,29 @@ export async function registerUser({ email, password, name, role = 'holder', cre
   }
 
   const passwordHash = bcrypt.hashSync(password, 10);
-  const insertRes = await query(
+  const insertFn = process.env.MIGRATION_DATABASE_URL ? queryMigration : query;
+  const insertRes = await insertFn(
     'INSERT INTO users (email, password_hash, role, name) VALUES ($1, $2, $3, $4) RETURNING id, email, role, name, created_at',
     [cleanEmail, passwordHash, targetRole, cleanName]
   );
+  const newUser = insertRes.rows[0];
 
-  return { user: insertRes.rows[0], status: 201 };
+  // Auto-provision initial primary checking account for newly registered holders
+  if (targetRole === 'holder') {
+    try {
+      const uniqueSuffix = Date.now().toString(36).toUpperCase();
+      const accountNo = `ACC-H${newUser.id}-${uniqueSuffix}`;
+      await insertFn(
+        `INSERT INTO accounts (account_no, owner_id, name, balance_paise, status, is_external)
+         VALUES ($1, $2, $3, 0, 'ACTIVE', FALSE)`,
+        [accountNo, newUser.id, `${cleanName} Primary Checking`]
+      );
+    } catch (accErr) {
+      console.warn('[AUTH] Notice: Could not auto-provision initial account for new holder:', accErr.message);
+    }
+  }
+
+  return { user: newUser, status: 201 };
 }
 
 export {
