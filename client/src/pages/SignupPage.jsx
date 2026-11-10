@@ -5,6 +5,7 @@ import RingOrb from '../components/ui/RingOrb';
 import GlowButton from '../components/ui/GlowButton';
 import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
+import CyberBackground from '../components/CyberBackground';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -58,8 +59,11 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#020605] text-[#eafff5] flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-[rgba(60,255,160,0.14)] bg-[#07110d] overflow-hidden shadow-2xl shadow-black/80">
+    <div className="min-h-screen bg-[#020605] text-[#eafff5] flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
+      {/* Cybersecurity Radar & Zero-Trust Sentinel Mesh Background */}
+      <CyberBackground opacity={0.85} showRadar={true} showGrid={true} />
+
+      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-[rgba(60,255,160,0.18)] bg-[#07110d]/90 backdrop-blur-2xl overflow-hidden shadow-2xl shadow-black/90 relative z-10">
         {/* Left: Glowing Ring Orb Visual Side */}
         <div className="lg:col-span-5 relative hidden lg:flex flex-col justify-between p-10 bg-gradient-to-br from-[#030d08] via-[#07110d] to-[#020605] border-r border-[rgba(60,255,160,0.1)] overflow-hidden">
           <div className="absolute -top-32 -left-32 w-96 h-96 bg-[rgba(45,255,154,0.1)] rounded-full blur-3xl pointer-events-none" />

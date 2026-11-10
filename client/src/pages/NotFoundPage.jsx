@@ -4,6 +4,7 @@ import { ShieldAlert, ArrowLeft, Home, Terminal } from 'lucide-react';
 import GlowButton from '../components/ui/GlowButton';
 import GlowCard from '../components/ui/GlowCard';
 import Badge from '../components/ui/Badge';
+import CyberBackground from '../components/CyberBackground';
 import { useAuth } from '../context/AuthContext';
 
 export default function NotFoundPage() {
@@ -11,8 +12,9 @@ export default function NotFoundPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#020605] text-[#eafff5] flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-xl">
+    <div className="min-h-screen bg-[#020605] text-[#eafff5] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      <CyberBackground opacity={0.75} showRadar={true} showGrid={true} />
+      <div className="w-full max-w-xl relative z-10">
         <GlowCard className="p-8 sm:p-12 text-center space-y-6 border-[rgba(60,255,160,0.18)]">
           <div className="flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[rgba(255,93,122,0.12)] border border-[rgba(255,93,122,0.35)] text-[#ff5d7a] shadow-[0_0_25px_rgba(255,93,122,0.2)]">

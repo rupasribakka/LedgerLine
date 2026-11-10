@@ -3,19 +3,27 @@ import React, { useEffect, useRef } from 'react';
 /**
  * CyberBackground Component
  * 
- * High-performance Canvas-based cybersecurity background featuring:
- * - Ambient drifting radial light in deep navy, cyan, and violet
- * - Digital network particles with proximity-based cyber connections
- * - Interactive cursor halo and subtle particle trailing
- * - Subtle rotating radar sweep line
- * - Respects prefers-reduced-motion
- * - Non-intrusive pointer-events: none layer to ensure full accessibility
+ * An elite, high-performance Canvas cybersecurity visual background:
+ * - Rotating radar sweep with phosphor emerald / cyan gradient and glowing laser lead
+ * - Interconnected sentinel nodes forming a zero-trust mesh with security pulses
+ * - Vertical hexadecimal / binary matrix streams drifting smoothly down
+ * - Tactical HUD corner brackets with real-time cybersecurity status tags
+ * - Floating cryptographic telemetry tags (SHA-256, ZERO_TRUST, AES-256, ROW_LOCK, Σ=0)
+ * - Perspective cyber grid with targeting crosshairs
+ * - Interactive cursor magnetic glow halo
+ * - Respects prefers-reduced-motion and tab visibility
  */
-export default function CyberBackground() {
+export default function CyberBackground({
+  opacity = 0.9,
+  showRadar = true,
+  showGrid = true,
+  showMatrix = true,
+  showHUD = true,
+  nodeCount = null,
+  accentColor = '#2dff9a',
+  className = '',
+}) {
   const canvasRef = useRef(null);
-  const cursorHaloRef = useRef(null);
-  const mouseRef = useRef({ x: -1000, y: -1000, isHovering: false });
-  const trailParticlesRef = useRef([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -23,229 +31,461 @@ export default function CyberBackground() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Check if user has reduced-motion preference or touch device
-    const isTouch =
-      window.matchMedia('(pointer: coarse)').matches ||
-      'ontouchstart' in window ||
-      navigator.maxTouchPoints > 0;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isTouch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
     let animationFrameId;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let width = 0;
+    let height = 0;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-    // Particle nodes configuration
+    const mouse = {
+      x: -1000,
+      y: -1000,
+      targetX: -1000,
+      targetY: -1000,
+      isHovering: false,
+    };
+
+    const handleResize = () => {
+      width = canvas.parentElement ? canvas.parentElement.clientWidth : window.innerWidth;
+      height = canvas.parentElement ? canvas.parentElement.clientHeight : window.innerHeight;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.scale(dpr, dpr);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    const handleMouseMove = (e) => {
+      if (isTouch) return;
+      const rect = canvas.getBoundingClientRect();
+      mouse.targetX = e.clientX - rect.left;
+      mouse.targetY = e.clientY - rect.top;
+      mouse.isHovering = true;
+    };
+
+    const handleMouseLeave = () => {
+      mouse.isHovering = false;
+      mouse.targetX = -1000;
+      mouse.targetY = -1000;
+    };
+
+    if (!isTouch) {
+      window.addEventListener('mousemove', handleMouseMove, { passive: true });
+      document.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    // -----------------------------------------------------------------
+    // CYBER SENTINEL MESH NODES
+    // -----------------------------------------------------------------
     const isMobile = width < 768;
-    const NODE_COUNT = isMobile ? 28 : 55;
-    const CONNECT_DISTANCE = isMobile ? 95 : 125;
-    const MOUSE_INFLUENCE_RADIUS = 140;
+    const COUNT = nodeCount || (isMobile ? 36 : 68);
+    const CONNECT_DIST = isMobile ? 110 : 145;
+    const MOUSE_RADIUS = 160;
 
     const colors = [
-      { r: 6, g: 182, b: 212 },   // Cyan #06b6d4
-      { r: 59, g: 130, b: 246 },  // Blue #3b82f6
-      { r: 139, g: 92, b: 246 },  // Violet #8b5cf6
-      { r: 99, g: 102, b: 241 },  // Indigo #6366f1
+      { r: 45, g: 255, b: 154, hex: '#2dff9a' }, // Emerald Cyber
+      { r: 6, g: 182, b: 212, hex: '#06b6d4' },   // Cyan Telemetry
+      { r: 82, g: 255, b: 171, hex: '#52ffab' },  // Light Matrix
+      { r: 20, g: 184, b: 166, hex: '#14b8a6' },  // Teal Sentinel
     ];
 
-    // Initialize network nodes
     const nodes = [];
-    for (let i = 0; i < NODE_COUNT; i++) {
-      const color = colors[Math.floor(Math.random() * colors.length)];
+    for (let i = 0; i < COUNT; i++) {
+      const col = colors[Math.floor(Math.random() * colors.length)];
       nodes.push({
         x: Math.random() * width,
         y: Math.random() * height,
         vx: (Math.random() - 0.5) * 0.45,
         vy: (Math.random() - 0.5) * 0.45,
-        radius: Math.random() * 1.8 + 1.2,
-        baseRadius: Math.random() * 1.8 + 1.2,
-        color,
-        pulseSpeed: 0.02 + Math.random() * 0.02,
+        baseRadius: Math.random() * 2 + 1.2,
+        radius: Math.random() * 2 + 1.2,
+        col,
         pulseOffset: Math.random() * Math.PI * 2,
+        pulseSpeed: 0.02 + Math.random() * 0.02,
+        isSentinel: i % 7 === 0, // Special sentinel anchor nodes with sonar ripples
       });
     }
 
-    // Cursor position smoothing (lerp)
-    let smoothMouseX = -1000;
-    let smoothMouseY = -1000;
-    let radarAngle = 0;
-
-    const handleResize = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-
-    const handleMouseMove = (e) => {
-      mouseRef.current.x = e.clientX;
-      mouseRef.current.y = e.clientY;
-      mouseRef.current.isHovering = true;
-
-      // Add a lightweight trailing sparkle particle (limited to avoid memory pressure)
-      if (!prefersReducedMotion && trailParticlesRef.current.length < 24) {
-        if (Math.random() > 0.4) {
-          const color = colors[Math.floor(Math.random() * colors.length)];
-          trailParticlesRef.current.push({
-            x: e.clientX + (Math.random() - 0.5) * 8,
-            y: e.clientY + (Math.random() - 0.5) * 8,
-            vx: (Math.random() - 0.5) * 0.8,
-            vy: (Math.random() - 0.5) * 0.8,
-            life: 1.0,
-            decay: 0.035 + Math.random() * 0.02,
-            size: Math.random() * 2 + 1,
-            color,
-          });
-        }
-      }
-    };
-
-    const handleMouseLeave = () => {
-      mouseRef.current.isHovering = false;
-      mouseRef.current.x = -1000;
-      mouseRef.current.y = -1000;
-    };
-
-    window.addEventListener('resize', handleResize);
-    if (!isTouch) {
-      window.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseleave', handleMouseLeave);
+    // Traveling Data Pulses across mesh
+    const pulses = [];
+    const PULSE_COUNT = isMobile ? 8 : 16;
+    for (let p = 0; p < PULSE_COUNT; p++) {
+      pulses.push({
+        from: Math.floor(Math.random() * COUNT),
+        to: Math.floor(Math.random() * COUNT),
+        progress: Math.random(),
+        speed: 0.008 + Math.random() * 0.012,
+        size: Math.random() * 2.2 + 1.8,
+      });
     }
 
-    // Main animation loop
-    let lastTime = performance.now();
+    // Floating Cyber Tags & Cryptographic Hash Snippets
+    const telemetryTags = [
+      'ZERO_TRUST: ACTIVE',
+      'TRIGGER: IMMUTABLE',
+      'SHA-256: CHAIN_LOCKED',
+      'ENC: AES-256-GCM',
+      'INV: Σ=0 PAISE',
+      'SENTINEL_01: ONLINE',
+      'ROW_LOCK: DEADLOCK_FREE',
+      'AUTH: RS256/JWT',
+      'KEY: 0x4E9B...8A01',
+      'HASH: 0xF71C...B410',
+      'STATE: VERIFIED',
+      'IDEMPOTENCY: ENFORCED',
+    ];
 
+    const cyberParticles = [];
+    const TAG_COUNT = isMobile ? 12 : 24;
+    for (let i = 0; i < TAG_COUNT; i++) {
+      cyberParticles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        text: telemetryTags[i % telemetryTags.length],
+        alpha: Math.random() * 0.35 + 0.15,
+      });
+    }
+
+    // Vertical Matrix / Hexadecimal Code Streams
+    const hexChars = '0123456789ABCDEF•#*+§µ';
+    const STREAM_COUNT = isMobile ? 8 : 16;
+    const streams = [];
+    for (let s = 0; s < STREAM_COUNT; s++) {
+      streams.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        speed: 0.7 + Math.random() * 1.4,
+        chars: Array.from({ length: 6 + Math.floor(Math.random() * 6) }, () =>
+          hexChars[Math.floor(Math.random() * hexChars.length)]
+        ),
+        updateTimer: 0,
+        opacity: 0.12 + Math.random() * 0.16,
+      });
+    }
+
+    // Radar state
+    let radarAngle = 0;
+
+    // -----------------------------------------------------------------
+    // MAIN RENDER LOOP
+    // -----------------------------------------------------------------
     const render = (time) => {
-      const dt = Math.min((time - lastTime) / 1000, 0.1);
-      lastTime = time;
+      if (document.hidden) {
+        animationFrameId = requestAnimationFrame(render);
+        return;
+      }
+
+      // Smooth mouse lerp
+      mouse.x += (mouse.targetX - mouse.x) * 0.15;
+      mouse.y += (mouse.targetY - mouse.y) * 0.15;
 
       ctx.clearRect(0, 0, width, height);
 
-      // Smooth cursor halo tracking
-      if (mouseRef.current.isHovering) {
-        smoothMouseX += (mouseRef.current.x - smoothMouseX) * 0.18;
-        smoothMouseY += (mouseRef.current.y - smoothMouseY) * 0.18;
-
-        if (cursorHaloRef.current) {
-          cursorHaloRef.current.style.transform = `translate3d(${smoothMouseX}px, ${smoothMouseY}px, 0)`;
-          cursorHaloRef.current.style.opacity = '1';
-        }
-      } else if (cursorHaloRef.current) {
-        cursorHaloRef.current.style.opacity = '0';
-      }
-
-      // Radar sweep effect (subtle background sweep from top-center / screen center)
-      if (!prefersReducedMotion) {
-        radarAngle += 0.005;
-        const centerX = width * 0.5;
-        const centerY = height * 0.4;
-        const maxRadius = Math.max(width, height) * 0.8;
-
+      // 1. Subtle Cyber Perspective Grid & Crosshairs
+      if (showGrid) {
         ctx.save();
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, maxRadius, radarAngle - 0.25, radarAngle);
-        ctx.lineTo(centerX, centerY);
-        ctx.closePath();
+        const gridSize = isMobile ? 60 : 75;
+        ctx.strokeStyle = 'rgba(45, 255, 154, 0.04)';
+        ctx.lineWidth = 1;
 
-        const radarGrad = ctx.createRadialGradient(
-          centerX, centerY, 0,
-          centerX, centerY, maxRadius
-        );
-        radarGrad.addColorStop(0, 'rgba(6, 182, 212, 0.025)');
-        radarGrad.addColorStop(0.7, 'rgba(59, 130, 246, 0.012)');
-        radarGrad.addColorStop(1, 'rgba(139, 92, 246, 0)');
-
-        ctx.fillStyle = radarGrad;
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // Update & Draw Network Nodes
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
-
-        if (!prefersReducedMotion) {
-          node.x += node.vx;
-          node.y += node.vy;
-
-          // Boundary bouncing
-          if (node.x < 0 || node.x > width) node.vx *= -1;
-          if (node.y < 0 || node.y > height) node.vy *= -1;
-
-          // Gentle mouse interaction (nodes gently deflect or react to mouse)
-          if (mouseRef.current.isHovering) {
-            const dx = node.x - mouseRef.current.x;
-            const dy = node.y - mouseRef.current.y;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist < MOUSE_INFLUENCE_RADIUS && dist > 0) {
-              const force = (MOUSE_INFLUENCE_RADIUS - dist) / MOUSE_INFLUENCE_RADIUS;
-              node.x += (dx / dist) * force * 1.2;
-              node.y += (dy / dist) * force * 1.2;
-            }
-          }
+        for (let x = 0; x < width; x += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < height; y += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
         }
 
-        // Draw connections between neighboring nodes
-        for (let j = i + 1; j < nodes.length; j++) {
-          const other = nodes[j];
-          const dx = node.x - other.x;
-          const dy = node.y - other.y;
-          const dist = Math.hypot(dx, dy);
-
-          if (dist < CONNECT_DISTANCE) {
-            const alpha = (1 - dist / CONNECT_DISTANCE) * 0.22;
+        // Draw tactical targeting crosshairs at select grid intersections
+        ctx.strokeStyle = 'rgba(45, 255, 154, 0.18)';
+        ctx.lineWidth = 1;
+        const crosshairStep = gridSize * 2;
+        for (let x = crosshairStep; x < width; x += crosshairStep) {
+          for (let y = crosshairStep; y < height; y += crosshairStep) {
             ctx.beginPath();
-            ctx.moveTo(node.x, node.y);
-            ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = `rgba(${node.color.r}, ${node.color.g}, ${node.color.b}, ${alpha})`;
-            ctx.lineWidth = 0.85;
+            ctx.moveTo(x - 5, y);
+            ctx.lineTo(x + 5, y);
+            ctx.moveTo(x, y - 5);
+            ctx.lineTo(x, y + 5);
             ctx.stroke();
           }
         }
+        ctx.restore();
+      }
 
-        // Connect node to mouse if nearby
-        if (mouseRef.current.isHovering) {
-          const mdx = node.x - mouseRef.current.x;
-          const mdy = node.y - mouseRef.current.y;
-          const mdist = Math.hypot(mdx, mdy);
-          if (mdist < MOUSE_INFLUENCE_RADIUS) {
-            const mAlpha = (1 - mdist / MOUSE_INFLUENCE_RADIUS) * 0.35;
+      // 2. Vertical Hexadecimal / Binary Streams Drifting Smoothly
+      if (showMatrix && !prefersReducedMotion) {
+        ctx.save();
+        ctx.font = '10px "JetBrains Mono", monospace';
+        for (const st of streams) {
+          st.y += st.speed;
+          if (st.y > height + 80) {
+            st.y = -60;
+            st.x = Math.random() * width;
+          }
+          st.updateTimer++;
+          if (st.updateTimer % 14 === 0) {
+            st.chars[Math.floor(Math.random() * st.chars.length)] =
+              hexChars[Math.floor(Math.random() * hexChars.length)];
+          }
+          for (let c = 0; c < st.chars.length; c++) {
+            const cyPos = st.y - c * 13;
+            if (cyPos > -15 && cyPos < height + 15) {
+              const charAlpha = (1 - c / st.chars.length) * st.opacity;
+              ctx.fillStyle = c === 0 ? 'rgba(255, 255, 255, 0.5)' : `rgba(45, 255, 154, ${charAlpha})`;
+              ctx.fillText(st.chars[c], st.x, cyPos);
+            }
+          }
+        }
+        ctx.restore();
+      }
+
+      // 3. Rotating Cybersecurity Radar Sweep
+      if (showRadar && !prefersReducedMotion) {
+        radarAngle += 0.008;
+        const cx = width * 0.5;
+        const cy = height * 0.45;
+        const maxRadius = Math.max(width, height) * 0.75;
+
+        ctx.save();
+        // Radar sweep cone
+        ctx.beginPath();
+        ctx.arc(cx, cy, maxRadius, radarAngle - 0.45, radarAngle);
+        ctx.lineTo(cx, cy);
+        ctx.closePath();
+
+        const radarGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius);
+        radarGrad.addColorStop(0, 'rgba(45, 255, 154, 0.14)');
+        radarGrad.addColorStop(0.35, 'rgba(45, 255, 154, 0.04)');
+        radarGrad.addColorStop(0.7, 'rgba(6, 182, 212, 0.015)');
+        radarGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = radarGrad;
+        ctx.fill();
+
+        // Leading edge radar scan line
+        const endX = cx + Math.cos(radarAngle) * maxRadius;
+        const endY = cy + Math.sin(radarAngle) * maxRadius;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = 'rgba(45, 255, 154, 0.38)';
+        ctx.lineWidth = 1.6;
+        ctx.shadowColor = '#2dff9a';
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+
+        // Concentric radar distance rings with tactical zone labels
+        ctx.shadowBlur = 0;
+        ctx.font = '8px "JetBrains Mono", monospace';
+        for (let r = 120; r < maxRadius; r += 160) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(45, 255, 154, 0.05)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Concentric zone label
+          ctx.fillStyle = 'rgba(45, 255, 154, 0.2)';
+          ctx.fillText(`ZONE_${Math.round(r)}`, cx + r + 6, cy - 4);
+        }
+        ctx.restore();
+      }
+
+      // 4. Floating Cryptographic Telemetry Tags
+      ctx.save();
+      ctx.font = '9px "JetBrains Mono", monospace';
+      for (const tag of cyberParticles) {
+        tag.x += tag.vx;
+        tag.y += tag.vy;
+
+        if (tag.x < 0) tag.x = width;
+        if (tag.x > width) tag.x = 0;
+        if (tag.y < 0) tag.y = height;
+        if (tag.y > height) tag.y = 0;
+
+        ctx.fillStyle = `rgba(45, 255, 154, ${tag.alpha * 0.75})`;
+        ctx.fillText(tag.text, tag.x, tag.y);
+      }
+      ctx.restore();
+
+      // 5. Update Node Positions & Proximity Mesh Connections
+      for (let i = 0; i < COUNT; i++) {
+        const n = nodes[i];
+        n.x += n.vx;
+        n.y += n.vy;
+
+        if (n.x < 0 || n.x > width) n.vx *= -1;
+        if (n.y < 0 || n.y > height) n.vy *= -1;
+
+        // Mouse interaction: push nodes gently and illuminate
+        if (mouse.isHovering) {
+          const dx = mouse.x - n.x;
+          const dy = mouse.y - n.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < MOUSE_RADIUS && dist > 0) {
+            const force = (1 - dist / MOUSE_RADIUS) * 0.9;
+            n.x -= (dx / dist) * force;
+            n.y -= (dy / dist) * force;
+          }
+        }
+      }
+
+      // Draw Proximity Connections
+      ctx.save();
+      for (let i = 0; i < COUNT; i++) {
+        for (let j = i + 1; j < COUNT; j++) {
+          const n1 = nodes[i];
+          const n2 = nodes[j];
+          const dx = n1.x - n2.x;
+          const dy = n1.y - n2.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < CONNECT_DIST) {
+            const alpha = (1 - dist / CONNECT_DIST) * 0.28;
             ctx.beginPath();
-            ctx.moveTo(node.x, node.y);
-            ctx.lineTo(mouseRef.current.x, mouseRef.current.y);
-            ctx.strokeStyle = `rgba(6, 182, 212, ${mAlpha})`;
+            ctx.moveTo(n1.x, n1.y);
+            ctx.lineTo(n2.x, n2.y);
+            ctx.strokeStyle = `rgba(45, 255, 154, ${alpha})`;
             ctx.lineWidth = 1;
             ctx.stroke();
           }
         }
-
-        // Node pulse & rendering
-        const pulse = Math.sin(time * 0.002 + node.pulseOffset) * 0.35 + 0.65;
-        const currentRadius = node.baseRadius * (0.85 + pulse * 0.3);
-
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, currentRadius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${node.color.r}, ${node.color.g}, ${node.color.b}, ${0.4 + pulse * 0.4})`;
-        ctx.shadowColor = `rgba(${node.color.r}, ${node.color.g}, ${node.color.b}, 0.8)`;
-        ctx.shadowBlur = 6;
-        ctx.fill();
-        ctx.shadowBlur = 0; // Reset shadow for performance
       }
+      ctx.restore();
 
-      // Update & Render Mouse Trail Particles
-      for (let k = trailParticlesRef.current.length - 1; k >= 0; k--) {
-        const p = trailParticlesRef.current[k];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= p.decay;
-
-        if (p.life <= 0) {
-          trailParticlesRef.current.splice(k, 1);
-          continue;
+      // 6. Draw Traveling Security Data Pulses
+      ctx.save();
+      for (const pkt of pulses) {
+        pkt.progress += pkt.speed;
+        if (pkt.progress >= 1) {
+          pkt.progress = 0;
+          pkt.from = Math.floor(Math.random() * COUNT);
+          pkt.to = Math.floor(Math.random() * COUNT);
         }
 
+        const n1 = nodes[pkt.from];
+        const n2 = nodes[pkt.to];
+        if (n1 && n2) {
+          const dist = Math.hypot(n1.x - n2.x, n1.y - n2.y);
+          if (dist < CONNECT_DIST * 1.35) {
+            const px = n1.x + (n2.x - n1.x) * pkt.progress;
+            const py = n1.y + (n2.y - n1.y) * pkt.progress;
+
+            ctx.beginPath();
+            ctx.arc(px, py, pkt.size, 0, Math.PI * 2);
+            ctx.fillStyle = '#2dff9a';
+            ctx.shadowColor = '#2dff9a';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+          }
+        }
+      }
+      ctx.restore();
+
+      // 7. Draw Nodes with Sonar Rings for Sentinels
+      ctx.save();
+      for (let i = 0; i < COUNT; i++) {
+        const n = nodes[i];
+        const pulse = Math.sin(time * 0.002 + n.pulseOffset);
+        const radius = n.baseRadius + pulse * 0.7;
+
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${p.life * 0.6})`;
+        ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = n.col.hex;
+        ctx.shadowColor = n.col.hex;
+        ctx.shadowBlur = n.isSentinel ? 14 : 6;
         ctx.fill();
+
+        // Sonar ripple rings for sentinel anchors
+        if (n.isSentinel) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, radius + 5 + pulse * 2.5, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(${n.col.r}, ${n.col.g}, ${n.col.b}, 0.4)`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+
+      // 8. Cyber HUD Tactical Frame Brackets in Viewport Corners
+      if (showHUD) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(45, 255, 154, 0.28)';
+        ctx.lineWidth = 1.5;
+        const bracketSize = isMobile ? 18 : 26;
+        const pad = isMobile ? 16 : 24;
+
+        // Top-Left Bracket
+        ctx.beginPath();
+        ctx.moveTo(pad, pad + bracketSize);
+        ctx.lineTo(pad, pad);
+        ctx.lineTo(pad + bracketSize, pad);
+        ctx.stroke();
+
+        // Top-Right Bracket
+        ctx.beginPath();
+        ctx.moveTo(width - pad - bracketSize, pad);
+        ctx.lineTo(width - pad, pad);
+        ctx.lineTo(width - pad, pad + bracketSize);
+        ctx.stroke();
+
+        // Bottom-Left Bracket
+        ctx.beginPath();
+        ctx.moveTo(pad, height - pad - bracketSize);
+        ctx.lineTo(pad, height - pad);
+        ctx.lineTo(pad + bracketSize, height - pad);
+        ctx.stroke();
+
+        // Bottom-Right Bracket
+        ctx.beginPath();
+        ctx.moveTo(width - pad - bracketSize, height - pad);
+        ctx.lineTo(width - pad, height - pad);
+        ctx.lineTo(width - pad, height - pad - bracketSize);
+        ctx.stroke();
+
+        // Tactical HUD Telemetry Labels
+        if (!isMobile) {
+          ctx.font = '9px "JetBrains Mono", monospace';
+          ctx.fillStyle = 'rgba(45, 255, 154, 0.35)';
+          ctx.textAlign = 'left';
+          ctx.fillText('[+ PROTOCOL: ZERO_TRUST // SHA-256 +]', pad + 8, pad + 14);
+          ctx.fillText('[+ DEFENSE: ACTIVE SENTINEL MESH +]', pad + 8, height - pad - 6);
+
+          ctx.textAlign = 'right';
+          ctx.fillText('[+ CLEARANCE: STRICT_LOCK // INVARIANTS +]', width - pad - 8, pad + 14);
+          ctx.fillText('[+ LEDGERLINE SEC_OPS v2.4 +]', width - pad - 8, height - pad - 6);
+        }
+        ctx.restore();
+      }
+
+      // 9. Interactive Cursor Glow Halo
+      if (mouse.isHovering) {
+        ctx.save();
+        const cursorGlow = ctx.createRadialGradient(
+          mouse.x, mouse.y, 0,
+          mouse.x, mouse.y, 150
+        );
+        cursorGlow.addColorStop(0, 'rgba(45, 255, 154, 0.15)');
+        cursorGlow.addColorStop(0.6, 'rgba(6, 182, 212, 0.05)');
+        cursorGlow.addColorStop(1, 'transparent');
+        ctx.fillStyle = cursorGlow;
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, 150, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
 
       if (!prefersReducedMotion) {
@@ -254,57 +494,28 @@ export default function CyberBackground() {
     };
 
     if (prefersReducedMotion) {
-      render(performance.now());
+      render(0);
     } else {
       animationFrameId = requestAnimationFrame(render);
     }
 
     return () => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       if (!isTouch) {
         window.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseleave', handleMouseLeave);
       }
     };
-  }, []);
+  }, [nodeCount, showRadar, showGrid, showMatrix, showHUD, accentColor]);
 
   return (
-    <>
-      {/* Deep Cyber Navy Backdrop with Ambient Radial Orbs */}
-      <div className="fixed inset-0 pointer-events-none -z-30 overflow-hidden bg-[#030712]">
-        {/* Soft Ambient Light Movement (Cyan, Blue, Violet) */}
-        <div 
-          className="absolute -top-40 -left-40 h-[650px] w-[650px] rounded-full bg-linear-to-br from-cyan-600/12 via-blue-600/8 to-transparent blur-[140px] animate-slow-pulse"
-        />
-        <div 
-          className="absolute top-1/3 -right-40 h-[700px] w-[700px] rounded-full bg-linear-to-bl from-violet-600/10 via-indigo-600/8 to-transparent blur-[160px] animate-slow-pulse"
-          style={{ animationDelay: '2s' }}
-        />
-        <div 
-          className="absolute -bottom-40 left-1/4 h-[600px] w-[600px] rounded-full bg-linear-to-tr from-blue-700/10 via-cyan-500/6 to-transparent blur-[150px] animate-slow-pulse"
-          style={{ animationDelay: '4s' }}
-        />
-
-        {/* Digital Circuit Grid Overlay */}
-        <div className="absolute inset-0 cyber-grid-overlay opacity-60" />
-      </div>
-
-      {/* Interactive Network Particles & Radar Canvas */}
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 pointer-events-none -z-20 h-full w-full"
-      />
-
-      {/* Cyber Cursor Glow Halo */}
-      <div
-        ref={cursorHaloRef}
-        className="fixed pointer-events-none -z-10 -top-8 -left-8 h-16 w-16 rounded-full opacity-0 transition-opacity duration-300 will-change-transform"
-        style={{
-          background: 'radial-gradient(circle, rgba(6,182,212,0.25) 0%, rgba(139,92,246,0.12) 50%, transparent 70%)',
-          boxShadow: '0 0 30px 4px rgba(6, 182, 212, 0.2)',
-        }}
-      />
-    </>
+    <div
+      className={`pointer-events-none absolute inset-0 z-0 overflow-hidden select-none ${className}`}
+      style={{ opacity }}
+      aria-hidden="true"
+    >
+      <canvas ref={canvasRef} className="block w-full h-full" />
+    </div>
   );
 }
