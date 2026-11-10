@@ -52,6 +52,178 @@ BalanceVault guarantees strict mathematical correctness, concurrency safety, rob
 
 ---
 
+## 📐 Architecture & Workflow Diagrams
+
+### 1. High-Level System Architecture
+```mermaid
+flowchart TD
+    subgraph ClientLayer["Frontend Client (Vercel)"]
+        UI["React 19 + Tailwind CSS 4 UI"]
+        BG["3D Blockchain & Cyber Canvas"]
+        State["Auth Context & Token Storage"]
+    end
+
+    subgraph Gateway["Edge Proxy & Reverse Routing"]
+        VercelProxy["Vercel Edge Gateway (/api/* rewrite)"]
+    end
+
+    subgraph BackendLayer["Backend Server (Render)"]
+        Express["Express.js Server (ESM)"]
+        AuthMiddleware["JWT Auth & Dynamic RBAC Guard"]
+        RateLimiter["Sliding-Window Rate Limiter"]
+        IdempMiddleware["Idempotency Key & Payload Hash Validator"]
+        LedgerEngine["Double-Entry Ledger Engine"]
+    end
+
+    subgraph CacheLayer["Rate Limit Cache"]
+        Redis[("Redis Cloud (ioredis)")]
+        MemFallback[("In-Memory Sliding Window Fallback")]
+    end
+
+    subgraph DataLayer["Database Storage (Neon PostgreSQL 16)"]
+        AccountsTable[("accounts (chk_no_overdraft)")]
+        LedgerTable[("ledger (SHA-256 Hash Chained)")]
+        TxnsTable[("transactions (Debits == Credits)")]
+        AuditTable[("audit_logs (Immutable Trigger Protected)")]
+        IdempTable[("idempotency_keys (Payload Hash Cache)")]
+    end
+
+    UI --> VercelProxy
+    VercelProxy --> Express
+    Express --> AuthMiddleware
+    AuthMiddleware --> RateLimiter
+    RateLimiter --> Redis
+    Redis -.->|Fallback if offline| MemFallback
+    RateLimiter --> IdempMiddleware
+    IdempMiddleware --> LedgerEngine
+    LedgerEngine --> DataLayer
+```
+
+---
+
+### 2. Double-Entry Money Movement Lifecycle
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as User / Frontend
+    participant API as Express API Server
+    participant Idemp as Idempotency Engine
+    participant DB as PostgreSQL 16
+
+    Client->>API: POST /api/transactions/transfer (JWT, Idempotency-Key)
+    API->>API: Verify JWT signature & read live DB role
+    API->>Idemp: Check Idempotency-Key & Canonical Hash
+    alt Cached Replay
+        Idemp-->>Client: Return cached 200 OK (X-Cache: REPLAY)
+    else Payload Mismatch
+        Idemp-->>Client: 422 Unprocessable Entity (IDEMPOTENCY_PAYLOAD_MISMATCH)
+    else Fresh Request
+        API->>DB: BEGIN Transaction
+        API->>DB: SELECT * FROM accounts WHERE id IN (src, dest) ORDER BY id ASC FOR UPDATE
+        Note over DB: Deterministic ascending row lock eliminates circular deadlocks
+        API->>DB: Verify sender balance >= amount & status == 'ACTIVE'
+        API->>DB: Fetch predecessor block hash (prev_hash)
+        API->>API: Compute SHA-256 hash = SHA256(prev_hash + canonical_json(entry))
+        API->>DB: INSERT INTO ledger (Debit Source, prev_hash, hash)
+        API->>DB: INSERT INTO ledger (Credit Dest, prev_hash, hash)
+        API->>DB: INSERT INTO transactions (amount, status, balanced_entries)
+        API->>DB: UPDATE accounts SET balance_paise = balance_paise - amount WHERE id = src
+        API->>DB: UPDATE accounts SET balance_paise = balance_paise + amount WHERE id = dest
+        Note over DB: chk_no_overdraft constraint ensures balance_paise >= 0
+        API->>DB: INSERT INTO idempotency_keys (key, payload_hash, response)
+        API->>DB: COMMIT Transaction
+        DB-->>API: Transaction Committed
+        API-->>Client: 200 OK (Transfer settled, SHA-256 hashes returned)
+    end
+```
+
+---
+
+### 3. Global Zero-Sum Conservation Workflow
+```mermaid
+flowchart LR
+    subgraph External["Clearing Pool"]
+        ExtPool["ACC-EXTERNAL (External Clearing Pool)"]
+    end
+
+    subgraph Customers["Customer Accounts"]
+        Acc1["Holder 1 Account (#0002)"]
+        Acc2["Holder 2 Account (#0003)"]
+    end
+
+    ExtPool -->|"Deposit: Debit External (-₹100) / Credit Holder 1 (+₹100)"| Acc1
+    Acc1 -->|"Transfer: Debit Holder 1 (-₹40) / Credit Holder 2 (+₹40)"| Acc2
+    Acc2 -->|"Withdrawal: Debit Holder 2 (-₹20) / Credit External (+₹20)"| ExtPool
+
+    subgraph Invariant["Mathematical Invariant"]
+        Equation["Sum of All Balances == 0 Paise (Conservation Equation)"]
+    end
+```
+
+---
+
+### 4. Cryptographic SHA-256 Hash Chain Structure
+```mermaid
+flowchart LR
+    subgraph Genesis["Genesis Block #0001"]
+        G_Prev["PREV_HASH: 0000000000000000..."]
+        G_Data["DATA: Account Creation / Nonce"]
+        G_Hash["BLOCK_HASH: SHA256(prev + data)"]
+    end
+
+    subgraph Block2["Journal Block #0002"]
+        B2_Prev["PREV_HASH: Hash of Block #0001"]
+        B2_Data["DATA: Debit Acc #1 / Credit Acc #2 (5000 paise)"]
+        B2_Hash["BLOCK_HASH: SHA256(prev + data)"]
+    end
+
+    subgraph Block3["Journal Block #0003"]
+        B3_Prev["PREV_HASH: Hash of Block #0002"]
+        B3_Data["DATA: Transfer Settled / Zero-Sum Δ=0"]
+        B3_Hash["BLOCK_HASH: SHA256(prev + data)"]
+    end
+
+    subgraph Trigger["Database Security"]
+        Guard["trg_ledger_protect: Raises SQL Exception on any UPDATE, DELETE, or TRUNCATE"]
+    end
+
+    G_Hash -->|"Chained cryptographic pointer"| B2_Prev
+    B2_Hash -->|"Chained cryptographic pointer"| B3_Prev
+    Guard -.->|"Guards block history"| Genesis
+    Guard -.->|"Guards block history"| Block2
+    Guard -.->|"Guards block history"| Block3
+```
+
+---
+
+### 5. Deterministic Row-Locking Concurrency Safety
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Alice as Thread A (Transfer Account #2 -> Account #3)
+    actor Bob as Thread B (Transfer Account #3 -> Account #2)
+    participant LockMgr as PostgreSQL Row Lock Manager (ORDER BY id ASC)
+    participant DB as Accounts Table
+
+    Note over Alice,Bob: Both threads request reciprocal transfers at the exact same millisecond
+    Alice->>LockMgr: Request lock on #2 and #3 (sorted: #2 first, then #3)
+    Bob->>LockMgr: Request lock on #3 and #2 (sorted: #2 first, then #3)
+    
+    LockMgr->>Alice: Grant exclusive lock on Account #2
+    LockMgr-->>Bob: Wait for Account #2 (Thread B queued behind Thread A)
+    LockMgr->>Alice: Grant exclusive lock on Account #3
+    Note over Alice: Thread A executes transfer, updates balances, writes ledger
+    Alice->>LockMgr: Commit & Release locks on #2 and #3
+    
+    LockMgr->>Bob: Grant exclusive lock on Account #2
+    LockMgr->>Bob: Grant exclusive lock on Account #3
+    Note over Bob: Thread B now executes safely with fresh balance state
+    Bob->>LockMgr: Commit & Release locks
+    Note over Alice,Bob: Result: Zero Deadlocks, Zero Lost Updates, Zero Double-Spending
+```
+
+---
+
 ## 🔑 Demo Reviewer Credentials (1-Click Fill)
 
 The login screen features 1-click credential auto-fill for testing all operational roles:
