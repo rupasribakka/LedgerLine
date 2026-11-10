@@ -104,7 +104,7 @@ export default function LoginPage() {
                 Balance<span className="text-[#2dff9a]">Vault</span>
               </span>
               <p className="text-[10px] font-mono uppercase text-[#7ea594] tracking-widest">
-                Zero-Sum Integrity
+                LedgerLine Core Engine
               </p>
             </div>
           </Link>

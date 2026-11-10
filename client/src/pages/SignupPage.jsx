@@ -74,7 +74,7 @@ export default function SignupPage() {
                 Balance<span className="text-[#2dff9a]">Vault</span>
               </span>
               <p className="text-[10px] font-mono uppercase text-[#7ea594] tracking-widest">
-                Account Holder Onboarding
+                LedgerLine Onboarding
               </p>
             </div>
           </Link>

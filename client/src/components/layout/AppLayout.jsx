@@ -196,7 +196,7 @@ export default function AppLayout() {
                 Balance<span className="text-[#2dff9a]">Vault</span>
               </span>
               <p className="text-[10px] font-mono uppercase text-[#7ea594] tracking-widest">
-                Financial Core
+                LedgerLine Core
               </p>
             </div>
           </Link>
@@ -277,7 +277,7 @@ export default function AppLayout() {
         <div className="border-t border-[rgba(60,255,160,0.12)] p-4 bg-[#020605]/80 space-y-3">
           <div className="rounded-xl border border-[rgba(60,255,160,0.12)] bg-[#07110d] p-3 text-[11px] font-mono text-[#7ea594]">
             <div className="flex items-center justify-between text-[10px] text-[#2dff9a] font-bold mb-1">
-              <span>INVARIANT GUARD</span>
+              <span>LEDGERLINE INVARIANT</span>
               <span className="flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#2dff9a] animate-pulse" />
                 ACTIVE
@@ -313,10 +313,12 @@ export default function AppLayout() {
               <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-[#7ea594]">
                 <span className="text-[#2dff9a] font-semibold">BalanceVault</span>
                 <span>/</span>
+                <span className="text-[#7ea594]">LedgerLine</span>
+                <span>/</span>
                 <span>Console</span>
               </div>
               <h1 className="text-sm sm:text-base font-bold text-[#eafff5] tracking-tight font-mono">
-                Double-Entry Ledger Engine
+                Cryptographic Ledger Engine
               </h1>
             </div>
           </div>

@@ -106,9 +106,14 @@ export default function LandingPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[rgba(45,255,154,0.18)] border border-[#2dff9a]/50 text-[#2dff9a] shadow-[0_0_12px_rgba(45,255,154,0.3)] transition-transform group-hover:scale-105">
               <ShieldCheck className="h-4.5 w-4.5" />
             </div>
-            <span className="text-sm font-bold font-mono tracking-tight text-[#eafff5]">
-              Balance<span className="text-[#2dff9a]">Vault</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold font-mono tracking-tight text-[#eafff5]">
+                Balance<span className="text-[#2dff9a]">Vault</span>
+              </span>
+              <span className="hidden sm:inline-block text-[10px] font-mono uppercase tracking-wider text-[#7ea594] border-l border-[rgba(60,255,160,0.25)] pl-2">
+                LedgerLine
+              </span>
+            </div>
           </Link>
 
           {/* Links */}
@@ -178,7 +183,7 @@ export default function LandingPage() {
           <div className="flex justify-center mb-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(60,255,160,0.25)] bg-[#07110d]/90 px-4 py-1.5 text-xs font-mono text-[#2dff9a] shadow-[0_0_20px_rgba(45,255,154,0.2)]">
               <Sparkles className="h-3.5 w-3.5" />
-              <span>Zero-Sum Double-Entry Ledger Core</span>
+              <span>BalanceVault // Powered by LedgerLine Invariant Core</span>
             </div>
           </div>
 

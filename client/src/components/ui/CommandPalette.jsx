@@ -122,10 +122,19 @@ const COMMANDS = [
   {
     id: 'persona-holder',
     group: 'Demo Personas',
-    label: 'Switch to Account Holder (L1)',
-    desc: 'holder@ledgerline.local — Transfers, withdrawals & attack experiments',
+    label: 'Switch to Account Holder 1 (L1)',
+    desc: 'holder1@ledgerline.local — Transfers, withdrawals & attack experiments',
     icon: User,
-    persona: { id: 2, role: 'holder', email: 'holder@ledgerline.local', name: 'Alpha Corporate Holder' },
+    persona: { id: 2, role: 'holder', email: 'holder1@ledgerline.local', name: 'Holder One' },
+    roles: ['admin', 'auditor', 'holder'],
+  },
+  {
+    id: 'persona-holder2',
+    group: 'Demo Personas',
+    label: 'Switch to Account Holder 2 (L1)',
+    desc: 'holder2@ledgerline.local — Counterparty receiver & transfers',
+    icon: User,
+    persona: { id: 3, role: 'holder', email: 'holder2@ledgerline.local', name: 'Holder Two' },
     roles: ['admin', 'auditor', 'holder'],
   },
   {
