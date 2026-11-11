@@ -154,6 +154,50 @@ app.get(['/api/health/details', '/health/details'], async (req, res) => {
   return res.status(health.status === 'ok' ? 200 : 503).json(health);
 });
 
+/**
+ * GET /api/ready, /ready
+ * Readiness probe: verifies live database and cache/redis connectivity.
+ * Requirement (Addendum): Reliable /ready (readiness + database/cache connectivity) endpoint.
+ * Returns HTTP 200 when ready to accept traffic, or HTTP 503 if primary dependencies are down.
+ */
+app.get(['/api/ready', '/ready'], async (req, res) => {
+  const startDb = Date.now();
+  try {
+    const dbRes = await query('SELECT 1 as ping');
+    const latencyMs = Date.now() - startDb;
+    const redisCheck = await checkRedisHealth();
+
+    return res.status(200).json({
+      status: 'ready',
+      service: 'BalanceVault',
+      checks: {
+        database: {
+          status: 'connected',
+          latencyMs,
+        },
+        redis: {
+          status: redisCheck.connected ? 'connected' : 'fallback_in_memory',
+          mode: redisCheck.mode,
+        },
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    return res.status(503).json({
+      status: 'unready',
+      service: 'BalanceVault',
+      error: 'Database connection unavailable',
+      checks: {
+        database: {
+          status: 'disconnected',
+          error: err.message,
+        },
+      },
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // -------------------------------------------------------------------------
 // AUTHENTICATION ROUTES
 // -------------------------------------------------------------------------
@@ -1150,8 +1194,8 @@ const clientIndexHtml = path.join(clientDistPath, 'index.html');
 app.use(express.static(clientDistPath));
 
 app.get('*', (req, res, next) => {
-  // Never intercept API routes or health probe; let them pass to API/404 handling
-  if (req.path.startsWith('/api') || req.path === '/health') {
+  // Never intercept API routes or health/ready probes; let them pass to API/404 handling
+  if (req.path.startsWith('/api') || req.path === '/health' || req.path === '/ready') {
     return next();
   }
   if (fs.existsSync(clientIndexHtml)) {

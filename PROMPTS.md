@@ -199,3 +199,120 @@ Redesign and upgrade the platform into BalanceVault:
 - **Cybersecurity Blue Design Tokens**: Replaced terminal green with electric cyan (`#16BFFF`), midnight blue (`#101E33`), and deep navy (`#050B18`) across CSS variables and Tailwind utilities.
 - **Non-Distractive Canvas Layering**: Background animations render on an isolated canvas behind all interactive elements, respecting reduced-motion accessibility and keeping GPU utilization minimal.
 - **Normalized Credential Handlers**: Login and registration API services accept both object payloads and positional arguments for zero-friction client-server communication.
+
+---
+
+## Phase 9: AI Evaluation & Defect Catching Log (Mandatory Dated Entries)
+
+As mandated by the LedgerLine / BalanceVault specification, this log records specific instances where generative AI proposed flawed, insecure, or mathematically incorrect code, the rigorous analysis of what was specifically wrong with the AI output, and the exact architectural fix implemented.
+
+### Entry 1 — November 7, 2026: Concurrency Race Condition & Deadlock in Money Movement
+- **What the tool was asked to do**:
+  "Write an atomic fund transfer service in Node.js that checks whether an account has sufficient balance, debits the source account, and credits the destination account."
+- **What the AI produced**:
+  ```javascript
+  // AI-generated flawed snippet
+  async function transfer(fromId, toId, amount) {
+    const fromAcc = await db.query('SELECT balance FROM accounts WHERE id = $1', [fromId]);
+    if (fromAcc.rows[0].balance < amount) {
+      throw new Error('Insufficient balance');
+    }
+    await db.query('BEGIN');
+    await db.query('UPDATE accounts SET balance = balance - $1 WHERE id = $2', [amount, fromId]);
+    await db.query('UPDATE accounts SET balance = balance + $1 WHERE id = $2', [amount, toId]);
+    await db.query('COMMIT');
+  }
+  ```
+- **What was specifically wrong with it**:
+  1. **TOCTOU Race Condition (Double Spend)**: The balance check occurred outside of a database transaction and without any row locks. Two concurrent withdrawal or transfer requests hitting this endpoint simultaneously would both read the initial balance, both pass the `balance >= amount` check, and both commit their debits, driving the account negative and creating money out of thin air.
+  2. **Circular Deadlock**: When User 1 transfers to User 2 while User 2 simultaneously transfers to User 1, each transaction locks its source account first and then waits on the other's account, creating a cyclic wait condition that results in PostgreSQL `deadlock detected (40P01)` and dropped payments.
+- **What was done instead (Architectural Fix)**:
+  Implemented deterministic ascending primary-key locking (`ORDER BY id ASC FOR UPDATE`) inside an atomic database transaction wrapper (`withTransaction` in `src/ledger.js:210-218`). The balance check is performed **after** acquiring the pessimistic row locks, and the database check constraint `chk_no_overdraft` guarantees that negative balances can never commit at the storage layer.
+
+---
+
+### Entry 2 — November 8, 2026: Flawed In-Memory Idempotency & In-Flight Request Collision
+- **What the tool was asked to do**:
+  "Implement idempotency middleware in Express that prevents duplicate payment execution when a client retries with an Idempotency-Key header."
+- **What the AI produced**:
+  ```javascript
+  // AI-generated flawed snippet
+  const cache = new Map();
+  function idempotency(req, res, next) {
+    const key = req.headers['idempotency-key'];
+    if (cache.has(key)) {
+      return res.json(cache.get(key));
+    }
+    const originalJson = res.json.bind(res);
+    res.json = (body) => {
+      cache.set(key, body);
+      return originalJson(body);
+    };
+    next();
+  }
+  ```
+- **What was specifically wrong with it**:
+  1. **Transient Memory Storage**: Storing idempotency keys in an in-memory `Map` means that a server restart, process crash, or container redeploy completely erases all remembered keys, allowing replayed requests to execute a second time.
+  2. **In-Flight Double-Execution Race**: If two identical requests arrive within milliseconds of each other (e.g. rapid double-clicking by a user), the second request arrives before the first request finishes and populates `cache.set()`. Both requests check `cache.has(key)`, see `false`, and both execute the payment twice!
+  3. **No Payload Mismatch Protection**: If an attacker reuses an existing idempotency key with a completely different payload or destination account, the AI code blindly returns the cached response of the earlier payment without flagging the key collision.
+- **What was done instead (Architectural Fix)**:
+  Built a persistent, atomic database-backed idempotency state engine (`src/ledger.js:160-204`). The engine claims the key atomically via `INSERT INTO idempotency_keys ... VALUES ($1, $2, $3, 'in_flight') ON CONFLICT DO NOTHING`, followed by `SELECT ... FOR UPDATE`. Replays with matching payload return cached responses with the `Idempotent-Replay: true` header. Replaying a key with conflicting payload is strictly rejected with `HTTP 422 Unprocessable Entity (code: IDEMPOTENCY_KEY_REUSE_PAYLOAD_MISMATCH)`.
+
+---
+
+### Entry 3 — November 9, 2026: IEEE-754 Floating-Point Monetary Representation Drift
+- **What the tool was asked to do**:
+  "Write an input validation and balance calculation function for Indian Rupee deposits, withdrawals, and transfers."
+- **What the AI produced**:
+  ```javascript
+  // AI-generated flawed snippet
+  function parseAmount(amount) {
+    const val = parseFloat(amount);
+    if (isNaN(val) || val <= 0) throw new Error('Invalid amount');
+    return val;
+  }
+  ```
+- **What was specifically wrong with it**:
+  Standard JavaScript `Number` types use IEEE 754 binary floating-point representation. Performing arithmetic on decimal currency values causes fractional rounding errors (e.g. `0.1 + 0.2 = 0.30000000000000004`). In a high-volume financial ledger moving thousands of transactions daily, these infinitesimal rounding discrepancies accumulate into substantial monetary loss, breaking the zero-sum ledger conservation invariant ($\sum \text{Balances} = 0$).
+- **What was done instead (Architectural Fix)**:
+  Established the strict **Integer Paise Precision Rule** (`src/ledger.js:14-47`). All monetary amounts across the database schema, SQL queries, and application logic are strictly represented as integers in paise (`₹1.00 = 100 paise`) using `BigInt` and PostgreSQL `BIGINT`. Floats, decimals, strings, negatives, and NaN are rejected with `HTTP 400 Invalid Input`.
+
+---
+
+### Entry 4 — November 10, 2026: Insecure JWT Claim Trust & IDOR Vulnerability
+- **What the tool was asked to do**:
+  "Implement authentication and authorization middleware to protect account viewing and fund transfer endpoints."
+- **What the AI produced**:
+  ```javascript
+  // AI-generated flawed snippet
+  function authorizeTransfer(req, res, next) {
+    const token = req.headers.authorization.split(' ')[1];
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = user;
+    if (user.role === 'admin' || user.role === 'holder') {
+      return next();
+    }
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  ```
+- **What was specifically wrong with it**:
+  1. **Insecure Direct Object Reference (IDOR)**: The AI only checked whether `user.role` was `'holder'`. It never validated whether the authenticated user actually owned the source account (`fromAccountId`) passed in the request body! Consequently, Holder 1 could transfer money out of Holder 2's account by simply supplying Holder 2's `fromAccountId`.
+  2. **Stale JWT Role Drift**: The AI relied exclusively on claims encoded inside the JWT payload without verifying the user's active status in the database. If an administrator froze an account or revoked a user's privileges, the user could continue executing transfers until the token's 24-hour expiration window lapsed.
+- **What was done instead (Architectural Fix)**:
+  1. Implemented fresh database verification (`src/auth.js:52-62`) on every authenticated request, re-reading the user's active status and role from PostgreSQL.
+  2. Built the server-side `canMoveFrom` authorization validator (`src/auth.js:157-196`, `src/ledger.js:284-294`) which strictly verifies that account holders can only move money from accounts where `account.owner_id === req.user.id`. Unauthorized attempts are rejected with `HTTP 403 Forbidden` and committed as immutable `kind='refused'` entries into the target account's audit chain.
+
+---
+
+### Entry 5 — November 11, 2026: Mutable Audit Logs & Exposed Demonstration Credentials
+- **What the tool was asked to do**:
+  "Create an audit logging schema and login UI with quick role switching for reviewers."
+- **What the AI produced**:
+  1. An `audit_logs` SQL table without immutability triggers, allowing standard `UPDATE` and `DELETE` queries.
+  2. A login screen featuring prominent "1-Click Fill" buttons displaying plaintext credentials for Administrator, Holder, and Auditor accounts, coupled with a client-side command palette command (`cmd.persona`) that elevated user clearance without contacting the server.
+- **What was specifically wrong with it**:
+  1. **Compliance Violation (Tamperable Logs)**: Standard mutable tables allow rogue administrators or SQL injection exploits to silently alter or delete historical audit entries and refusal records, defeating the primary purpose of an audit log.
+  2. **Security Anti-Pattern (Zero-Trust Violation)**: Exposing administrative and auditor credentials with single-click auto-fill on the public login page completely undermined the platform's role-based security posture. The instant persona switcher allowed unauthenticated visitors to elevate their session to Administrator without providing a password or obtaining a cryptographic token.
+- **What was done instead (Architectural Fix)**:
+  1. Hardened the database schema (`migrations/001_initial_schema.sql`) with PostgreSQL triggers (`prevent_audit_logs_mutation`, `prevent_ledger_mutation`) that block `UPDATE`, `DELETE`, and `TRUNCATE` operations at the database engine level.
+  2. Completely removed the 1-click credential exposure and client-side persona elevation commands from the user interface (`client/src/pages/LoginPage.jsx`, `client/src/components/ui/CommandPalette.jsx`). Seed credentials were moved strictly to secure system documentation (`README.md`, `THREATS.md`), and the login flow enforces authentic zero-trust credential verification on every session.

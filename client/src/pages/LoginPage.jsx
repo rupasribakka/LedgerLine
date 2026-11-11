@@ -10,36 +10,7 @@ import CyberBackground from '../components/CyberBackground';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-const SEED_ACCOUNTS = [
-  {
-    role: 'Holder 1',
-    email: 'holder1@ledgerline.local',
-    password: 'Holder1Password123!',
-    tag: 'Primary Holder',
-    variant: 'cyan',
-  },
-  {
-    role: 'Holder 2',
-    email: 'holder2@ledgerline.local',
-    password: 'Holder2Password123!',
-    tag: 'Counterparty',
-    variant: 'blue',
-  },
-  {
-    role: 'Admin',
-    email: 'admin@ledgerline.local',
-    password: 'AdminPassword123!',
-    tag: 'L3 Root',
-    variant: 'purple',
-  },
-  {
-    role: 'Auditor',
-    email: 'auditor@ledgerline.local',
-    password: 'AuditorPassword123!',
-    tag: 'L2 Verify',
-    variant: 'muted',
-  },
-];
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -80,12 +51,6 @@ export default function LoginPage() {
     }
   };
 
-  const fillPreset = (account) => {
-    setEmail(account.email);
-    setPassword(account.password);
-    setLocalError(null);
-    setAuthError(null);
-  };
 
   const errorMessage = localError || authError;
 
@@ -165,37 +130,20 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Seed reviewer role chips */}
-            <div className="mb-7">
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs font-semibold text-[#9AAEC5] flex items-center gap-1.5 uppercase tracking-wider font-mono">
-                  <Sparkles className="h-3.5 w-3.5 text-[#16BFFF]" />
-                  Demo Reviewer Accounts
+            {/* Enterprise Role-Based Access Notice */}
+            <div className="mb-6 rounded-2xl border border-[rgba(22,191,255,0.18)] bg-[#0A1426]/70 p-4 backdrop-blur-md">
+              <div className="flex items-center gap-2 mb-1.5">
+                <ShieldCheck className="h-4 w-4 text-[#16BFFF]" />
+                <span className="text-xs font-mono font-bold tracking-wide text-[#F4F8FF] uppercase">
+                  Role-Based Authentication
                 </span>
-                <span className="text-[11px] text-[#16BFFF] font-mono">1-Click Fill</span>
+                <span className="ml-auto text-[10px] font-mono text-[#16BFFF] bg-[#16BFFF]/10 border border-[#16BFFF]/30 px-2 py-0.5 rounded-full">
+                  Zero-Trust
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {SEED_ACCOUNTS.map((acc) => (
-                  <button
-                    key={acc.email}
-                    type="button"
-                    onClick={() => fillPreset(acc)}
-                    className="flex flex-col items-start p-2.5 rounded-xl border border-[rgba(22,191,255,0.15)] bg-[#0A1426]/70 hover:bg-[#0E2038] hover:border-[#16BFFF]/50 text-left transition-all duration-150 group cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between w-full mb-1">
-                      <span className="text-xs font-bold text-[#F4F8FF] group-hover:text-[#16BFFF] font-mono">
-                        {acc.role}
-                      </span>
-                      <Badge variant={acc.variant} size="sm">
-                        {acc.tag}
-                      </Badge>
-                    </div>
-                    <span className="text-[10px] font-mono text-[#9AAEC5] truncate w-full">
-                      {acc.email}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <p className="text-[11px] text-[#9AAEC5] leading-relaxed">
+                Sign in with your designated credentials. Server-side RBAC enforces permissions for Administrator, Account Holder, and Auditor roles.
+              </p>
             </div>
 
             {/* Main Login Form */}

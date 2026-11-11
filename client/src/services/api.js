@@ -89,11 +89,7 @@ export function clearStoredSession() {
   }
 }
 
-if (typeof window !== 'undefined') {
-  window.__SET_MOCK_SESSION__ = (user, token = 'dev-token') => {
-    setStoredSession(token, user);
-  };
-}
+
 
 /**
  * Generate a cryptographically strong UUID v4 idempotency key

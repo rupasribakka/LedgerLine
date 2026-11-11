@@ -14,7 +14,8 @@ The LedgerLine backend exposes a RESTful financial API with JSON request and res
 
 | Method | Canonical Route & Aliases | Who May Call It | What It Does to the Money |
 |---|---|---|---|
-| `GET` | `/api/health`, `/health` | **Public** (Unauthenticated) | **Does not move money** (read-only health check). |
+| `GET` | `/api/health`, `/health` | **Public** (Unauthenticated) | **Does not move money** (read-only liveness check). |
+| `GET` | `/api/ready`, `/ready` | **Public** (Unauthenticated) | **Does not move money** (read-only readiness + database/cache probe). |
 | `POST` | `/api/auth/register`, `/auth/register` | **Public** (for `holder`); **Admin only** with Bearer token (for `admin`, `auditor`) | **Does not move money** (creates user profile and hashes password). |
 | `POST` | `/api/auth/login`, `/auth/login` | **Public** (Unauthenticated) | **Does not move money** (authenticates credentials and issues JWT). |
 | `POST` | `/api/auth/logout`, `/auth/logout` | **Public** or **Authenticated** (`holder`, `admin`, `auditor`) | **Does not move money** (records logout in audit log). |
@@ -45,7 +46,7 @@ The LedgerLine backend exposes a RESTful financial API with JSON request and res
 
 ### 1. System Health
 
-#### Health Check (Standard & Detailed)
+#### Health Check (Liveness Probe)
 - **Route & Aliases**: `GET /api/health`, `GET /health`, `GET /api/health/details`, `GET /health/details`
 - **Who may call it**: **Public** (Unauthenticated)
 - **What it does to the money**: **Does not move money**. Checks database connectivity, role privileges, and Redis status.
@@ -76,6 +77,45 @@ The LedgerLine backend exposes a RESTful financial API with JSON request and res
         }
       }
       ```
+
+#### Readiness Probe
+- **Route & Aliases**: `GET /api/ready`, `GET /ready`
+- **Who may call it**: **Public** (Unauthenticated)
+- **What it does to the money**: **Does not move money**. Probes live PostgreSQL database query capability and Redis cache connectivity before routing traffic.
+- **Responses**:
+  - `200 OK` (All critical services healthy):
+    ```json
+    {
+      "status": "ready",
+      "service": "BalanceVault",
+      "checks": {
+        "database": {
+          "status": "connected",
+          "latencyMs": 2
+        },
+        "redis": {
+          "status": "connected",
+          "mode": "redis"
+        }
+      },
+      "timestamp": "2026-11-11T14:55:00.000Z"
+    }
+    ```
+  - `503 Service Unavailable` (Database unreachable):
+    ```json
+    {
+      "status": "unready",
+      "service": "BalanceVault",
+      "error": "Database connection unavailable",
+      "checks": {
+        "database": {
+          "status": "disconnected",
+          "error": "connection timeout"
+        }
+      },
+      "timestamp": "2026-11-11T14:55:00.000Z"
+    }
+    ```
 
 ---
 

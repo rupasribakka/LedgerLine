@@ -15,10 +15,10 @@ import {
   X,
   Play,
   RotateCcw,
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { setStoredSession, getStoredToken } from '../../services/api';
 import Badge from './Badge';
 
 const COMMANDS = [
@@ -85,63 +85,13 @@ const COMMANDS = [
     icon: KeyRound,
     route: '/app/admin',
     roles: ['admin'],
-  },
-
-  // Instant Demo Switchers
   {
-    id: 'switch-holder-1',
-    group: 'Demo Switcher',
-    label: 'Switch to Holder 1 (Primary Customer)',
-    desc: 'Clearance: L1 Customer | Email: holder1@ledgerline.local',
-    icon: User,
-    persona: {
-      id: 2,
-      email: 'holder1@ledgerline.local',
-      role: 'holder',
-      name: 'Alice (Holder 1)',
-    },
-    roles: ['admin', 'auditor', 'holder'],
-  },
-  {
-    id: 'switch-holder-2',
-    group: 'Demo Switcher',
-    label: 'Switch to Holder 2 (Counterparty Customer)',
-    desc: 'Clearance: L1 Customer | Email: holder2@ledgerline.local',
-    icon: User,
-    persona: {
-      id: 3,
-      email: 'holder2@ledgerline.local',
-      role: 'holder',
-      name: 'Bob (Holder 2)',
-    },
-    roles: ['admin', 'auditor', 'holder'],
-  },
-  {
-    id: 'switch-auditor',
-    group: 'Demo Switcher',
-    label: 'Switch to Auditor (Read-Only Compliance)',
-    desc: 'Clearance: L2 Auditor | Email: auditor@ledgerline.local',
-    icon: ShieldCheck,
-    persona: {
-      id: 4,
-      email: 'auditor@ledgerline.local',
-      role: 'auditor',
-      name: 'Carol (Auditor)',
-    },
-    roles: ['admin', 'auditor', 'holder'],
-  },
-  {
-    id: 'switch-admin',
-    group: 'Demo Switcher',
-    label: 'Switch to Admin (L3 Root Clearance)',
-    desc: 'Clearance: L3 Admin | Email: admin@ledgerline.local',
-    icon: KeyRound,
-    persona: {
-      id: 1,
-      email: 'admin@ledgerline.local',
-      role: 'admin',
-      name: 'Root Administrator',
-    },
+    id: 'nav-transactions',
+    group: 'Navigation',
+    label: 'Transactions Journal',
+    desc: 'Review settled and refused money movement records',
+    icon: BookOpen,
+    route: '/app/transactions',
     roles: ['admin', 'auditor', 'holder'],
   },
 ];
@@ -198,18 +148,6 @@ export default function CommandPalette({ isOpen, onClose }) {
 
   const executeCommand = (cmd) => {
     onClose();
-
-    if (cmd.persona) {
-      const token = getStoredToken() || 'demo-mock-jwt-token';
-      setStoredSession(token, cmd.persona);
-      showToast({
-        title: 'Persona Switched',
-        message: `Active session elevated to ${cmd.persona.name} (${cmd.persona.role.toUpperCase()}).`,
-        type: 'success',
-      });
-      navigate('/app');
-      return;
-    }
 
     if (cmd.route) {
       navigate(cmd.route);
@@ -318,8 +256,8 @@ export default function CommandPalette({ isOpen, onClose }) {
             <span>ESC Close</span>
           </div>
           <div className="flex items-center gap-1.5 text-[#16BFFF]">
-            <Sparkles className="h-3 w-3" />
-            <span>Instant Demo Switcher Ready</span>
+            <ShieldCheck className="h-3 w-3" />
+            <span>Role-Gated Fast Navigation</span>
           </div>
         </div>
       </div>
