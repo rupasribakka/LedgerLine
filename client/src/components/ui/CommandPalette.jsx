@@ -85,6 +85,7 @@ const COMMANDS = [
     icon: KeyRound,
     route: '/app/admin',
     roles: ['admin'],
+  },
   {
     id: 'nav-transactions',
     group: 'Navigation',
