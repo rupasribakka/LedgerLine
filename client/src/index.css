@@ -72,12 +72,10 @@
   }
 }
 
-/* Custom Cursor Follower Enhancements (Non-Touch / Non-Reduced-Motion) */
-html.custom-cursor-active button,
-html.custom-cursor-active a,
-html.custom-cursor-active [role="button"],
-html.custom-cursor-active .cursor-pointer {
-  cursor: pointer;
+/* Custom Cursor Rules (Non-Touch / Non-Reduced-Motion) */
+html.custom-cursor-active,
+html.custom-cursor-active * {
+  cursor: none !important;
 }
 
 /* Headline Mask Reveal (Animate only transform & opacity) */

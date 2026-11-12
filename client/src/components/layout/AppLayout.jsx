@@ -161,9 +161,9 @@ export default function AppLayout() {
   };
 
   const getRoleClearance = (r) => {
-    if (r === 'admin') return 'System Administrator';
-    if (r === 'auditor') return 'Compliance Auditor';
-    return 'Account Holder';
+    if (r === 'admin') return 'L3 // ROOT CLEARANCE';
+    if (r === 'auditor') return 'L2 // AUDIT VERIFIER';
+    return 'L1 // STANDARD HOLDER';
   };
 
   return (
@@ -184,7 +184,7 @@ export default function AppLayout() {
 
       {/* Role-Based Sidebar */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 flex w-[280px] max-w-[calc(100vw-3rem)] flex-col border-r border-[rgba(22,191,255,0.16)] bg-[#0A1426]/95 backdrop-blur-2xl transition-transform duration-300 md:static md:z-10 md:translate-x-0 md:w-72 md:max-w-none ${
+        className={`fixed top-0 bottom-0 left-0 z-50 flex w-[280px] max-w-[calc(100vw-3rem)] flex-col border-r border-[rgba(22,191,255,0.16)] bg-[#0A1426]/95 backdrop-blur-2xl transition-transform duration-300 md:static md:translate-x-0 md:w-72 md:max-w-none ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

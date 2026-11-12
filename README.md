@@ -224,16 +224,16 @@ sequenceDiagram
 
 ---
 
-## 🔑 Evaluator & Reviewer Seed Credentials
+## 🔑 Demo Reviewer Credentials (1-Click Fill)
 
-As required by the challenge specification, seed accounts and credentials for each operational role are documented below for evaluator testing:
+The login screen features 1-click credential auto-fill for testing all operational roles:
 
 | Role | Email | Password | Clearance & Permissions |
 | :--- | :--- | :--- | :--- |
 | **Holder 1** | `holder1@ledgerline.local` | `Holder1Password123!` | Primary customer account. Seeded balance: **₹100.00**. Has transfer, deposit, withdrawal permissions. |
 | **Holder 2** | `holder2@ledgerline.local` | `Holder2Password123!` | Counterparty customer account. Seeded balance: **₹50.00**. Has transfer, deposit, withdrawal permissions. |
-| **Admin** | `admin@ledgerline.local` | `AdminPassword123!` | Administrator. Can create/freeze accounts, execute system deposits, inspect Attack Lab. |
-| **Auditor** | `auditor@ledgerline.local` | `AuditorPassword123!` | Compliance Auditor. Read-only global access. Can run hash chain verification, inspect audit logs and replay attempts. |
+| **Admin** | `admin@ledgerline.local` | `AdminPassword123!` | L3 Root Clearance. Can create/freeze accounts, execute system deposits, inspect Attack Lab. |
+| **Auditor** | `auditor@ledgerline.local` | `AuditorPassword123!` | L2 Compliance Clearance. Read-only global access. Can run hash chain verification, inspect audit logs and replay attempts. |
 
 ---
 
@@ -252,7 +252,7 @@ As required by the challenge specification, seed accounts and credentials for ea
 
 ### Public Routes
 - `/`: Single-scrolling landing page featuring sticky navigation, hero with demonstration block preview, 6 core feature cards, 6-step transaction lifecycle with zero-sum conservation workflow, 8 security specification cards, role-based dashboard previews, and About matrix.
-- `/login`: Split-screen authentication console with rotating concentric orbital vault and zero-trust role-based access control.
+- `/login`: Split-screen authentication console with rotating concentric orbital vault and 1-click reviewer presets.
 - `/signup`: Public account registration with client and server-side validation.
 
 ### Protected Application Console (`/app`)

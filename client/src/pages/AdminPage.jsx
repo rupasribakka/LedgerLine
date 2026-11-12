@@ -244,8 +244,8 @@ export default function AdminPage() {
       {/* Header */}
       <div className="border-b border-[rgba(22,191,255,0.12)] pb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <Badge variant="purple" size="sm" className="mb-2">
-            ADMINISTRATOR CONSOLE
+          <Badge variant="amber" size="sm" className="mb-2">
+            ROOT L3 CONSOLE
           </Badge>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#F4F8FF]">
             Administration & Provisioning
@@ -256,7 +256,7 @@ export default function AdminPage() {
         </div>
 
         <Badge variant="cyan" size="md" dot>
-          AUTHORIZATION ACTIVE
+          POST /accounts AUTHORIZED
         </Badge>
       </div>
 
