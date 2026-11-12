@@ -19,7 +19,6 @@ import Badge from '../components/ui/Badge';
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 

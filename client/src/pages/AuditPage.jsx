@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
-  CheckCircle2,
   AlertTriangle,
   Download,
   RefreshCw,
@@ -20,7 +19,6 @@ import {
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
-import Skeleton from '../components/ui/Skeleton';
 import LedgerTrace from '../components/ui/LedgerTrace';
 import { useToast } from '../context/ToastContext';
 

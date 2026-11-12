@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   ArrowRight,
   RefreshCw,
-  CheckCircle2,
   Clock,
   ChevronRight,
 } from 'lucide-react';
@@ -23,7 +22,6 @@ import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import SmoothPaiseCounter from '../components/ui/SmoothPaiseCounter';
 import BalanceWidget from '../components/ui/BalanceWidget';
-import LedgerTrace from '../components/ui/LedgerTrace';
 
 export default function OverviewPage() {
   const { user } = useAuth();
