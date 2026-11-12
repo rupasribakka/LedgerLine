@@ -19,7 +19,7 @@ The application is deployed across production environments with edge routing and
 
 | Component | Provider | Live URL | Description & Health Check |
 | :--- | :--- | :--- | :--- |
-| **Frontend Application** | Vercel | [https://ledgerline-rupasri3.vercel.app](https://ledgerline-rupasri3.vercel.app) | Single-page React 19 application with edge API proxying. |
+| **Frontend Application** | Vercel | [[https://ledgerline-rupasri3.vercel.app](https://ledger-line-rupasri3.vercel.app/app) | Single-page React 19 application with edge API proxying. |
 | **Backend REST API** | Render | [https://ledgerline-backend-586s.onrender.com](https://ledgerline-backend-586s.onrender.com) | Node.js 20+ Express service running the financial invariant engine. |
 | **Health & Integrity Endpoint** | Render | [https://ledgerline-backend-586s.onrender.com/health](https://ledgerline-backend-586s.onrender.com/health) | Live runtime node health, PostgreSQL pool status, and ledger metrics. |
 | **Source Repository** | GitHub | [https://github.com/rupasribakka/LedgerLine](https://github.com/rupasribakka/LedgerLine) | Main branch with CI validation and production builds. |
