@@ -279,28 +279,6 @@ flowchart LR
     E -.-> D
 ```
 
----
-
-## 🎨 Design System
-
-LedgerLine uses an editorial fintech design language instead of a conventional dark cybersecurity dashboard.
-
-| Design Element | Color |
-|---|---|
-| Background | `#F5F1E9` |
-| Primary Surface | `#FFFFFF` |
-| Mint | `#DCEFE5` |
-| Lavender | `#E5EAF7` |
-| Peach | `#F5E2D8` |
-| Powder Blue | `#DCEAF3` |
-| Butter | `#F2E8C9` |
-| Forest Accent | `#397A68` |
-| Primary Text | `#263B35` |
-
-The design emphasizes readability, visual hierarchy, meaningful financial indicators, and consistent interactions.
-
----
-
 ## 🔑 Demo Reviewer Credentials
 
 The login portal provides preconfigured reviewer credentials for testing the different application roles.
