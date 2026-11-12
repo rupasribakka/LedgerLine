@@ -453,8 +453,6 @@ AI tools were used as development assistants for architecture exploration, imple
 | ChatGPT | Double-entry accounting concepts, financial invariants, security review, and implementation guidance |
 | Claude | Mathematical modeling and cryptographic hash-chain concepts |
 
-All generated implementations were subject to inspection, corrections, and testing during development.
-
 
 ## 🚧 Limitations & Future Enhancements
 
