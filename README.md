@@ -18,7 +18,6 @@
 | Component | Provider | Status | Link |
 |---|---|---|---|
 | Frontend Application | Vercel | Live | [Open LedgerLine](https://ledger-line-rupasri3.vercel.app) |
-| Operations Console | Vercel | Live | [Open Dashboard](https://ledger-line-rupasri3.vercel.app/app) |
 | Login Portal | Vercel | Live | [Open Login](https://ledger-line-rupasri3.vercel.app/login) |
 | Backend REST API | Render | Live | [Backend](https://ledgerline-backend-586s.onrender.com) |
 | Health API | Render | 200 OK | [Health Check](https://ledgerline-backend-586s.onrender.com/health) |
