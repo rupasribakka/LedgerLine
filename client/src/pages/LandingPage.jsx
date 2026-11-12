@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   ShieldCheck,
-  CheckCircle2,
   Lock,
-  Wallet,
-  ArrowLeftRight,
   BookOpen,
   Menu,
   X,
   Sun,
   Moon,
-  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -195,16 +191,16 @@ export default function LandingPage() {
 
       {/* Live Journal Representation Preview */}
       <section className="px-4 sm:px-6 max-w-5xl mx-auto pb-20">
-        <Card className="overflow-hidden border-[var(--border-subtle)] shadow-sm">
+        <Card variant="clay" className="overflow-hidden">
           <div className="p-4 border-b border-[var(--border-subtle)] bg-[var(--bg-subdued)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-[var(--status-success)]" />
+              <div className="h-2 w-2 rounded-full bg-[var(--status-success)] animate-pulse" />
               <span className="text-xs font-semibold text-[var(--text-primary)]">
                 Live Double-Entry Journal Block Preview
               </span>
             </div>
             <span className="text-[11px] font-mono text-[var(--text-secondary)]">
-              Conservation: Σ Debits ≡ Σ Credits (Net: 0 Paise)
+              Conservation: &Sigma; Debits &equiv; &Sigma; Credits (Net: 0 Paise)
             </span>
           </div>
 
@@ -275,7 +271,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="p-6 space-y-3">
+            <Card variant="clay" hover={true} className="p-6 space-y-3">
               <div className="p-2 w-fit rounded-lg bg-[var(--accent-subtle)] text-[var(--accent-primary)]">
                 <BookOpen className="h-5 w-5" />
               </div>
@@ -287,7 +283,7 @@ export default function LandingPage() {
               </p>
             </Card>
 
-            <Card className="p-6 space-y-3">
+            <Card variant="clay" hover={true} className="p-6 space-y-3">
               <div className="p-2 w-fit rounded-lg bg-[var(--accent-subtle)] text-[var(--accent-primary)]">
                 <Lock className="h-5 w-5" />
               </div>
@@ -299,7 +295,7 @@ export default function LandingPage() {
               </p>
             </Card>
 
-            <Card className="p-6 space-y-3">
+            <Card variant="clay" hover={true} className="p-6 space-y-3">
               <div className="p-2 w-fit rounded-lg bg-[var(--accent-subtle)] text-[var(--accent-primary)]">
                 <ShieldCheck className="h-5 w-5" />
               </div>
@@ -330,7 +326,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-5 space-y-2">
+            <Card variant="clay" hover={true} className="p-5 space-y-2">
               <span className="text-xs font-mono font-bold text-[var(--accent-primary)]">01</span>
               <h4 className="text-sm font-semibold text-[var(--text-primary)]">Idempotency Guard</h4>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
@@ -338,7 +334,7 @@ export default function LandingPage() {
               </p>
             </Card>
 
-            <Card className="p-5 space-y-2">
+            <Card variant="clay" hover={true} className="p-5 space-y-2">
               <span className="text-xs font-mono font-bold text-[var(--accent-primary)]">02</span>
               <h4 className="text-sm font-semibold text-[var(--text-primary)]">Deterministic Lock</h4>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
@@ -346,7 +342,7 @@ export default function LandingPage() {
               </p>
             </Card>
 
-            <Card className="p-5 space-y-2">
+            <Card variant="clay" hover={true} className="p-5 space-y-2">
               <span className="text-xs font-mono font-bold text-[var(--accent-primary)]">03</span>
               <h4 className="text-sm font-semibold text-[var(--text-primary)]">Storage Validation</h4>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
@@ -354,7 +350,7 @@ export default function LandingPage() {
               </p>
             </Card>
 
-            <Card className="p-5 space-y-2">
+            <Card variant="clay" hover={true} className="p-5 space-y-2">
               <span className="text-xs font-mono font-bold text-[var(--accent-primary)]">04</span>
               <h4 className="text-sm font-semibold text-[var(--text-primary)]">Cryptographic Chaining</h4>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
@@ -377,7 +373,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <Card className="overflow-hidden">
+          <Card variant="clay" className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>

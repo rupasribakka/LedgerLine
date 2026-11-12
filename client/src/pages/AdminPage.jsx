@@ -254,26 +254,26 @@ export default function AdminPage() {
 
       {/* KPI Overview Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card className="p-4">
+        <Card variant="clay" hover={true} className="p-4">
           <p className="text-xs text-[var(--text-secondary)]">Total Accounts</p>
           <p className="text-xl font-semibold text-[var(--text-primary)] mt-1">
             {loading ? '—' : accountsList.length}
           </p>
         </Card>
-        <Card className="p-4">
+        <Card variant="clay" hover={true} className="p-4">
           <p className="text-xs text-[var(--text-secondary)]">Registered Users</p>
           <p className="text-xl font-semibold text-[var(--text-primary)] mt-1">
             {loading ? '—' : usersList.length}
           </p>
         </Card>
-        <Card className="p-4">
+        <Card variant="clay" hover={true} className="p-4">
           <p className="text-xs text-[var(--text-secondary)]">Database Pool</p>
           <p className="text-xl font-semibold text-[var(--status-success)] mt-1 flex items-center gap-1.5 text-sm">
             <CheckCircle2 className="h-4 w-4" />
             <span>PostgreSQL Active</span>
           </p>
         </Card>
-        <Card className="p-4">
+        <Card variant="clay" hover={true} className="p-4">
           <p className="text-xs text-[var(--text-secondary)]">Runtime Role</p>
           <p className="text-xs font-mono font-medium text-[var(--text-primary)] mt-1.5 truncate">
             ledgerline_runtime
@@ -282,12 +282,12 @@ export default function AdminPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex gap-2 p-1 rounded-xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)]">
+      <div className="flex gap-1.5 p-1 rounded-xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)]">
         <button
           onClick={() => setActiveTab('accounts')}
-          className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
             activeTab === 'accounts'
-              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -295,9 +295,9 @@ export default function AdminPage() {
         </button>
         <button
           onClick={() => setActiveTab('users')}
-          className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
             activeTab === 'users'
-              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -305,9 +305,9 @@ export default function AdminPage() {
         </button>
         <button
           onClick={() => setActiveTab('system')}
-          className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
             activeTab === 'system'
-              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >

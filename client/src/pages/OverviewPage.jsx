@@ -6,11 +6,8 @@ import {
   ShieldCheck,
   ArrowRight,
   RefreshCw,
-  ArrowUpRight,
-  ArrowDownLeft,
   CheckCircle2,
   Clock,
-  Layers,
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +22,8 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import SmoothPaiseCounter from '../components/ui/SmoothPaiseCounter';
+import BalanceWidget from '../components/ui/BalanceWidget';
+import LedgerTrace from '../components/ui/LedgerTrace';
 
 export default function OverviewPage() {
   const { user } = useAuth();
@@ -36,7 +35,6 @@ export default function OverviewPage() {
 
   const role = (user?.role || 'holder').toLowerCase();
   const isHolder = role === 'holder';
-  const isAdmin = role === 'admin';
 
   const loadData = async () => {
     setLoading(true);
@@ -124,73 +122,42 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* Main Consolidated Balance Card */}
+      {/* Main Balance Section: Refined Claymorphic Balance Widget */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 p-6 sm:p-8 flex flex-col justify-between">
+        <div className="lg:col-span-2">
+          <BalanceWidget
+            title="Consolidated Portfolio Balance"
+            paise={totalPaise}
+            loading={loading}
+            verified={integrityStatus?.verified !== false}
+            accountCount={accounts.length}
+            actionLink="/app/accounts"
+            actionLabel="Inspect All Accounts"
+          />
+        </div>
+
+        {/* Quick Actions & Short Navigation with Subtle Elevation */}
+        <Card variant="clay" className="p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
-                Total Consolidated Balance
-              </span>
-              <Badge variant="success" size="sm" dot>
-                {integrityStatus?.verified !== false ? 'Ledger Verified' : 'Checking Invariants'}
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                Quick Operations
+              </h3>
+              <Badge variant="neutral" size="sm">
+                Tactile Console
               </Badge>
             </div>
-
-            <div className="mt-4">
-              <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-[var(--text-primary)] tabular-nums">
-                {loading ? (
-                  <Skeleton className="h-10 w-48 rounded-lg" />
-                ) : (
-                  <SmoothPaiseCounter paise={totalPaise} />
-                )}
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                Represented strictly in 64-bit integer paise (1 INR = 100 paise)
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-6 mt-6 border-t border-[var(--border-subtle)] grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div>
-              <p className="text-xs text-[var(--text-secondary)]">Active Accounts</p>
-              <p className="text-base font-semibold text-[var(--text-primary)] mt-0.5">
-                {loading ? '—' : accounts.length}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-[var(--text-secondary)]">Double-Entry Status</p>
-              <p className="text-base font-semibold text-[var(--status-success)] mt-0.5 flex items-center gap-1">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Zero-Sum</span>
-              </p>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <p className="text-xs text-[var(--text-secondary)]">Cryptographic Proof</p>
-              <p className="text-base font-semibold text-[var(--text-primary)] mt-0.5 font-mono text-xs">
-                SHA-256 Chained
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Quick Actions & Short Navigation */}
-        <Card className="p-6 flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-              Quick Operations
-            </h3>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              Instant access to core financial tasks
+              Direct settlement & verification tools
             </p>
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-2.5">
               <Link
                 to="/app/move"
-                className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-subdued)] transition-colors group"
+                className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subdued)] hover:-translate-y-0.5 transition-all duration-180 shadow-xs group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-[var(--accent-subtle)] text-[var(--accent-primary)]">
+                  <div className="p-2 rounded-lg bg-[var(--accent-subtle)] text-[var(--accent-primary)] shadow-xs">
                     <ArrowLeftRight className="h-4 w-4" />
                   </div>
                   <div>
@@ -207,10 +174,10 @@ export default function OverviewPage() {
 
               <Link
                 to="/app/accounts"
-                className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-subdued)] transition-colors group"
+                className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subdued)] hover:-translate-y-0.5 transition-all duration-180 shadow-xs group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-[var(--bg-subdued)] text-[var(--text-primary)]">
+                  <div className="p-2 rounded-lg bg-[var(--bg-subdued)] text-[var(--text-primary)] shadow-xs">
                     <Wallet className="h-4 w-4" />
                   </div>
                   <div>
@@ -228,10 +195,10 @@ export default function OverviewPage() {
               {(role === 'admin' || role === 'auditor') && (
                 <Link
                   to="/app/audit"
-                  className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-subdued)] transition-colors group"
+                  className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subdued)] hover:-translate-y-0.5 transition-all duration-180 shadow-xs group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-[var(--status-info-bg)] text-[var(--status-info)]">
+                    <div className="p-2 rounded-lg bg-[var(--status-info-bg)] text-[var(--status-info)] shadow-xs">
                       <ShieldCheck className="h-4 w-4" />
                     </div>
                     <div>
@@ -250,13 +217,16 @@ export default function OverviewPage() {
           </div>
 
           <div className="pt-4 border-t border-[var(--border-subtle)] text-[11px] text-[var(--text-secondary)] flex items-center justify-between">
-            <span>Deterministic Concurrency</span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--status-success)]" />
+              <span>Row Locks Active</span>
+            </span>
             <span className="font-mono">SELECT FOR UPDATE</span>
           </div>
         </Card>
       </div>
 
-      {/* Accounts Overview Section */}
+      {/* Accounts Overview Section with Subtle Clay Surface on Cards */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -278,12 +248,12 @@ export default function OverviewPage() {
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Skeleton className="h-36 rounded-xl" />
-            <Skeleton className="h-36 rounded-xl" />
-            <Skeleton className="h-36 rounded-xl" />
+            <Skeleton className="h-36 rounded-2xl" />
+            <Skeleton className="h-36 rounded-2xl" />
+            <Skeleton className="h-36 rounded-2xl" />
           </div>
         ) : accounts.length === 0 ? (
-          <Card className="p-8 text-center space-y-2">
+          <Card variant="clay" className="p-8 text-center space-y-2">
             <Wallet className="h-8 w-8 text-[var(--text-muted)] mx-auto" />
             <p className="text-sm font-medium text-[var(--text-primary)]">No accounts available</p>
             <p className="text-xs text-[var(--text-secondary)]">
@@ -295,7 +265,9 @@ export default function OverviewPage() {
             {accounts.map((acc) => (
               <Card
                 key={acc.id}
-                className="p-5 flex flex-col justify-between hover:border-[var(--border-hover)] transition-all group"
+                variant="clay"
+                hover={true}
+                className="p-5 flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-start justify-between">
@@ -321,21 +293,23 @@ export default function OverviewPage() {
                     </Badge>
                   </div>
 
-                  <div className="mt-4">
-                    <p className="text-[11px] text-[var(--text-secondary)]">Available Balance</p>
+                  <div className="mt-4 p-3 rounded-xl bg-[var(--bg-subdued)] shadow-[var(--shadow-recessed)]">
+                    <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wide">
+                      Available Balance
+                    </p>
                     <p className="text-xl font-semibold text-[var(--text-primary)] tabular-nums mt-0.5">
                       <SmoothPaiseCounter paise={acc.balance_paise} />
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-4 mt-4 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
+                <div className="pt-3 mt-4 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
                   <span className="text-[11px] text-[var(--text-secondary)]">
                     {acc.is_external ? 'System Pool' : 'Personal Account'}
                   </span>
                   <Link
                     to={`/app/accounts/${acc.id}`}
-                    className="font-medium text-[var(--accent-primary)] hover:underline inline-flex items-center gap-1"
+                    className="font-medium text-[var(--accent-primary)] hover:underline inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
                   >
                     <span>Statement</span>
                     <ArrowRight className="h-3 w-3" />
@@ -347,7 +321,7 @@ export default function OverviewPage() {
         )}
       </div>
 
-      {/* Recent Transactions List */}
+      {/* Recent Transactions List with Clean Layout */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -368,11 +342,11 @@ export default function OverviewPage() {
         </div>
 
         {loading ? (
-          <Card className="p-4">
-            <Skeleton className="h-40 rounded-lg" />
+          <Card variant="clay" className="p-4">
+            <Skeleton className="h-40 rounded-xl" />
           </Card>
         ) : recentTransactions.length === 0 ? (
-          <Card className="p-8 text-center space-y-2">
+          <Card variant="clay" className="p-8 text-center space-y-2">
             <Clock className="h-8 w-8 text-[var(--text-muted)] mx-auto" />
             <p className="text-sm font-medium text-[var(--text-primary)]">No recent transactions</p>
             <p className="text-xs text-[var(--text-secondary)]">
@@ -380,7 +354,7 @@ export default function OverviewPage() {
             </p>
           </Card>
         ) : (
-          <Card className="overflow-hidden">
+          <Card variant="clay" className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
@@ -397,7 +371,7 @@ export default function OverviewPage() {
                     const isCredit = tx.type === 'DEPOSIT';
                     const isDebit = tx.type === 'WITHDRAWAL';
                     return (
-                      <tr key={tx.id} className="hover:bg-[var(--bg-subdued)]/50 transition-colors">
+                      <tr key={tx.id} className="hover:bg-[var(--bg-subdued)]/40 transition-colors">
                         <td className="py-3.5 px-4 font-medium text-[var(--text-primary)]">
                           <Badge
                             variant={

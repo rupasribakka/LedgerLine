@@ -20,6 +20,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
+import LedgerTrace from '../components/ui/LedgerTrace';
 import { useToast } from '../context/ToastContext';
 
 export default function TransactionsPage() {
@@ -140,12 +141,12 @@ export default function TransactionsPage() {
 
       {/* Tabs (Transactions vs Double-Entry Ledger) */}
       {canViewLedger && (
-        <div className="flex gap-2 p-1 rounded-xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)]">
+        <div className="flex gap-1.5 p-1 rounded-xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)]">
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
               activeTab === 'transactions'
-                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
@@ -153,9 +154,9 @@ export default function TransactionsPage() {
           </button>
           <button
             onClick={() => setActiveTab('ledger')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
               activeTab === 'ledger'
-                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
@@ -173,21 +174,21 @@ export default function TransactionsPage() {
             placeholder="Search by ID, account, or description..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-10 w-full rounded-xl bg-[var(--bg-surface)] pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-subtle)] focus:border-[var(--border-focus)] focus:outline-none transition-colors"
+            className="h-10 w-full rounded-xl bg-[var(--bg-surface)] pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] focus:border-[var(--border-focus)] focus:outline-none transition-colors"
           />
         </div>
 
         {activeTab === 'transactions' && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[var(--text-secondary)]">Type:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-[var(--text-secondary)] mr-1">Type:</span>
             {['ALL', 'TRANSFER', 'DEPOSIT', 'WITHDRAWAL'].map((t) => (
               <button
                 key={t}
                 onClick={() => setTypeFilter(t)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer active:scale-95 ${
                   typeFilter === t
-                    ? 'bg-[var(--accent-subtle)] text-[var(--accent-primary)] font-semibold'
-                    : 'bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-subdued)]'
+                    ? 'bg-[var(--accent-subtle)] text-[var(--accent-primary)] font-semibold shadow-[var(--shadow-clay-btn-sec)]'
+                    : 'bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-subdued)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 {t}
@@ -356,7 +357,7 @@ export default function TransactionsPage() {
       {/* Transaction Details Drawer / Modal */}
       {selectedTxn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-xl space-y-5">
+          <div className="w-full max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-clay-widget)] space-y-5">
             <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
               <div>
                 <h3 className="text-base font-semibold text-[var(--text-primary)]">
@@ -368,10 +369,25 @@ export default function TransactionsPage() {
               </div>
               <button
                 onClick={() => setSelectedTxn(null)}
-                className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subdued)] cursor-pointer"
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subdued)] cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
+            </div>
+
+            {/* Ledger Trace Visual Flow */}
+            <div className="p-3.5 rounded-xl bg-[var(--bg-subdued)] border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+                  Movement Path
+                </span>
+                <LedgerTrace variant="indicator" state="settled" />
+              </div>
+              <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-primary)] pt-1">
+                <span>{selectedTxn.from_account_id ? `Account #${selectedTxn.from_account_id}` : 'External Pool'}</span>
+                <span className="text-[var(--accent-primary)] font-mono text-[11px] px-2">&rarr;</span>
+                <span>{selectedTxn.to_account_id ? `Account #${selectedTxn.to_account_id}` : 'External Pool'}</span>
+              </div>
             </div>
 
             <div className="space-y-3 text-xs">
@@ -390,25 +406,13 @@ export default function TransactionsPage() {
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--border-subtle)]">
-                <span className="text-[var(--text-secondary)]">From Account:</span>
-                <span className="font-medium text-[var(--text-primary)]">
-                  {selectedTxn.from_account_id ? `#${selectedTxn.from_account_id}` : 'External Clearing'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[var(--border-subtle)]">
-                <span className="text-[var(--text-secondary)]">To Account:</span>
-                <span className="font-medium text-[var(--text-primary)]">
-                  {selectedTxn.to_account_id ? `#${selectedTxn.to_account_id}` : 'External Clearing'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[var(--border-subtle)]">
                 <span className="text-[var(--text-secondary)]">Description:</span>
                 <span className="text-[var(--text-primary)]">{selectedTxn.description || '—'}</span>
               </div>
               {selectedTxn.idempotency_key && (
                 <div className="py-1">
                   <span className="text-[var(--text-secondary)] block mb-1">Idempotency Key:</span>
-                  <span className="font-mono text-[11px] text-[var(--text-primary)] bg-[var(--bg-subdued)] p-2 rounded block break-all">
+                  <span className="font-mono text-[11px] text-[var(--text-primary)] bg-[var(--bg-subdued)] p-2 rounded-lg border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] block break-all">
                     {selectedTxn.idempotency_key}
                   </span>
                 </div>

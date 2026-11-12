@@ -7,12 +7,14 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Wallet,
 } from 'lucide-react';
 import { fetchAccountStatement, formatPaiseToRupees } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
+import LedgerTrace from '../components/ui/LedgerTrace';
 import { useToast } from '../context/ToastContext';
 
 export default function AccountStatementPage() {
@@ -100,29 +102,32 @@ export default function AccountStatementPage() {
 
       {/* Account Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-5">
+        <Card variant="clay" hover={true} className="p-5">
           <p className="text-xs text-[var(--text-secondary)]">Current Settled Balance</p>
           <p className="text-2xl font-semibold text-[var(--text-primary)] mt-1 tabular-nums">
             {loading ? <Skeleton className="h-8 w-32" /> : formatPaiseToRupees(account?.balance_paise || 0)}
           </p>
-          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-            Integer paise: {account?.balance_paise || 0}
-          </p>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-[11px] text-[var(--text-secondary)]">
+              Integer paise: {account?.balance_paise || 0}
+            </span>
+            <LedgerTrace variant="indicator" state="settled" />
+          </div>
         </Card>
 
-        <Card className="p-5">
+        <Card variant="clay" hover={true} className="p-5">
           <p className="text-xs text-[var(--text-secondary)]">Cryptographic Integrity</p>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="success" size="sm" dot>
               SHA-256 Chained
             </Badge>
           </div>
-          <p className="text-[11px] text-[var(--text-secondary)] mt-1">
-            Every movement links to prior block
+          <p className="text-[11px] text-[var(--text-secondary)] mt-2">
+            Every movement cryptographically links to prior block
           </p>
         </Card>
 
-        <Card className="p-5">
+        <Card variant="clay" hover={true} className="p-5">
           <p className="text-xs text-[var(--text-secondary)]">Account Status</p>
           <div className="mt-1">
             <Badge
@@ -132,8 +137,8 @@ export default function AccountStatementPage() {
               {account?.status || 'ACTIVE'}
             </Badge>
           </div>
-          <p className="text-[11px] text-[var(--text-secondary)] mt-1">
-            No-overdraft invariant active
+          <p className="text-[11px] text-[var(--text-secondary)] mt-2">
+            PostgreSQL no-overdraft invariant active
           </p>
         </Card>
       </div>
@@ -269,37 +274,64 @@ export default function AccountStatementPage() {
                         {isExpanded && (
                           <tr className="bg-[var(--bg-subdued)]">
                             <td colSpan={7} className="p-4 text-xs">
-                              <div className="space-y-2 max-w-4xl mx-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
-                                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
-                                  <span className="font-semibold text-[var(--text-primary)]">
-                                    Cryptographic Block Proof (Entry #{entry.id})
-                                  </span>
+                              <div className="space-y-4 max-w-4xl mx-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-clay-card)]">
+                                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-sm text-[var(--text-primary)]">
+                                      Cryptographic Block Proof (Entry #{entry.id})
+                                    </span>
+                                    <LedgerTrace variant="indicator" state="settled" />
+                                  </div>
                                   <Badge variant="accent" size="sm">
                                     SHA-256 Verifiable
                                   </Badge>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-[11px]">
+                                {/* Visual Cryptographic Chain Link */}
+                                <div className="p-3 rounded-lg bg-[var(--bg-subdued)] border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] space-y-2">
+                                  <p className="text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+                                    Ledger Trace • Block Continuity
+                                  </p>
+                                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 font-mono text-[11px]">
+                                    <div className="flex-1 truncate">
+                                      <span className="text-[var(--text-secondary)]">Parent: </span>
+                                      <span className="text-[var(--text-primary)] font-semibold">
+                                        {entry.prev_hash ? `${entry.prev_hash.slice(0, 16)}...` : 'GENESIS-0000'}
+                                      </span>
+                                    </div>
+                                    <div className="text-[var(--accent-primary)] font-bold px-2 text-center">
+                                      &rarr; [SHA-256] &rarr;
+                                    </div>
+                                    <div className="flex-1 truncate text-right">
+                                      <span className="text-[var(--text-secondary)]">Block: </span>
+                                      <span className="text-[var(--accent-primary)] font-semibold">
+                                        {entry.hash ? `${entry.hash.slice(0, 16)}...` : 'e49b2075...'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-[11px]">
                                   <div>
-                                    <p className="text-[var(--text-secondary)]">Block Hash:</p>
-                                    <p className="font-mono text-[var(--text-primary)] break-all mt-0.5">
+                                    <p className="text-[var(--text-secondary)] font-medium">Block Hash:</p>
+                                    <p className="font-mono text-[var(--text-primary)] break-all mt-0.5 select-all">
                                       {entry.hash || 'e49b2075f1df86ca29188d447d2197e8802951719bba51080d96d29df77dc110'}
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-[var(--text-secondary)]">Previous Block Hash:</p>
-                                    <p className="font-mono text-[var(--text-primary)] break-all mt-0.5">
+                                    <p className="text-[var(--text-secondary)] font-medium">Previous Block Hash:</p>
+                                    <p className="font-mono text-[var(--text-primary)] break-all mt-0.5 select-all">
                                       {entry.prev_hash || '0000000000000000000000000000000000000000000000000000000000000000'}
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-[var(--text-secondary)]">Idempotency Key:</p>
+                                    <p className="text-[var(--text-secondary)] font-medium">Idempotency Key:</p>
                                     <p className="font-mono text-[var(--text-primary)] break-all mt-0.5">
                                       {entry.idempotency_key || 'N/A (System Initialization)'}
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-[var(--text-secondary)]">Settlement Engine:</p>
+                                    <p className="text-[var(--text-secondary)] font-medium">Settlement Engine:</p>
                                     <p className="text-[var(--text-primary)] mt-0.5">
                                       PostgreSQL ACID Transaction with Deterministic Locking
                                     </p>

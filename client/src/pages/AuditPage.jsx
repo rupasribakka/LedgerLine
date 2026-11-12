@@ -21,6 +21,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
+import LedgerTrace from '../components/ui/LedgerTrace';
 import { useToast } from '../context/ToastContext';
 
 export default function AuditPage() {
@@ -228,7 +229,7 @@ export default function AuditPage() {
       </div>
 
       {/* Verification Summary Hero Banner */}
-      <Card className="p-6">
+      <Card variant="clay" className="p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div
@@ -248,6 +249,7 @@ export default function AuditPage() {
                 <Badge variant={isVerified ? 'success' : 'error'} size="sm" dot>
                   {isVerified ? 'VERIFIED' : 'TAMPER DETECTED'}
                 </Badge>
+                <LedgerTrace variant="indicator" state={isVerified ? 'settled' : 'failed'} />
               </div>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                 {isVerified
@@ -275,12 +277,12 @@ export default function AuditPage() {
       </Card>
 
       {/* Tabs */}
-      <div className="flex gap-2 p-1 rounded-xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)]">
+      <div className="flex gap-1.5 p-1 rounded-xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)]">
         <button
           onClick={() => setActiveTab('verify')}
-          className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
             activeTab === 'verify'
-              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -288,9 +290,9 @@ export default function AuditPage() {
         </button>
         <button
           onClick={() => setActiveTab('duplicates')}
-          className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
             activeTab === 'duplicates'
-              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -298,9 +300,9 @@ export default function AuditPage() {
         </button>
         <button
           onClick={() => setActiveTab('logs')}
-          className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
             activeTab === 'logs'
-              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -446,7 +448,7 @@ export default function AuditPage() {
               placeholder="Search audit trail..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-10 w-full rounded-xl bg-[var(--bg-surface)] pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-subtle)] focus:border-[var(--border-focus)] focus:outline-none transition-colors"
+              className="h-10 w-full rounded-xl bg-[var(--bg-surface)] pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] focus:border-[var(--border-focus)] focus:outline-none transition-colors"
             />
           </div>
 

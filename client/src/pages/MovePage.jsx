@@ -6,8 +6,6 @@ import {
   Lock,
   CheckCircle2,
   AlertCircle,
-  RefreshCw,
-  Info,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -24,8 +22,7 @@ import {
 } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import Badge from '../components/ui/Badge';
-import Skeleton from '../components/ui/Skeleton';
+import LedgerTrace from '../components/ui/LedgerTrace';
 
 export default function MovePage() {
   const { user } = useAuth();
@@ -256,17 +253,17 @@ export default function MovePage() {
         </p>
       </div>
 
-      {/* 1. Select Movement Type (Tabs) */}
-      <div className="flex flex-wrap gap-2 p-1 rounded-xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)]">
+      {/* 1. Select Movement Type (Clay Tabs) */}
+      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)]">
         <button
           type="button"
           onClick={() => {
             setActiveTab('transfer');
             setLastResult(null);
           }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-180 cursor-pointer ${
             activeTab === 'transfer'
-              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -280,9 +277,9 @@ export default function MovePage() {
             setActiveTab('withdraw');
             setLastResult(null);
           }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-180 cursor-pointer ${
             activeTab === 'withdraw'
-              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -297,9 +294,9 @@ export default function MovePage() {
               setActiveTab('deposit');
               setLastResult(null);
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-180 cursor-pointer ${
               activeTab === 'deposit'
-                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-[var(--shadow-clay-btn-sec)] font-semibold'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
@@ -317,8 +314,8 @@ export default function MovePage() {
         )}
       </div>
 
-      {/* Main Movement Form Card */}
-      <Card className="p-6 sm:p-8 space-y-6">
+      {/* Main Movement Form Card with Selective Clay Surface */}
+      <Card variant="clay" className="p-6 sm:p-8 space-y-6">
         <form onSubmit={handleInitiate} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* 2. Select Source Account */}
@@ -330,7 +327,7 @@ export default function MovePage() {
                 value={sourceAccountId}
                 onChange={(e) => setSourceAccountId(e.target.value)}
                 disabled={loadingAccounts}
-                className="h-10 w-full rounded-xl bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] border border-[var(--border-subtle)] focus:border-[var(--border-focus)] focus:outline-none"
+                className="h-10 w-full rounded-xl bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] focus:border-[var(--border-focus)] focus:outline-none"
               >
                 {customerAccounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
@@ -355,7 +352,7 @@ export default function MovePage() {
                   value={targetAccountId}
                   onChange={(e) => setTargetAccountId(e.target.value)}
                   disabled={loadingAccounts}
-                  className="h-10 w-full rounded-xl bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] border border-[var(--border-subtle)] focus:border-[var(--border-focus)] focus:outline-none"
+                  className="h-10 w-full rounded-xl bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] focus:border-[var(--border-focus)] focus:outline-none"
                 >
                   {customerAccounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
@@ -388,7 +385,7 @@ export default function MovePage() {
                   value={amountInput}
                   onChange={(e) => setAmountInput(e.target.value)}
                   required
-                  className="h-11 w-full rounded-xl bg-[var(--bg-surface)] pl-8 pr-4 text-base font-semibold tabular-nums text-[var(--text-primary)] border border-[var(--border-subtle)] focus:border-[var(--border-focus)] focus:outline-none placeholder-[var(--text-muted)]"
+                  className="h-11 w-full rounded-xl bg-[var(--bg-surface)] pl-8 pr-4 text-base font-semibold tabular-nums text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] focus:border-[var(--border-focus)] focus:outline-none placeholder-[var(--text-muted)]"
                 />
               </div>
               <p className="text-xs text-[var(--text-secondary)]">
@@ -407,15 +404,26 @@ export default function MovePage() {
                   placeholder="e.g. Monthly vendor invoice, internal transfer"
                   value={descriptionInput}
                   onChange={(e) => setDescriptionInput(e.target.value)}
-                  className="h-10 w-full rounded-xl bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] border border-[var(--border-subtle)] focus:border-[var(--border-focus)] focus:outline-none placeholder-[var(--text-muted)]"
+                  className="h-10 w-full rounded-xl bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] focus:border-[var(--border-focus)] focus:outline-none placeholder-[var(--text-muted)]"
                 />
               </div>
             )}
           </div>
 
-          {/* 5 & 6. Calculated Balance Preview */}
+          {/* LEDGER TRACE: Visual Continuity Pipeline */}
+          {activeTab === 'transfer' && sourceAccount && targetAccount && (
+            <LedgerTrace
+              variant="timeline"
+              steps={[
+                { label: sourceAccount.name || `Account #${sourceAccount.id}` },
+                { label: targetAccount.name || `Account #${targetAccount.id}` },
+              ]}
+            />
+          )}
+
+          {/* 5 & 6. Calculated Balance Preview on Recessed Surface */}
           {isValidAmount && sourceAccount && (
-            <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subdued)] space-y-3">
+            <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subdued)] shadow-[var(--shadow-recessed)] space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
                   Calculated Balance Preview
@@ -518,10 +526,10 @@ export default function MovePage() {
         </form>
       </Card>
 
-      {/* 7. Confirmation Modal Dialog */}
+      {/* 7. Confirmation Modal Dialog with Claymorphic Depth */}
       {confirmModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-xl space-y-5">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-clay-widget)] space-y-5 animate-in fade-in duration-200">
             <div>
               <h3 className="text-base font-semibold text-[var(--text-primary)]">
                 Confirm Transaction
@@ -531,7 +539,7 @@ export default function MovePage() {
               </p>
             </div>
 
-            <div className="p-4 rounded-xl bg-[var(--bg-subdued)] space-y-2.5 text-xs">
+            <div className="p-4 rounded-xl bg-[var(--bg-subdued)] shadow-[var(--shadow-recessed)] space-y-2.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-[var(--text-secondary)]">Type:</span>
                 <span className="font-semibold text-[var(--text-primary)] uppercase">
@@ -584,6 +592,7 @@ export default function MovePage() {
       {/* 8. Final Transaction Result Receipt */}
       {lastResult && (
         <Card
+          variant="clay"
           className={`p-5 border ${
             lastResult.success
               ? 'border-[var(--status-success)]/30 bg-[var(--status-success-bg)]/20'

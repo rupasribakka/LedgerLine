@@ -46,7 +46,7 @@ export default function Input({
           placeholder={placeholder}
           disabled={disabled}
           required={required}
-          className={`h-10 w-full rounded-xl bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border transition-all duration-150 focus:outline-none ${
+          className={`h-10 w-full rounded-xl bg-[var(--bg-surface)] shadow-[var(--shadow-recessed)] px-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border transition-all duration-180 focus:outline-none ${
             LeftIcon ? 'pl-9' : ''
           } ${isPassword ? 'pr-10' : ''} ${
             error

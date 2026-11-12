@@ -106,19 +106,19 @@ export default function AccountsPage() {
 
       {/* Overview Metric Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4">
+        <Card variant="clay" hover={true} className="p-4">
           <p className="text-xs text-[var(--text-secondary)]">Total Accounts</p>
           <p className="text-xl font-semibold text-[var(--text-primary)] mt-1">
             {loading ? '—' : accounts.length}
           </p>
         </Card>
-        <Card className="p-4">
+        <Card variant="clay" hover={true} className="p-4">
           <p className="text-xs text-[var(--text-secondary)]">Active Balance</p>
           <p className="text-xl font-semibold text-[var(--text-primary)] mt-1 tabular-nums">
             {loading ? <Skeleton className="h-6 w-24" /> : formatPaiseToRupees(totalPaise)}
           </p>
         </Card>
-        <Card className="p-4">
+        <Card variant="clay" hover={true} className="p-4">
           <p className="text-xs text-[var(--text-secondary)]">Overdraft Protection</p>
           <p className="text-xl font-semibold text-[var(--status-success)] mt-1 flex items-center gap-1.5 text-sm">
             <CheckCircle2 className="h-4 w-4" />
@@ -136,7 +136,7 @@ export default function AccountsPage() {
             placeholder="Search by account name or ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-10 w-full rounded-xl bg-[var(--bg-surface)] pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-subtle)] focus:border-[var(--border-focus)] focus:outline-none transition-colors"
+            className="h-10 w-full rounded-xl bg-[var(--bg-surface)] pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)] focus:border-[var(--border-focus)] focus:outline-none transition-colors"
           />
         </div>
       </div>

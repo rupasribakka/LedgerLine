@@ -25,6 +25,14 @@
     --status-error-bg: #FDF2F1;
     --status-info: #3B6C8C;
     --status-info-bg: #EFF6FA;
+
+    /* Claymorphic and Surface Elevation Tokens (Light Theme) */
+    --shadow-raised: 0 4px 14px -2px rgba(32, 37, 34, 0.05), 0 1px 3px 0 rgba(32, 37, 34, 0.03);
+    --shadow-clay-card: 0 8px 24px -4px rgba(32, 37, 34, 0.06), 0 2px 6px -1px rgba(32, 37, 34, 0.03), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.02);
+    --shadow-clay-widget: 0 10px 28px -4px rgba(32, 37, 34, 0.07), 0 3px 8px -2px rgba(32, 37, 34, 0.04), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 1), inset 0 -2px 1.5px 0 rgba(0, 0, 0, 0.03);
+    --shadow-clay-btn: 0 4px 12px -1px rgba(57, 122, 104, 0.3), 0 2px 5px -1px rgba(57, 122, 104, 0.18), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.18);
+    --shadow-clay-btn-sec: 0 2px 6px -1px rgba(32, 37, 34, 0.06), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04);
+    --shadow-recessed: inset 0 1.5px 3.5px 0 rgba(0, 0, 0, 0.04), inset 0 0 0 1px var(--border-subtle);
   }
 
   .dark {
@@ -51,6 +59,14 @@
     --status-error-bg: #382120;
     --status-info: #6CA0C2;
     --status-info-bg: #1C2D38;
+
+    /* Claymorphic and Surface Elevation Tokens (Dark Theme) */
+    --shadow-raised: 0 6px 18px -2px rgba(0, 0, 0, 0.35), 0 2px 6px -1px rgba(0, 0, 0, 0.2);
+    --shadow-clay-card: 0 10px 30px -4px rgba(0, 0, 0, 0.45), 0 3px 8px -2px rgba(0, 0, 0, 0.3), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.06), inset 0 -2px 1.5px 0 rgba(0, 0, 0, 0.45);
+    --shadow-clay-widget: 0 12px 34px -4px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.35), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-clay-btn: 0 4px 14px -1px rgba(131, 181, 160, 0.28), 0 2px 5px -1px rgba(0, 0, 0, 0.4), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.45), inset 0 -1.5px 1.5px 0 rgba(0, 0, 0, 0.25);
+    --shadow-clay-btn-sec: 0 2px 6px -1px rgba(0, 0, 0, 0.3), inset 0 1px 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.3);
+    --shadow-recessed: inset 0 2px 4px 0 rgba(0, 0, 0, 0.35), inset 0 0 0 1px var(--border-subtle);
   }
 
   * {
@@ -115,11 +131,47 @@
   }
 }
 
-/* Transitions for interactive elements (150-200ms) */
+/* Surface Utility Classes */
+.surface-base {
+  background-color: var(--bg-app);
+}
+
+.surface-raised {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-raised);
+}
+
+.surface-clay {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-clay-card);
+}
+
+.surface-clay-widget {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-clay-widget);
+}
+
+.surface-recessed {
+  background-color: var(--bg-subdued);
+  box-shadow: var(--shadow-recessed);
+}
+
+/* Transitions for interactive elements (150-250ms) */
 a, button, input, select {
-  transition-property: color, background-color, border-color, box-shadow, opacity;
-  transition-duration: 150ms;
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Gentle tactile lift on hover */
+.hover-lift {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
 }
 
 /* Reduced motion preference */
@@ -129,5 +181,8 @@ a, button, input, select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .hover-lift:hover {
+    transform: none !important;
   }
 }
