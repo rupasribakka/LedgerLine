@@ -3,8 +3,9 @@
 [![Build Status](https://img.shields.io/badge/build-passing-397A68?style=flat-square)](https://github.com/rupasribakka/LedgerLine)
 [![Tests Passing](https://img.shields.io/badge/tests-36%2F36%20passed-397A68?style=flat-square)](https://github.com/rupasribakka/LedgerLine)
 [![Security Invariants](https://img.shields.io/badge/invariants-zero--drift%20integer%20math-514A70?style=flat-square)](https://github.com/rupasribakka/LedgerLine)
-[![Frontend Deployed](https://img.shields.io/badge/deployed-Vercel-black?style=flat-square&logo=vercel)](https://ledgerline-rupasri3.vercel.app)
-[![Backend Deployed](https://img.shields.io/badge/deployed-Render-46E3B7?style=flat-square&logo=render)](https://ledgerline-backend-586s.onrender.com)
+[![Frontend Deployed](https://img.shields.io/badge/frontend-Vercel%20Production-black?style=flat-square&logo=vercel)](https://ledger-line-rupasri3.vercel.app)
+[![Backend Deployed](https://img.shields.io/badge/backend-Render%20Production-46E3B7?style=flat-square&logo=render)](https://ledgerline-backend-586s.onrender.com)
+[![Status](https://img.shields.io/badge/status-active%20%26%20healthy-397A68?style=flat-square)](https://ledgerline-backend-586s.onrender.com/health)
 
 > **Primary Identity:** LedgerLine  
 > **Underlying Engine:** BalanceVault Financial Invariant Engine  
@@ -17,11 +18,17 @@
 
 The application is deployed across production environments with edge routing and dedicated database clusters:
 
-| Component | Provider | Live URL | Description & Health Check |
-| :--- | :--- | :--- | :--- |
-| **Live URL** | Vercel | [https://ledgerline-rupasri3.vercel.app](https://ledger-line-rupasri3.vercel.app/login)] | Single-page React 19 application with edge API proxying. |
-| **Health & Integrity Endpoint** | Render | [https://ledgerline-backend-586s.onrender.com/health](https://ledgerline-backend-586s.onrender.com/health) | Live runtime node health, PostgreSQL pool status, and ledger metrics. |
-| **Source Repository** | GitHub | [https://github.com/rupasribakka/LedgerLine](https://github.com/rupasribakka/LedgerLine) | Main branch with CI validation and production builds. |
+| Component | Status | Provider | Live URL | Description & Access |
+| :--- | :--- | :--- | :--- | :--- |
+| **Frontend Application** | 🟢 **200 OK** | Vercel | [https://ledger-line-rupasri3.vercel.app](https://ledger-line-rupasri3.vercel.app) | Single-page React 19 application with edge API proxy rewrites. |
+| **Operations Console** | 🟢 **200 OK** | Vercel | [https://ledger-line-rupasri3.vercel.app/app](https://ledger-line-rupasri3.vercel.app/app) | Direct link to the protected LedgerLine financial workspace. |
+| **Login & Auth Portal** | 🟢 **200 OK** | Vercel | [https://ledger-line-rupasri3.vercel.app/login](https://ledger-line-rupasri3.vercel.app/login) | Authentication console featuring 1-click reviewer presets for all roles. |
+| **Backend REST API** | 🟢 **200 OK** | Render | [https://ledgerline-backend-586s.onrender.com](https://ledgerline-backend-586s.onrender.com) | Node.js 20+ Express service running the financial invariant engine. |
+| **Health & Integrity Endpoint** | 🟢 **200 OK** | Render | [https://ledgerline-backend-586s.onrender.com/health](https://ledgerline-backend-586s.onrender.com/health) | Live runtime node health, PostgreSQL pool status, and ledger metrics. |
+| **Source Repository** | 🟢 **Active** | GitHub | [https://github.com/rupasribakka/LedgerLine](https://github.com/rupasribakka/LedgerLine) | Main branch with CI validation and production builds. |
+
+> [!TIP]
+> Both deployments are active and verified. The Vercel frontend automatically proxies all `/api/*` financial requests to the Render backend service via [`vercel.json`](file:///c:/Users/rupas/Desktop/LedgerLine/vercel.json). Additionally, Render hosts an independent full-stack fallback serving both the client SPA and REST endpoints.
 
 ---
 
@@ -275,7 +282,7 @@ flowchart TD
 
 ## 🔑 Demo Reviewer Credentials (1-Click Fill)
 
-The login console ([https://ledgerline-rupasri3.vercel.app/login](https://ledgerline-rupasri3.vercel.app/login)) features 1-click credential auto-fill for testing all operational roles:
+The login console ([https://ledger-line-rupasri3.vercel.app/login](https://ledger-line-rupasri3.vercel.app/login)) features 1-click credential auto-fill for testing all operational roles:
 
 | Role | Email | Password | Seeded Balance & Clearance Scope |
 | :--- | :--- | :--- | :--- |
