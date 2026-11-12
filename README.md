@@ -455,27 +455,6 @@ AI tools were used as development assistants for architecture exploration, imple
 
 All generated implementations were subject to inspection, corrections, and testing during development.
 
-### Engineering Decisions & Corrections
-
-Several implementation issues were identified and corrected during development:
-
-**1. Frontend Runtime Error**
-
-An undeclared `useNavigate` hook caused a production blank-screen issue. The unused hook was removed, and the application was rebuilt and redeployed.
-
-**2. Floating-Point Precision**
-
-Floating-point calculations were replaced with integer paise arithmetic for financial balance mutations.
-
-**3. Concurrency Protection**
-
-Application-level in-memory locking was replaced with PostgreSQL row-level locking to support concurrent operations across application instances.
-
-**4. Interface Design**
-
-A generic dark cybersecurity dashboard was replaced with a warm editorial fintech design system focused on financial clarity and usability.
-
----
 
 ## 🚧 Limitations & Future Enhancements
 
@@ -485,14 +464,6 @@ The following capabilities are outside the current implementation scope:
 2. **HSM / Cloud KMS Integration:** Dedicated hardware-backed key management and automated key rotation are future enhancements.
 3. **Multi-Currency Conversion:** Native financial calculations currently use INR paise; dynamic cross-border FX conversion is not implemented.
 4. **Production Infrastructure:** The backend uses Render's free tier, so the first request after inactivity may experience a cold-start delay.
-
----
-
-## 📜 License
-
-This project is available under the MIT License.
-
-See the [LICENSE](LICENSE) file for details.
 
 ---
 
