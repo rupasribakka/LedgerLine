@@ -230,16 +230,21 @@ export default function OverviewPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">
-              Accounts Portfolio
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">
+                Accounts Portfolio
+              </h2>
+              <Badge variant="lavender" size="sm">
+                Lavender Summaries
+              </Badge>
+            </div>
             <p className="text-xs text-[var(--text-secondary)]">
               Active ledger accounts registered in this session
             </p>
           </div>
           <Link
             to="/app/accounts"
-            className="text-xs font-medium text-[var(--accent-primary)] hover:underline flex items-center gap-1"
+            className="text-xs font-semibold text-[var(--accent-forest)] hover:underline flex items-center gap-1"
           >
             <span>View all accounts</span>
             <ArrowRight className="h-3.5 w-3.5" />
@@ -253,7 +258,7 @@ export default function OverviewPage() {
             <Skeleton className="h-36 rounded-2xl" />
           </div>
         ) : accounts.length === 0 ? (
-          <Card variant="clay" className="p-8 text-center space-y-2">
+          <Card variant="clay" surface="lavender" className="p-8 text-center space-y-2">
             <Wallet className="h-8 w-8 text-[var(--text-muted)] mx-auto" />
             <p className="text-sm font-medium text-[var(--text-primary)]">No accounts available</p>
             <p className="text-xs text-[var(--text-secondary)]">
@@ -266,13 +271,14 @@ export default function OverviewPage() {
               <Card
                 key={acc.id}
                 variant="clay"
+                surface="lavender"
                 hover={true}
                 className="p-5 flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-[11px] text-[var(--text-secondary)] font-mono">
+                      <p className="text-[11px] text-[var(--accent-violet)] font-mono font-medium">
                         {acc.account_no || `ACC-${String(acc.id).padStart(4, '0')}`}
                       </p>
                       <h4 className="text-sm font-semibold text-[var(--text-primary)] mt-0.5 truncate">
@@ -293,7 +299,7 @@ export default function OverviewPage() {
                     </Badge>
                   </div>
 
-                  <div className="mt-4 p-3 rounded-xl bg-[var(--bg-subdued)] shadow-[var(--shadow-recessed)]">
+                  <div className="mt-4 p-3 rounded-xl bg-[var(--bg-surface)]/70 border border-[var(--border-lavender)]/50 shadow-[var(--shadow-recessed)]">
                     <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wide">
                       Available Balance
                     </p>
@@ -303,13 +309,13 @@ export default function OverviewPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 mt-4 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
+                <div className="pt-3 mt-4 border-t border-[var(--border-lavender)]/70 flex items-center justify-between text-xs">
                   <span className="text-[11px] text-[var(--text-secondary)]">
                     {acc.is_external ? 'System Pool' : 'Personal Account'}
                   </span>
                   <Link
                     to={`/app/accounts/${acc.id}`}
-                    className="font-medium text-[var(--accent-primary)] hover:underline inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                    className="font-semibold text-[var(--accent-forest)] hover:underline inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
                   >
                     <span>Statement</span>
                     <ArrowRight className="h-3 w-3" />
@@ -325,16 +331,21 @@ export default function OverviewPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">
-              Recent Transactions
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">
+                Recent Transactions
+              </h2>
+              <Badge variant="peach" size="sm">
+                Peach Stream
+              </Badge>
+            </div>
             <p className="text-xs text-[var(--text-secondary)]">
               Most recent atomic entries recorded in the double-entry journal
             </p>
           </div>
           <Link
             to="/app/transactions"
-            className="text-xs font-medium text-[var(--accent-primary)] hover:underline flex items-center gap-1"
+            className="text-xs font-semibold text-[var(--accent-forest)] hover:underline flex items-center gap-1"
           >
             <span>View full history</span>
             <ArrowRight className="h-3.5 w-3.5" />

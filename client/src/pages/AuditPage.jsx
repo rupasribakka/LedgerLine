@@ -229,7 +229,7 @@ export default function AuditPage() {
       </div>
 
       {/* Verification Summary Hero Banner */}
-      <Card variant="clay" className="p-6">
+      <Card variant="clay" surface="mint" className="p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div
@@ -259,15 +259,15 @@ export default function AuditPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-xs border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)] pt-4 sm:pt-0 sm:pl-6">
+          <div className="flex items-center gap-6 text-xs border-t sm:border-t-0 sm:border-l border-[var(--border-mint)]/70 pt-4 sm:pt-0 sm:pl-6">
             <div>
-              <p className="text-[var(--text-secondary)]">Global Balance Sum</p>
+              <p className="text-[var(--accent-forest)] font-medium">Global Balance Sum</p>
               <p className="text-base font-semibold text-[var(--status-success)] tabular-nums mt-0.5">
                 0 Paise
               </p>
             </div>
             <div>
-              <p className="text-[var(--text-secondary)]">Verified Blocks</p>
+              <p className="text-[var(--accent-forest)] font-medium">Verified Blocks</p>
               <p className="text-base font-semibold text-[var(--text-primary)] tabular-nums mt-0.5">
                 {summary.ledger_rows_verified || 0}
               </p>
@@ -376,7 +376,20 @@ export default function AuditPage() {
 
       {/* Tab: Idempotency Replays */}
       {activeTab === 'duplicates' && (
-        <Card className="overflow-hidden">
+        <div className="space-y-4">
+          <Card variant="clay" surface="butter" className="p-4 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-[var(--status-warning)] shrink-0" />
+            <div className="text-xs">
+              <span className="font-semibold text-[var(--status-warning)]">
+                Idempotency Replay Defense:
+              </span>{' '}
+              <span className="text-[var(--text-primary)]">
+                Repeated requests with identical UUID v4 keys are intercepted safely. The original settlement result is returned without duplicate money movements.
+              </span>
+            </div>
+          </Card>
+
+          <Card className="overflow-hidden">
           {filteredDuplicates.length === 0 ? (
             <div className="p-12 text-center space-y-2">
               <ShieldCheck className="h-8 w-8 text-[var(--text-muted)] mx-auto" />
@@ -436,6 +449,7 @@ export default function AuditPage() {
             </div>
           )}
         </Card>
+        </div>
       )}
 
       {/* Tab: Audit Records */}

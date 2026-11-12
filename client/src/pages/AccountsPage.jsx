@@ -106,23 +106,38 @@ export default function AccountsPage() {
 
       {/* Overview Metric Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card variant="clay" hover={true} className="p-4">
-          <p className="text-xs text-[var(--text-secondary)]">Total Accounts</p>
-          <p className="text-xl font-semibold text-[var(--text-primary)] mt-1">
+        <Card variant="clay" surface="lavender" hover={true} className="p-4">
+          <p className="text-xs text-[var(--accent-violet)] font-semibold uppercase tracking-wider">
+            Total Accounts
+          </p>
+          <p className="text-2xl font-semibold text-[var(--text-primary)] mt-1">
             {loading ? '—' : accounts.length}
           </p>
-        </Card>
-        <Card variant="clay" hover={true} className="p-4">
-          <p className="text-xs text-[var(--text-secondary)]">Active Balance</p>
-          <p className="text-xl font-semibold text-[var(--text-primary)] mt-1 tabular-nums">
-            {loading ? <Skeleton className="h-6 w-24" /> : formatPaiseToRupees(totalPaise)}
+          <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+            Separated ledger accounts
           </p>
         </Card>
-        <Card variant="clay" hover={true} className="p-4">
-          <p className="text-xs text-[var(--text-secondary)]">Overdraft Protection</p>
-          <p className="text-xl font-semibold text-[var(--status-success)] mt-1 flex items-center gap-1.5 text-sm">
-            <CheckCircle2 className="h-4 w-4" />
-            <span>Enforced by DB Engine</span>
+        <Card variant="clay" surface="mint" hover={true} className="p-4">
+          <p className="text-xs text-[var(--accent-forest)] font-semibold uppercase tracking-wider">
+            Active Balance
+          </p>
+          <p className="text-2xl font-semibold text-[var(--text-primary)] mt-1 tabular-nums">
+            {loading ? <Skeleton className="h-6 w-24" /> : formatPaiseToRupees(totalPaise)}
+          </p>
+          <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+            Settled consolidated capital
+          </p>
+        </Card>
+        <Card variant="clay" surface="powder" hover={true} className="p-4">
+          <p className="text-xs text-[var(--status-info)] font-semibold uppercase tracking-wider">
+            Overdraft Protection
+          </p>
+          <p className="text-xl font-semibold text-[var(--status-success)] mt-1.5 flex items-center gap-1.5">
+            <CheckCircle2 className="h-5 w-5" />
+            <span>Enforced by DB</span>
+          </p>
+          <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+            chk_no_overdraft active
           </p>
         </Card>
       </div>

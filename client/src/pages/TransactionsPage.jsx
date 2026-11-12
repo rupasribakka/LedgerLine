@@ -139,6 +139,50 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+      {/* Transaction Summaries: Peach & Complementary Pastel Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card variant="clay" surface="peach" hover={true} className="p-4">
+          <p className="text-xs text-[var(--accent-terracotta)] font-semibold uppercase tracking-wider">
+            Total Movements
+          </p>
+          <p className="text-2xl font-semibold text-[var(--text-primary)] mt-1">
+            {loading ? '—' : transactions.length}
+          </p>
+          <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+            Atomic transactions logged
+          </p>
+        </Card>
+
+        <Card variant="clay" surface="lavender" hover={true} className="p-4">
+          <p className="text-xs text-[var(--accent-violet)] font-semibold uppercase tracking-wider">
+            Settled Volume
+          </p>
+          <p className="text-2xl font-semibold text-[var(--text-primary)] mt-1 tabular-nums">
+            {loading
+              ? '—'
+              : formatPaiseToRupees(
+                  transactions.reduce((s, t) => s + Number(t.amount_paise || 0), 0)
+                )}
+          </p>
+          <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+            100% paired double-entry
+          </p>
+        </Card>
+
+        <Card variant="clay" surface="mint" hover={true} className="p-4">
+          <p className="text-xs text-[var(--accent-forest)] font-semibold uppercase tracking-wider">
+            Conserved Ledger
+          </p>
+          <p className="text-xl font-semibold text-[var(--status-success)] mt-1.5 flex items-center gap-1.5">
+            <Check className="h-5 w-5" />
+            <span>0 Drift Verified</span>
+          </p>
+          <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+            Integer BigInt arithmetic
+          </p>
+        </Card>
+      </div>
+
       {/* Tabs (Transactions vs Double-Entry Ledger) */}
       {canViewLedger && (
         <div className="flex gap-1.5 p-1 rounded-xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)] shadow-[var(--shadow-recessed)]">

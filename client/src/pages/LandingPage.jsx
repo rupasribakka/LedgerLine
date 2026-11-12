@@ -191,23 +191,23 @@ export default function LandingPage() {
 
       {/* Live Journal Representation Preview */}
       <section className="px-4 sm:px-6 max-w-5xl mx-auto pb-20">
-        <Card variant="clay" className="overflow-hidden">
-          <div className="p-4 border-b border-[var(--border-subtle)] bg-[var(--bg-subdued)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <Card variant="clay" surface="mint" className="overflow-hidden">
+          <div className="p-4 border-b border-[var(--border-mint)]/70 bg-[var(--surface-mint)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-[var(--status-success)] animate-pulse" />
-              <span className="text-xs font-semibold text-[var(--text-primary)]">
+              <span className="text-xs font-semibold text-[var(--accent-forest)]">
                 Live Double-Entry Journal Block Preview
               </span>
             </div>
-            <span className="text-[11px] font-mono text-[var(--text-secondary)]">
+            <span className="text-[11px] font-mono text-[var(--accent-forest)] font-semibold">
               Conservation: &Sigma; Debits &equiv; &Sigma; Credits (Net: 0 Paise)
             </span>
           </div>
 
-          <div className="p-6 overflow-x-auto">
+          <div className="p-6 overflow-x-auto bg-[var(--bg-surface)]/70">
             <table className="w-full text-left text-xs font-mono">
               <thead>
-                <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                <tr className="border-b border-[var(--border-mint)]/70 text-[var(--text-secondary)]">
                   <th className="pb-2">Block #</th>
                   <th className="pb-2">Account</th>
                   <th className="pb-2">Kind</th>
@@ -216,14 +216,14 @@ export default function LandingPage() {
                   <th className="pb-2 text-right">Credit (p)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
+              <tbody className="divide-y divide-[var(--border-mint)]/40">
                 <tr>
                   <td className="py-3 text-[var(--text-secondary)]">#1049</td>
                   <td className="py-3 font-sans font-medium text-[var(--text-primary)]">
                     Primary Liquidity (#2)
                   </td>
                   <td className="py-3">
-                    <Badge variant="success" size="sm">CREDIT</Badge>
+                    <Badge variant="mint" size="sm">CREDIT</Badge>
                   </td>
                   <td className="py-3 text-[var(--text-secondary)] text-[11px]">
                     e49b...110 &larr; c83f...456
@@ -239,7 +239,7 @@ export default function LandingPage() {
                     External Clearing Pool
                   </td>
                   <td className="py-3">
-                    <Badge variant="warning" size="sm">DEBIT</Badge>
+                    <Badge variant="peach" size="sm">DEBIT</Badge>
                   </td>
                   <td className="py-3 text-[var(--text-secondary)] text-[11px]">
                     c83f...456 &larr; 0000...000
@@ -271,8 +271,8 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card variant="clay" hover={true} className="p-6 space-y-3">
-              <div className="p-2 w-fit rounded-lg bg-[var(--accent-subtle)] text-[var(--accent-primary)]">
+            <Card variant="clay" surface="mint" hover={true} className="p-6 space-y-3">
+              <div className="p-2 w-fit rounded-lg bg-[var(--bg-surface)] text-[var(--accent-forest)] shadow-xs">
                 <BookOpen className="h-5 w-5" />
               </div>
               <h3 className="text-base font-semibold text-[var(--text-primary)]">
@@ -283,8 +283,8 @@ export default function LandingPage() {
               </p>
             </Card>
 
-            <Card variant="clay" hover={true} className="p-6 space-y-3">
-              <div className="p-2 w-fit rounded-lg bg-[var(--accent-subtle)] text-[var(--accent-primary)]">
+            <Card variant="clay" surface="lavender" hover={true} className="p-6 space-y-3">
+              <div className="p-2 w-fit rounded-lg bg-[var(--bg-surface)] text-[var(--accent-violet)] shadow-xs">
                 <Lock className="h-5 w-5" />
               </div>
               <h3 className="text-base font-semibold text-[var(--text-primary)]">
@@ -295,8 +295,8 @@ export default function LandingPage() {
               </p>
             </Card>
 
-            <Card variant="clay" hover={true} className="p-6 space-y-3">
-              <div className="p-2 w-fit rounded-lg bg-[var(--accent-subtle)] text-[var(--accent-primary)]">
+            <Card variant="clay" surface="peach" hover={true} className="p-6 space-y-3">
+              <div className="p-2 w-fit rounded-lg bg-[var(--bg-surface)] text-[var(--accent-terracotta)] shadow-xs">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <h3 className="text-base font-semibold text-[var(--text-primary)]">

@@ -241,10 +241,10 @@ export default function AppLayout() {
                 onClick={() => setSidebarOpen(false)}
                 className={() => {
                   const highlighted = isMatch;
-                  return `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
+                  return `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-150 ${
                     highlighted
-                      ? 'bg-[var(--accent-subtle)] text-[var(--accent-primary)] font-semibold'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subdued)] hover:text-[var(--text-primary)]'
+                      ? 'bg-[var(--surface-mint)] text-[var(--text-primary)] font-semibold border border-[var(--border-mint)] shadow-xs'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subdued)] hover:text-[var(--text-primary)] border border-transparent'
                   }`;
                 }}
               >

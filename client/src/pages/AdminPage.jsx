@@ -254,28 +254,45 @@ export default function AdminPage() {
 
       {/* KPI Overview Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card variant="clay" hover={true} className="p-4">
-          <p className="text-xs text-[var(--text-secondary)]">Total Accounts</p>
-          <p className="text-xl font-semibold text-[var(--text-primary)] mt-1">
+        <Card variant="clay" surface="lavender" hover={true} className="p-4">
+          <p className="text-xs font-semibold text-[var(--accent-violet)] uppercase tracking-wider">
+            Total Accounts
+          </p>
+          <p className="text-2xl font-semibold text-[var(--text-primary)] mt-1">
             {loading ? '—' : accountsList.length}
           </p>
-        </Card>
-        <Card variant="clay" hover={true} className="p-4">
-          <p className="text-xs text-[var(--text-secondary)]">Registered Users</p>
-          <p className="text-xl font-semibold text-[var(--text-primary)] mt-1">
-            {loading ? '—' : usersList.length}
+          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+            Registered customer books
           </p>
         </Card>
-        <Card variant="clay" hover={true} className="p-4">
-          <p className="text-xs text-[var(--text-secondary)]">Database Pool</p>
-          <p className="text-xl font-semibold text-[var(--status-success)] mt-1 flex items-center gap-1.5 text-sm">
+        <Card variant="clay" surface="peach" hover={true} className="p-4">
+          <p className="text-xs font-semibold text-[var(--accent-terracotta)] uppercase tracking-wider">
+            Registered Users
+          </p>
+          <p className="text-2xl font-semibold text-[var(--text-primary)] mt-1">
+            {loading ? '—' : usersList.length}
+          </p>
+          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+            Role-gated identities
+          </p>
+        </Card>
+        <Card variant="clay" surface="mint" hover={true} className="p-4">
+          <p className="text-xs font-semibold text-[var(--accent-forest)] uppercase tracking-wider">
+            Database Pool
+          </p>
+          <p className="text-xl font-semibold text-[var(--status-success)] mt-1.5 flex items-center gap-1.5 text-sm">
             <CheckCircle2 className="h-4 w-4" />
             <span>PostgreSQL Active</span>
           </p>
+          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+            ACID transaction pool
+          </p>
         </Card>
-        <Card variant="clay" hover={true} className="p-4">
-          <p className="text-xs text-[var(--text-secondary)]">Runtime Role</p>
-          <p className="text-xs font-mono font-medium text-[var(--text-primary)] mt-1.5 truncate">
+        <Card variant="clay" surface="powder" hover={true} className="p-4">
+          <p className="text-xs font-semibold text-[var(--status-info)] uppercase tracking-wider">
+            Runtime Role
+          </p>
+          <p className="text-xs font-mono font-bold text-[var(--text-primary)] mt-2 truncate bg-[var(--bg-surface)]/60 p-1.5 rounded border border-[var(--border-powder)] shadow-[var(--shadow-recessed)]">
             ledgerline_runtime
           </p>
         </Card>

@@ -3,70 +3,118 @@
 @layer base {
   :root {
     color-scheme: light;
-    --bg-app: #F7F7F4;
+    /* LedgerLine Warm Editorial Ivory Base */
+    --bg-app: #F5F1E9;
     --bg-surface: #FFFFFF;
-    --bg-subdued: #F0F0EB;
-    --bg-muted: #E8E9E2;
-    --border-subtle: #E5E6DF;
-    --border-hover: #D0D2C8;
+    --bg-subdued: #EBE7DD;
+    --bg-muted: #E2DDD2;
+    --border-subtle: #DEDCD3;
+    --border-hover: #CAC7BC;
     --border-focus: #397A68;
-    --text-primary: #202522;
+
+    /* High-contrast Editorial Typography */
+    --text-primary: #263B35;
     --text-secondary: #737A74;
-    --text-muted: #9BA29C;
+    --text-muted: #8E968F;
+
+    /* Distinctive Pastel Surfaces (Light Theme) */
+    --surface-mint: #DCEFE5;
+    --surface-lavender: #E5EAF7;
+    --surface-peach: #F5E2D8;
+    --surface-powder: #DCEAF3;
+    --surface-butter: #F2E8C9;
+
+    /* Pastel Matching Borders */
+    --border-mint: #C4E2D2;
+    --border-lavender: #D0DBEE;
+    --border-peach: #E9D0C3;
+    --border-powder: #C6DDEB;
+    --border-butter: #E3D5AA;
+
+    /* Accent & Editorial Highlights */
     --accent-primary: #397A68;
-    --accent-hover: #2E6354;
-    --accent-subtle: #EBF3F0;
+    --accent-hover: #2B5E50;
+    --accent-subtle: #DCEFE5;
     --accent-text: #FFFFFF;
-    --status-success: #2E6B56;
-    --status-success-bg: #EDF6F2;
-    --status-warning: #9E6C1B;
-    --status-warning-bg: #FDF6EC;
-    --status-error: #C24138;
-    --status-error-bg: #FDF2F1;
-    --status-info: #3B6C8C;
-    --status-info-bg: #EFF6FA;
+    --accent-forest: #397A68;
+    --accent-violet: #514A70;
+    --accent-terracotta: #925C49;
+
+    /* Semantic Status Tokens */
+    --status-success: #286650;
+    --status-success-bg: #DCEFE5;
+    --status-warning: #946316;
+    --status-warning-bg: #F2E8C9;
+    --status-error: #B83A32;
+    --status-error-bg: #FDE8E6;
+    --status-info: #2B5F82;
+    --status-info-bg: #DCEAF3;
 
     /* Claymorphic and Surface Elevation Tokens (Light Theme) */
-    --shadow-raised: 0 4px 14px -2px rgba(32, 37, 34, 0.05), 0 1px 3px 0 rgba(32, 37, 34, 0.03);
-    --shadow-clay-card: 0 8px 24px -4px rgba(32, 37, 34, 0.06), 0 2px 6px -1px rgba(32, 37, 34, 0.03), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.02);
-    --shadow-clay-widget: 0 10px 28px -4px rgba(32, 37, 34, 0.07), 0 3px 8px -2px rgba(32, 37, 34, 0.04), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 1), inset 0 -2px 1.5px 0 rgba(0, 0, 0, 0.03);
-    --shadow-clay-btn: 0 4px 12px -1px rgba(57, 122, 104, 0.3), 0 2px 5px -1px rgba(57, 122, 104, 0.18), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.18);
-    --shadow-clay-btn-sec: 0 2px 6px -1px rgba(32, 37, 34, 0.06), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04);
-    --shadow-recessed: inset 0 1.5px 3.5px 0 rgba(0, 0, 0, 0.04), inset 0 0 0 1px var(--border-subtle);
+    --shadow-raised: 0 4px 14px -2px rgba(38, 59, 53, 0.05), 0 1px 3px 0 rgba(38, 59, 53, 0.03);
+    --shadow-clay-card: 0 8px 22px -4px rgba(38, 59, 53, 0.07), 0 2px 6px -1px rgba(38, 59, 53, 0.03), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.02);
+    --shadow-clay-widget: 0 12px 30px -4px rgba(38, 59, 53, 0.08), 0 3px 8px -2px rgba(38, 59, 53, 0.04), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 1), inset 0 -2px 1.5px 0 rgba(0, 0, 0, 0.03);
+    --shadow-clay-btn: 0 4px 12px -1px rgba(57, 122, 104, 0.35), 0 2px 5px -1px rgba(57, 122, 104, 0.2), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.2);
+    --shadow-clay-btn-sec: 0 2px 6px -1px rgba(38, 59, 53, 0.06), inset 0 1px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04);
+    --shadow-recessed: inset 0 2px 4px 0 rgba(38, 59, 53, 0.06), inset 0 0 0 1px var(--border-subtle);
   }
 
   .dark {
     color-scheme: dark;
-    --bg-app: #171B19;
-    --bg-surface: #202622;
-    --bg-subdued: #272E2A;
-    --bg-muted: #303833;
-    --border-subtle: #343C36;
-    --border-hover: #465149;
-    --border-focus: #83B5A0;
-    --text-primary: #F0F1EB;
-    --text-secondary: #A2AAA2;
-    --text-muted: #6E766F;
-    --accent-primary: #83B5A0;
-    --accent-hover: #96C4B1;
-    --accent-subtle: #24352D;
-    --accent-text: #171B19;
-    --status-success: #83B5A0;
-    --status-success-bg: #1F332A;
-    --status-warning: #D4A359;
-    --status-warning-bg: #332B1C;
-    --status-error: #E06D64;
-    --status-error-bg: #382120;
-    --status-info: #6CA0C2;
-    --status-info-bg: #1C2D38;
+    /* LedgerLine Deep Graphite Palette */
+    --bg-app: #191D22;
+    --bg-surface: #242A31;
+    --bg-subdued: #2B323A;
+    --bg-muted: #343C45;
+    --border-subtle: #363E48;
+    --border-hover: #48525F;
+    --border-focus: #9CC8B1;
+
+    /* High-contrast Dark Typography */
+    --text-primary: #F1F0E9;
+    --text-secondary: #B0B4B2;
+    --text-muted: #7E8682;
+
+    /* Muted Pastel-Inspired Surfaces (Dark Theme) */
+    --surface-mint: #293E36;
+    --surface-lavender: #343247;
+    --surface-peach: #49372F;
+    --surface-powder: #253443;
+    --surface-butter: #3D3825;
+
+    /* Pastel Matching Dark Borders */
+    --border-mint: #3B574C;
+    --border-lavender: #484562;
+    --border-peach: #644B3F;
+    --border-powder: #36495E;
+    --border-butter: #564E33;
+
+    /* Accent & Editorial Highlights */
+    --accent-primary: #9CC8B1;
+    --accent-hover: #AFD6C2;
+    --accent-subtle: #293E36;
+    --accent-text: #191D22;
+    --accent-forest: #9CC8B1;
+    --accent-violet: #B2A9DC;
+    --accent-terracotta: #E2A490;
+
+    /* Semantic Status Tokens */
+    --status-success: #9CC8B1;
+    --status-success-bg: #293E36;
+    --status-warning: #DEB76E;
+    --status-warning-bg: #3D3825;
+    --status-error: #E57D74;
+    --status-error-bg: #442725;
+    --status-info: #79B3D6;
+    --status-info-bg: #253443;
 
     /* Claymorphic and Surface Elevation Tokens (Dark Theme) */
-    --shadow-raised: 0 6px 18px -2px rgba(0, 0, 0, 0.35), 0 2px 6px -1px rgba(0, 0, 0, 0.2);
-    --shadow-clay-card: 0 10px 30px -4px rgba(0, 0, 0, 0.45), 0 3px 8px -2px rgba(0, 0, 0, 0.3), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.06), inset 0 -2px 1.5px 0 rgba(0, 0, 0, 0.45);
-    --shadow-clay-widget: 0 12px 34px -4px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.35), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 2px 0 rgba(0, 0, 0, 0.5);
-    --shadow-clay-btn: 0 4px 14px -1px rgba(131, 181, 160, 0.28), 0 2px 5px -1px rgba(0, 0, 0, 0.4), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.45), inset 0 -1.5px 1.5px 0 rgba(0, 0, 0, 0.25);
-    --shadow-clay-btn-sec: 0 2px 6px -1px rgba(0, 0, 0, 0.3), inset 0 1px 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.3);
-    --shadow-recessed: inset 0 2px 4px 0 rgba(0, 0, 0, 0.35), inset 0 0 0 1px var(--border-subtle);
+    --shadow-raised: 0 6px 18px -2px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.25);
+    --shadow-clay-card: 0 10px 30px -4px rgba(0, 0, 0, 0.5), 0 3px 8px -2px rgba(0, 0, 0, 0.35), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 1.5px 0 rgba(0, 0, 0, 0.5);
+    --shadow-clay-widget: 0 12px 34px -4px rgba(0, 0, 0, 0.55), 0 4px 10px -2px rgba(0, 0, 0, 0.4), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 2px 0 rgba(0, 0, 0, 0.55);
+    --shadow-clay-btn: 0 4px 14px -1px rgba(156, 200, 177, 0.3), 0 2px 5px -1px rgba(0, 0, 0, 0.45), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.5), inset 0 -1.5px 1.5px 0 rgba(0, 0, 0, 0.3);
+    --shadow-clay-btn-sec: 0 2px 6px -1px rgba(0, 0, 0, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.06), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.35);
+    --shadow-recessed: inset 0 2px 4px 0 rgba(0, 0, 0, 0.4), inset 0 0 0 1px var(--border-subtle);
   }
 
   * {
@@ -157,6 +205,32 @@
 .surface-recessed {
   background-color: var(--bg-subdued);
   box-shadow: var(--shadow-recessed);
+}
+
+/* Distinctive Pastel Surface Utilities */
+.surface-mint {
+  background-color: var(--surface-mint);
+  border: 1px solid var(--border-mint);
+}
+
+.surface-lavender {
+  background-color: var(--surface-lavender);
+  border: 1px solid var(--border-lavender);
+}
+
+.surface-peach {
+  background-color: var(--surface-peach);
+  border: 1px solid var(--border-peach);
+}
+
+.surface-powder {
+  background-color: var(--surface-powder);
+  border: 1px solid var(--border-powder);
+}
+
+.surface-butter {
+  background-color: var(--surface-butter);
+  border: 1px solid var(--border-butter);
 }
 
 /* Transitions for interactive elements (150-250ms) */

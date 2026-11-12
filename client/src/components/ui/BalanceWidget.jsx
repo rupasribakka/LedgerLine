@@ -19,14 +19,14 @@ export default function BalanceWidget({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-[var(--shadow-clay-widget)] relative overflow-hidden transition-all duration-200 ${className}`}
+      className={`rounded-2xl border border-[var(--border-mint)] bg-[var(--surface-mint)] p-6 sm:p-8 shadow-[var(--shadow-clay-widget)] relative overflow-hidden transition-all duration-200 ${className}`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[var(--border-subtle)] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[var(--border-mint)]/70 pb-4">
         <div>
-          <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+          <span className="text-xs font-semibold text-[var(--accent-forest)] uppercase tracking-wider">
             {title}
           </span>
-          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
             Active balance across {accountCount} ledger account{accountCount === 1 ? '' : 's'}
           </p>
         </div>
@@ -52,7 +52,7 @@ export default function BalanceWidget({
         </p>
       </div>
 
-      <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
+      <div className="pt-4 border-t border-[var(--border-mint)]/70 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 text-[var(--text-secondary)]">
           <ShieldCheck className="h-4 w-4 text-[var(--status-success)]" />
           <span>Double-entry invariant: Σ Debits ≡ Σ Credits</span>
@@ -61,7 +61,7 @@ export default function BalanceWidget({
         {actionLink && (
           <Link
             to={actionLink}
-            className="inline-flex items-center gap-1 font-medium text-[var(--accent-primary)] hover:underline"
+            className="inline-flex items-center gap-1 font-semibold text-[var(--accent-forest)] hover:underline"
           >
             <span>{actionLabel}</span>
             <ArrowRight className="h-3.5 w-3.5" />
@@ -71,3 +71,4 @@ export default function BalanceWidget({
     </div>
   );
 }
+

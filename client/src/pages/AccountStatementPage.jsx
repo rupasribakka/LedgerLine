@@ -100,10 +100,12 @@ export default function AccountStatementPage() {
         </div>
       </div>
 
-      {/* Account Overview Cards */}
+      {/* Account Overview Cards with Pastel Surfaces */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card variant="clay" hover={true} className="p-5">
-          <p className="text-xs text-[var(--text-secondary)]">Current Settled Balance</p>
+        <Card variant="clay" surface="mint" hover={true} className="p-5">
+          <p className="text-xs font-semibold text-[var(--accent-forest)] uppercase tracking-wider">
+            Current Settled Balance
+          </p>
           <p className="text-2xl font-semibold text-[var(--text-primary)] mt-1 tabular-nums">
             {loading ? <Skeleton className="h-8 w-32" /> : formatPaiseToRupees(account?.balance_paise || 0)}
           </p>
@@ -115,8 +117,10 @@ export default function AccountStatementPage() {
           </div>
         </Card>
 
-        <Card variant="clay" hover={true} className="p-5">
-          <p className="text-xs text-[var(--text-secondary)]">Cryptographic Integrity</p>
+        <Card variant="clay" surface="powder" hover={true} className="p-5">
+          <p className="text-xs font-semibold text-[var(--status-info)] uppercase tracking-wider">
+            Cryptographic Integrity
+          </p>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="success" size="sm" dot>
               SHA-256 Chained
@@ -127,8 +131,10 @@ export default function AccountStatementPage() {
           </p>
         </Card>
 
-        <Card variant="clay" hover={true} className="p-5">
-          <p className="text-xs text-[var(--text-secondary)]">Account Status</p>
+        <Card variant="clay" surface="lavender" hover={true} className="p-5">
+          <p className="text-xs font-semibold text-[var(--accent-violet)] uppercase tracking-wider">
+            Account Status
+          </p>
           <div className="mt-1">
             <Badge
               variant={account?.status === 'ACTIVE' ? 'success' : account?.status === 'FROZEN' ? 'warning' : 'neutral'}

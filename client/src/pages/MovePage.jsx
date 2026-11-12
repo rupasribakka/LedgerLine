@@ -421,11 +421,11 @@ export default function MovePage() {
             />
           )}
 
-          {/* 5 & 6. Calculated Balance Preview on Recessed Surface */}
+          {/* 5 & 6. Calculated Balance Preview on Mint Recessed Surface */}
           {isValidAmount && sourceAccount && (
-            <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subdued)] shadow-[var(--shadow-recessed)] space-y-3">
+            <div className="p-4 rounded-xl border border-[var(--border-mint)] bg-[var(--surface-mint)] shadow-[var(--shadow-recessed)] space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-forest)]">
                   Calculated Balance Preview
                 </span>
                 <span className="text-[11px] text-[var(--text-secondary)]">
@@ -466,13 +466,13 @@ export default function MovePage() {
                 )}
               </div>
 
-              <p className="text-[11px] text-[var(--text-muted)] italic">
+              <p className="text-[11px] text-[var(--text-secondary)] italic">
                 Note: This is a projected calculation based on current state. Authoritative balances are committed atomically via database locks.
               </p>
             </div>
           )}
 
-          {/* Technical Details (Idempotency Key - clean disclosure) */}
+          {/* Technical Details (Idempotency Key - Butter pending surface) */}
           <div className="pt-2">
             <button
               type="button"
@@ -488,23 +488,23 @@ export default function MovePage() {
             </button>
 
             {showIdempotencyDetails && (
-              <div className="mt-2.5 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subdued)] text-xs space-y-2">
+              <div className="mt-2.5 p-3 rounded-xl border border-[var(--border-butter)] bg-[var(--surface-butter)] text-xs space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                  <span className="text-[11px] font-semibold text-[var(--status-warning)]">
                     UUID v4 Idempotency Key:
                   </span>
                   <button
                     type="button"
                     onClick={handleRegenerateKey}
-                    className="text-[11px] text-[var(--accent-primary)] hover:underline cursor-pointer"
+                    className="text-[11px] font-semibold text-[var(--status-warning)] hover:underline cursor-pointer"
                   >
                     Regenerate
                   </button>
                 </div>
-                <p className="font-mono text-[11px] text-[var(--text-primary)] bg-[var(--bg-surface)] p-2 rounded border border-[var(--border-subtle)] break-all">
+                <p className="font-mono text-[11px] text-[var(--text-primary)] bg-[var(--bg-surface)] p-2 rounded-lg border border-[var(--border-butter)] shadow-[var(--shadow-recessed)] break-all">
                   {idempotencyKey}
                 </p>
-                <p className="text-[11px] text-[var(--text-secondary)]">
+                <p className="text-[11px] text-[var(--text-primary)]">
                   Guarantees that re-submitting this request (e.g. on network timeout) returns the cached settlement without duplicate money movement.
                 </p>
               </div>
