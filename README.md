@@ -3,376 +3,531 @@
 [![Build Status](https://img.shields.io/badge/build-passing-397A68?style=flat-square)](https://github.com/rupasribakka/LedgerLine)
 [![Tests Passing](https://img.shields.io/badge/tests-36%2F36%20passed-397A68?style=flat-square)](https://github.com/rupasribakka/LedgerLine)
 [![Security Invariants](https://img.shields.io/badge/invariants-zero--drift%20integer%20math-514A70?style=flat-square)](https://github.com/rupasribakka/LedgerLine)
-[![Frontend Deployed](https://img.shields.io/badge/frontend-Vercel%20Production-black?style=flat-square&logo=vercel)](https://ledger-line-rupasri3.vercel.app)
-[![Backend Deployed](https://img.shields.io/badge/backend-Render%20Production-46E3B7?style=flat-square&logo=render)](https://ledgerline-backend-586s.onrender.com)
+[![Frontend](https://img.shields.io/badge/frontend-Vercel%20Production-black?style=flat-square&logo=vercel)](https://ledger-line-rupasri3.vercel.app)
+[![Backend](https://img.shields.io/badge/backend-Render%20Production-46E3B7?style=flat-square&logo=render)](https://ledgerline-backend-586s.onrender.com)
 [![Status](https://img.shields.io/badge/status-active%20%26%20healthy-397A68?style=flat-square)](https://ledgerline-backend-586s.onrender.com/health)
 
 > **Primary Identity:** LedgerLine  
 > **Underlying Engine:** BalanceVault Financial Invariant Engine  
-> **Design Personality:** Minimal Editorial Fintech × Soft Claymorphism × Purposeful Pastel Surfaces  
-> **Color Canvas:** Warm Editorial Ivory (`#F5F1E9`), Pure White (`#FFFFFF`), Mint (`#DCEFE5`), Lavender (`#E5EAF7`), Peach (`#F5E2D8`), Powder Blue (`#DCEAF3`), Butter (`#F2E8C9`), Forest Accent (`#397A68`), Deep Slate Forest Text (`#263B35`).
+> **Design Personality:** Minimal Editorial Fintech × Soft Claymorphism × Purposeful Pastel Surfaces
 
 ---
 
-## 🌐 Live Deployments & Verification
+## 🌐 Live Application & Resources
 
-The application is deployed across production environments with edge routing and dedicated database clusters:
-
-| Component | Status | Provider | Live URL | Description & Access |
-| :--- | :--- | :--- | :--- | :--- |
-| **Frontend Application** | 🟢 **200 OK** | Vercel | **[https://ledger-line-rupasri3.vercel.app](https://ledger-line-rupasri3.vercel.app)** | Single-page React 19 application with edge API proxy rewrites. |
-| **Operations Console** | 🟢 **200 OK** | Vercel | **[https://ledger-line-rupasri3.vercel.app/app](https://ledger-line-rupasri3.vercel.app/app)** | Direct link to the protected LedgerLine financial workspace. |
-| **Login & Auth Portal** | 🟢 **200 OK** | Vercel | **[https://ledger-line-rupasri3.vercel.app/login](https://ledger-line-rupasri3.vercel.app/login)** | Authentication console featuring 1-click reviewer presets for all roles. |
-| **Backend REST API** | 🟢 **200 OK** | Render | **[https://ledgerline-backend-586s.onrender.com](https://ledgerline-backend-586s.onrender.com)** | Node.js 20+ Express service running the financial invariant engine. |
-| **Health & Integrity Endpoint** | 🟢 **200 OK** | Render | **[https://ledgerline-backend-586s.onrender.com/health](https://ledgerline-backend-586s.onrender.com/health)** | Live runtime node health, PostgreSQL pool status, and ledger metrics. |
-| **Source Repository** | 🟢 **Active** | GitHub | **[https://github.com/rupasribakka/LedgerLine](https://github.com/rupasribakka/LedgerLine)** | Main branch with CI validation and production builds. |
-
-> [!TIP]
-> Both deployments are active and verified. The Vercel frontend automatically proxies all `/api/*` financial requests to the Render backend service via [`vercel.json`](file:///c:/Users/rupas/Desktop/LedgerLine/vercel.json). Additionally, Render hosts an independent full-stack fallback serving both the client SPA and REST endpoints.
+| Component | Provider | Status | Link |
+|---|---|---|---|
+| Frontend Application | Vercel | Live | [Open LedgerLine](https://ledger-line-rupasri3.vercel.app) |
+| Operations Console | Vercel | Live | [Open Dashboard](https://ledger-line-rupasri3.vercel.app/app) |
+| Login Portal | Vercel | Live | [Open Login](https://ledger-line-rupasri3.vercel.app/login) |
+| Backend REST API | Render | Live | [Backend](https://ledgerline-backend-586s.onrender.com) |
+| Health API | Render | 200 OK | [Health Check](https://ledgerline-backend-586s.onrender.com/health) |
+| Source Code | GitHub | Public | [GitHub Repository](https://github.com/rupasribakka/LedgerLine) |
 
 ---
 
-## 🛡️ Core Financial Invariants & Mathematical Guarantees
+## 📌 Project Overview
 
-LedgerLine enforces strict mathematical guarantees directly at the storage and transaction layers:
+LedgerLine is a high-integrity financial transaction platform built around a double-entry accounting system.
 
-1. **Integer Paise Precision:**
-   All monetary values are calculated and stored as 64-bit BigInt values in integer paise (`₹1.00 = 100 paise`). Standard IEEE 754 floating-point arithmetic is prohibited in balance mutations, eliminating precision loss and rounding drift.
-2. **Double-Entry Bookkeeping:**
-   Every financial event creates equal and offsetting debit and credit journal records. Money cannot be created or destroyed in transit ($\sum \text{Debits} \equiv \sum \text{Credits}$).
-3. **Global Zero-Sum Conservation Proof ($\sum \text{Balances} \equiv 0\text{ paise}$):**
-   Deposits debit the system external pool (`ACC-EXTERNAL`) and credit customer accounts. Withdrawals debit customer accounts and credit the external pool. The sum of all accounts across the entire platform mathematically equals zero.
-4. **Deterministic Ascending Row-Level Locking:**
-   Multi-account transfers acquire PostgreSQL row locks in strictly ascending numerical sequence (`SELECT ... FROM accounts WHERE id IN ($1, $2) ORDER BY id ASC FOR UPDATE`). This completely eliminates circular deadlocks under high-concurrency transfers.
-5. **Database-Enforced No-Overdraft Invariant:**
-   PostgreSQL enforces `CHECK (balance_paise >= 0)` (`chk_no_overdraft`) directly at the database engine level. Overdrafts are physically rejected by the storage engine, independent of application logic.
-6. **UUID v4 Idempotency Safeguard:**
-   Every balance mutation accepts a unique `Idempotency-Key` header. Payloads are canonicalized and hashed via SHA-256. Replayed requests return cached settlements with zero double-debits; parameter mismatches return `422 Unprocessable Entity`.
-7. **Cryptographic SHA-256 Block Chaining:**
-   Every ledger record cryptographically references its predecessor block:
-   $$\text{hash} = \text{SHA-256}(\text{prev\_hash} + \text{canonical\_json}(\text{block\_data}))$$
-   Genesis entries link to a 64-character zero string (`00000000...`).
-8. **Trigger-Backed Immutability:**
-   PostgreSQL triggers (`trg_ledger_protect`, `prevent_audit_logs_mutation`) physically reject SQL `UPDATE`, `DELETE`, or `TRUNCATE` operations on historical ledger rows.
-9. **Dynamic Role-Based Access Control (RBAC):**
-   Role validation (`holder`, `auditor`, `admin`) performs real-time queries against the active database state, eliminating stale JWT privilege escalation vulnerabilities.
-10. **Zero Synthetic Data Policy:**
-    Every balance, transaction, and statement entry rendered in the user interface originates directly from verified database ledger records.
+It focuses on preventing common financial data integrity problems, including:
+
+- Race conditions and concurrent double spending.
+- Floating-point precision errors in monetary calculations.
+- Duplicate transactions caused by network retries.
+- Unauthorized financial operations.
+- Undetected modifications to historical ledger records.
+
+The platform combines a React-based financial interface, a Node.js backend, and PostgreSQL storage to maintain consistent, auditable financial records.
+
+Its underlying BalanceVault engine enforces financial invariants through integer-based monetary calculations, database transactions, row-level locking, idempotency protection, and cryptographic hash chaining.
+
+## ✨ Core Features
+
+### 1. Financial Dashboard
+- Consolidated account balances.
+- Account portfolio overview.
+- Recent transaction activity.
+- Quick access to financial operations.
+- Live data retrieved from the backend.
+
+### 2. Double-Entry Money Movement
+- Account-to-account transfers.
+- Deposits and withdrawals.
+- Atomic financial settlements.
+- Real-time balance validation.
+- Equal debit and credit journal entries.
+
+### 3. Idempotency Protection
+- Unique `Idempotency-Key` for financial mutations.
+- SHA-256 payload fingerprinting.
+- Duplicate request detection.
+- Cached responses for valid retries.
+- HTTP 422 for reused keys with different payloads.
+
+### 4. Security & Attack Lab
+- Concurrent withdrawal simulation.
+- Race-condition testing.
+- Double-spend attack simulation.
+- Duplicate request and replay testing.
+- Unauthorized operation rejection.
+
+### 5. Cryptographic Audit Ledger
+- SHA-256 hash-linked ledger records.
+- Parent-to-child hash continuity verification.
+- Global zero-sum conservation checks.
+- Append-only audit records.
+- Historical transaction inspection.
+
+### 6. Account Statements
+- Individual account transaction history.
+- Settled balance information.
+- Ledger entry inspection.
+- Expandable cryptographic proof details.
+
+### 7. Role-Based Access Control
+- Customer account access.
+- Administrative operations.
+- Auditor read-only access.
+- Database-backed role validation.
+
+### 8. User Interface
+- Warm editorial ivory background.
+- Soft claymorphic card surfaces.
+- Mint, lavender, peach, powder blue, and butter accents.
+- Adaptive light and dark themes.
+- Responsive navigation.
+- Keyboard command palette (`Ctrl + K` / `Cmd + K`).
 
 ---
 
-## 📐 Visual Architecture & Integration Flow
+## 🛡️ Financial Invariants & Security Architecture
 
-### 1. End-to-End System & Integration Architecture
+LedgerLine enforces financial consistency at both the application and database levels.
+
+### 1. Integer Paise Precision
+
+All monetary calculations use integer paise instead of floating-point arithmetic.
+
+- ₹1.00 = 100 paise.
+- ₹19.99 = 1,999 paise.
+
+This avoids IEEE-754 floating-point rounding errors during balance mutations.
+
+### 2. Double-Entry Bookkeeping
+
+Every financial movement generates corresponding debit and credit entries.
+
+\[
+\sum Debits = \sum Credits
+\]
+
+This ensures that each transaction remains balanced.
+
+### 3. Global Zero-Sum Conservation
+
+The system maintains an external clearing account.
+
+Deposits, transfers, and withdrawals generate corresponding entries across the participating accounts.
+
+\[
+\sum AccountBalances = 0
+\]
+
+The invariant is evaluated across the complete account set, including the external account.
+
+### 4. Deterministic Database Locking
+
+PostgreSQL row-level locking protects concurrent financial operations.
+
+```sql
+SELECT *
+FROM accounts
+WHERE id IN ($1, $2)
+ORDER BY id ASC
+FOR UPDATE;
+```
+
+Acquiring account locks in a deterministic order helps prevent reciprocal deadlocks.
+
+### 5. Database-Level Overdraft Protection
+
+The database enforces a non-negative account balance constraint.
+
+```sql
+CHECK (balance_paise >= 0)
+```
+
+This prevents an account from being updated to a negative balance.
+
+### 6. Idempotency Safeguard
+
+Every financial mutation uses a unique idempotency key.
+
+- Identical retries return the previously stored response.
+- Reusing a key with a different payload is rejected.
+- Duplicate requests cannot create additional settlements.
+
+### 7. SHA-256 Hash Chaining
+
+Each ledger record contains a cryptographic reference to its predecessor.
+
+\[
+H_n = SHA256(H_{n-1} \Vert CanonicalData_n)
+\]
+
+This creates a verifiable sequence of linked ledger records.
+
+### 8. Database-Enforced Immutability
+
+PostgreSQL triggers protect historical ledger and audit records against unauthorized modifications.
+
+Update, delete, and truncate operations are rejected by the configured database protections.
+
+### 9. Dynamic Role-Based Access Control
+
+The backend validates user permissions against the active database role rather than relying exclusively on potentially stale token claims.
+
+### 10. Database-Backed Financial Records
+
+Account balances, transactions, and statements are retrieved from the backend database rather than generated as synthetic dashboard values.
+
+---
+
+## 🏗️ System Architecture
+
+### End-to-End Architecture
 
 ```mermaid
 flowchart TD
-    subgraph ClientExperience["Frontend Client Layer (Vercel)"]
-        UI["React 19 + Tailwind CSS 4 UI"]
-        DesignSystem["Design System 2.0: Warm Ivory (#F5F1E9) + Pastel Surfaces"]
-        TactileEngine["Soft Claymorphism & Ledger Trace Motif"]
-        AuthContext["Auth Context & Token State"]
-    end
-
-    subgraph EdgeRouting["Edge Gateway & Reverse Proxy"]
-        VercelGateway["Vercel Edge Proxy (/api/* Rewrite)"]
-    end
-
-    subgraph ServerLayer["Backend Application Service (Render)"]
-        ExpressApp["Express.js Server (ES Modules)"]
-        RBACGuard["Dynamic RBAC Guard (Real-Time DB Role Lookup)"]
-        RateLimiter["Sliding-Window Rate Limiter (100 req / 15 min)"]
-        IdempInterceptor["Idempotency Interceptor (Canonical SHA-256 Hash)"]
-        LedgerCore["LedgerLine Settlement Engine (BigInt Math)"]
-    end
-
-    subgraph CacheCluster["Distributed Rate-Limiting Cache"]
-        RedisNode[("Redis Cloud (ioredis)")]
-        MemFallback[("In-Memory Sliding Window Fallback")]
-    end
-
-    subgraph StorageLayer["PostgreSQL 16 Database Cluster (Neon)"]
-        AccTable[("accounts (chk_no_overdraft >= 0)")]
-        LedgerTable[("ledger (SHA-256 Chained & Trigger-Protected)")]
-        TxnsTable[("transactions (Debits == Credits Balanced)")]
-        AuditTable[("audit_logs (Append-Only Immutable Trigger)")]
-        IdempTable[("idempotency_keys (Payload Hash & Response Cache)")]
-    end
-
-    UI --> VercelGateway
-    VercelGateway --> ExpressApp
-    ExpressApp --> RBACGuard
-    RBACGuard --> RateLimiter
-    RateLimiter --> RedisNode
-    RedisNode -.->|Automatic Fallback| MemFallback
-    RateLimiter --> IdempInterceptor
-    IdempInterceptor --> LedgerCore
-    LedgerCore --> StorageLayer
+    A["React 19 Frontend - Vercel"]
+    B["Vercel API Proxy"]
+    C["Express.js Backend - Render"]
+    D["Authentication & Dynamic RBAC"]
+    E["Rate Limiting"]
+    F["Idempotency Engine"]
+    G["Financial Settlement Engine"]
+    H[("PostgreSQL 16 - Neon")]
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
 ```
 
----
-
-### 2. Double-Entry Money Movement & Settlement Lifecycle
+### Transaction Settlement Lifecycle
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor User as User Interface (Client)
-    participant Edge as Edge Proxy / API Gateway
-    participant Idemp as Idempotency Engine
-    participant Engine as LedgerLine Settlement Core
-    participant DB as PostgreSQL 16 (ACID)
+    actor User
+    participant API as Express API
+    participant Engine as Ledger Engine
+    participant DB as PostgreSQL
 
-    User->>Edge: POST /api/transactions/transfer (JWT, Idempotency-Key, Payload)
-    Edge->>Idemp: Check Idempotency Key & Canonical SHA-256 Hash
-    alt Cached Replay Detected
-        Idemp-->>User: 200 OK (Cached Settlement Response, X-Cache: REPLAY)
-    else Payload Mismatch Detected
-        Idemp-->>User: 422 Unprocessable Entity (IDEMPOTENCY_PAYLOAD_MISMATCH)
-    else Fresh Valid Mutation
-        Idemp->>Engine: Authorize Settlement Pipeline
-        Engine->>DB: BEGIN Transaction
-        Engine->>DB: SELECT * FROM accounts WHERE id IN (src, dest) ORDER BY id ASC FOR UPDATE
-        Note over DB: Deterministic ascending row locks prevent reciprocal deadlocks
-        Engine->>DB: Verify Source balance >= amount & status == 'ACTIVE'
-        Engine->>DB: Read previous block hash (prev_hash)
-        Engine->>Engine: Compute block hash = SHA256(prev_hash + canonical_json(entry))
-        Engine->>DB: INSERT INTO ledger (Debit Source, prev_hash, hash)
-        Engine->>DB: INSERT INTO ledger (Credit Dest, prev_hash, hash)
-        Engine->>DB: INSERT INTO transactions (amount, status, balanced_entries)
-        Engine->>DB: UPDATE accounts SET balance_paise = balance_paise - amount WHERE id = src
-        Engine->>DB: UPDATE accounts SET balance_paise = balance_paise + amount WHERE id = dest
-        Note over DB: chk_no_overdraft validates balance_paise >= 0
-        Engine->>DB: INSERT INTO idempotency_keys (key, payload_hash, response)
-        Engine->>DB: COMMIT Transaction
-        DB-->>Engine: Transaction Committed Atomically
-        Engine-->>User: 200 OK (Settlement Confirmed, SHA-256 Hashes Returned)
-    end
+    User->>API: Transfer Request
+    API->>API: Authenticate JWT
+    API->>API: Validate Idempotency Key
+    API->>Engine: Authorize Settlement
+    Engine->>DB: BEGIN Transaction
+    Engine->>DB: Lock Accounts in Ascending Order
+    Engine->>DB: Validate Balance
+    Engine->>DB: Insert Debit and Credit Entries
+    Engine->>DB: Update Account Balances
+    Engine->>DB: Store Idempotency Response
+    Engine->>DB: COMMIT
+    DB-->>User: Settlement Confirmed
 ```
 
----
-
-### 3. Global Zero-Sum Conservation Proof ($\sum \text{Balances} \equiv 0$)
+### Global Zero-Sum Conservation
 
 ```mermaid
 flowchart LR
-    subgraph SystemPool["System Liquidity Clearing Pool"]
-        External["ACC-EXTERNAL (#0001)"]
-    end
+    A["External Clearing Account"]
+    B["Holder 1"]
+    C["Holder 2"]
 
-    subgraph CustomerAccounts["Customer Verified Accounts"]
-        HolderA["Holder 1 (#0002)"]
-        HolderB["Holder 2 (#0003)"]
-    end
+    A -->|"Deposit"| B
+    B -->|"Transfer"| C
+    C -->|"Withdrawal"| A
 
-    External -->|"Deposit: Debit External (-₹100) / Credit Holder 1 (+₹100)"| HolderA
-    HolderA -->|"Transfer: Debit Holder 1 (-₹40) / Credit Holder 2 (+₹40)"| HolderB
-    HolderB -->|"Withdrawal: Debit Holder 2 (-₹20) / Credit External (+₹20)"| External
+    D["Global Balance = 0 Paise"]
 
-    subgraph ConservationLaw["Conservation Proof Invariant"]
-        ZeroSum["Σ Balances ≡ 0 Paise (Conservation Equation Validated)"]
-    end
+    A --> D
+    B --> D
+    C --> D
 ```
 
----
-
-### 4. Cryptographic SHA-256 Hash Chain Structure
+### Cryptographic Hash Chain
 
 ```mermaid
 flowchart LR
-    subgraph Genesis["Genesis Block #0001"]
-        G_Prev["PREV_HASH: 0000000000000000..."]
-        G_Data["DATA: ACC-EXTERNAL Initialization"]
-        G_Hash["HASH: SHA256(prev + data)"]
-    end
+    A["Genesis Block"]
+    B["Ledger Block 2"]
+    C["Ledger Block 3"]
+    D["Ledger Block N"]
 
-    subgraph Block2["Journal Block #0002"]
-        B2_Prev["PREV_HASH: Hash of Block #0001"]
-        B2_Data["DATA: Debit Pool / Credit User (10,000p)"]
-        B2_Hash["HASH: SHA256(prev + data)"]
-    end
+    A -->|"Previous Hash"| B
+    B -->|"Previous Hash"| C
+    C -->|"Previous Hash"| D
 
-    subgraph Block3["Journal Block #0003"]
-        B3_Prev["PREV_HASH: Hash of Block #0002"]
-        B3_Data["DATA: Peer Transfer (4,000p)"]
-        B3_Hash["HASH: SHA256(prev + data)"]
-    end
-
-    subgraph ImmutabilityTrigger["PostgreSQL Engine Security"]
-        TriggerGuard["trg_ledger_protect: Physically rejects UPDATE, DELETE, TRUNCATE"]
-    end
-
-    G_Hash -->|"Cryptographic parent link"| B2_Prev
-    B2_Hash -->|"Cryptographic parent link"| B3_Prev
-    TriggerGuard -.->|"Guards block chain"| Genesis
-    TriggerGuard -.->|"Guards block chain"| Block2
-    TriggerGuard -.->|"Guards block chain"| Block3
+    E["PostgreSQL Immutability Triggers"]
+    E -.-> A
+    E -.-> B
+    E -.-> C
+    E -.-> D
 ```
 
 ---
 
-### 5. Deterministic Ascending Row-Locking Concurrency Safety
+## 🎨 Design System
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Alice as Thread A (Transfer #2 -> #3)
-    actor Bob as Thread B (Transfer #3 -> #2)
-    participant LockMgr as PostgreSQL Lock Manager (ORDER BY id ASC)
-    participant Storage as Accounts Storage
+LedgerLine uses an editorial fintech design language instead of a conventional dark cybersecurity dashboard.
 
-    Note over Alice,Bob: Both threads arrive at the exact same millisecond
-    Alice->>LockMgr: Request locks on #2 and #3 (Ascending: #2 first, then #3)
-    Bob->>LockMgr: Request locks on #3 and #2 (Ascending: #2 first, then #3)
+| Design Element | Color |
+|---|---|
+| Background | `#F5F1E9` |
+| Primary Surface | `#FFFFFF` |
+| Mint | `#DCEFE5` |
+| Lavender | `#E5EAF7` |
+| Peach | `#F5E2D8` |
+| Powder Blue | `#DCEAF3` |
+| Butter | `#F2E8C9` |
+| Forest Accent | `#397A68` |
+| Primary Text | `#263B35` |
 
-    LockMgr->>Alice: Grants exclusive lock on #2
-    LockMgr-->>Bob: Waits for #2 (Thread B safely queued behind Thread A)
-    LockMgr->>Alice: Grants exclusive lock on #3
-    Note over Alice: Thread A verifies balance, writes journal, updates balances
-    Alice->>LockMgr: Commit Transaction & Release Locks on #2 and #3
-
-    LockMgr->>Bob: Grants exclusive lock on #2
-    LockMgr->>Bob: Grants exclusive lock on #3
-    Note over Bob: Thread B now executes with fresh, authoritative state
-    Bob->>LockMgr: Commit Transaction & Release Locks
-    Note over Alice,Bob: Result: 0 Deadlocks, 0 Lost Updates, 0 Race Conditions
-```
+The design emphasizes readability, visual hierarchy, meaningful financial indicators, and consistent interactions.
 
 ---
 
-### 6. Design System 2.0: Surface Contrast & Pastel Distribution
+## 🔑 Demo Reviewer Credentials
 
-```mermaid
-flowchart TD
-    subgraph Level1["Level 1 — Canvas Base"]
-        BaseCanvas["Warm Editorial Ivory Canvas (#F5F1E9 / #191D22)"]
-    end
+The login portal provides preconfigured reviewer credentials for testing the different application roles.
 
-    subgraph Level2["Level 2 — Raised Editorial Surfaces"]
-        WhiteSurface["Primary Content: White (#FFFFFF / #242A31)"]
-        MintSurface["Balance & Verification: Mint (#DCEFE5 / #293E36)"]
-        LavenderSurface["Account Summaries: Lavender (#E5EAF7 / #343247)"]
-        PeachSurface["Transaction Summaries: Peach (#F5E2D8 / #49372F)"]
-        PowderSurface["Technical Indicators: Powder Blue (#DCEAF3 / #253443)"]
-        ButterSurface["Idempotency & Replays: Butter (#F2E8C9 / #3D3825)"]
-    end
+| Role | Email | Password |
+|---|---|---|
+| Holder 1 | `holder1@ledgerline.local` | `Holder1Password123!` |
+| Holder 2 | `holder2@ledgerline.local` | `Holder2Password123!` |
+| Admin | `admin@ledgerline.local` | `AdminPassword123!` |
+| Auditor | `auditor@ledgerline.local` | `AuditorPassword123!` |
 
-    subgraph Level3["Level 3 — Recessed Inputs & Projections"]
-        Recessed["Form Inputs, Search Toolbars, Calculated Balance Insets"]
-    end
+**Access permissions:**
 
-    BaseCanvas --> WhiteSurface
-    BaseCanvas --> MintSurface
-    BaseCanvas --> LavenderSurface
-    BaseCanvas --> PeachSurface
-    BaseCanvas --> PowderSurface
-    BaseCanvas --> ButterSurface
-    WhiteSurface --> Recessed
-    MintSurface --> Recessed
-```
+- **Holder:** Account statements and permitted financial transactions.
+- **Admin:** Administrative account operations and system management.
+- **Auditor:** Read-only compliance and ledger inspection.
+
+These are demonstration credentials. Do not use them for real financial data or production accounts.
 
 ---
 
-## 🔑 Demo Reviewer Credentials (1-Click Fill)
+## 💻 Technology Stack
 
-The login console ([https://ledger-line-rupasri3.vercel.app/login](https://ledger-line-rupasri3.vercel.app/login)) features 1-click credential auto-fill for testing all operational roles:
-
-| Role | Email | Password | Seeded Balance & Clearance Scope |
-| :--- | :--- | :--- | :--- |
-| **Holder 1** | `holder1@ledgerline.local` | `Holder1Password123!` | Primary customer account. Seeded balance: **₹100.00** (10,000 paise). Has transfer, deposit, and statement permissions. |
-| **Holder 2** | `holder2@ledgerline.local` | `Holder2Password123!` | Counterparty account. Seeded balance: **₹50.00** (5,000 paise). Has peer-to-peer transfer and statement permissions. |
-| **Admin** | `admin@ledgerline.local` | `AdminPassword123!` | Root Administrative clearance. Can provision accounts, freeze/unfreeze accounts, dispatch system deposits, and inspect node health. |
-| **Auditor** | `auditor@ledgerline.local` | `AuditorPassword123!` | Compliance & Regulatory clearance. Read-only global access. Runs cryptographic hash chain scans and inspects idempotency replay records. |
-
----
-
-## 💻 Tech Stack
-
-- **Frontend:** React 19, Vite 8, Tailwind CSS 4, Lucide Icons, Framer Motion
-- **Backend:** Node.js (v20+), Express 4 (ES Modules), `pg` connection pool, Prisma ORM
-- **Database:** PostgreSQL 16 (Neon Serverless PostgreSQL in production, `@embedded-postgres` for local testing)
-- **Security:** JWT, bcryptjs, SHA-256 HMAC, Sliding-Window Rate Limiting (Redis with in-memory fallback)
-- **Deployment:** Vercel (Frontend SPA + API proxy rewrite), Render (Node.js API web service)
-- **Testing:** Vitest, Supertest, Puppeteer Core, Oxlint
+| Layer | Technologies |
+|---|---|
+| Frontend | React 19, Vite 8 |
+| Styling | Tailwind CSS 4 |
+| UI & Animation | Lucide React, Framer Motion |
+| Backend | Node.js, Express.js |
+| Database | PostgreSQL 16, Neon |
+| Authentication | JWT, bcryptjs |
+| Cryptography | SHA-256 |
+| Financial Logic | Integer Paise, BigInt |
+| Security | RBAC, Rate Limiting, Idempotency |
+| Deployment | Vercel, Render |
+| Testing | Vitest, Supertest, Automated Attack Tests |
+| Development | Git, GitHub, VS Code, Postman |
 
 ---
 
-## 🗺️ Application Routes
+## 📂 Application Routes
 
 ### Public Pages
-- `/`: Minimal editorial landing page featuring Sticky Header, Double-Entry Live Journal Block Preview, 3 Core Principles, 4-Stage Transaction Pipeline, and Traditional DB vs LedgerLine Invariant Comparison.
-- `/login`: Clean split-screen authentication console with 1-click reviewer presets.
-- `/signup`: User registration with client and server-side validation.
 
-### Protected Application Console (`/app`)
-- `/app`: Financial Operations Overview — Mint Consolidated Balance Widget, Lavender Accounts Portfolio Cards, Peach Recent Transactions stream, and Quick Actions.
-- `/app/accounts`: Accounts Portfolio — Lavender, Mint, and Powder Blue KPI metric summary cards, search toolbar, and accounts table with direct statement links.
-- `/app/accounts/:id`: Cryptographic Account Statement — Settled balance card, Powder Blue integrity card, and expandable cryptographic block proof drawer with parent-to-child SHA-256 continuity visualization.
-- `/app/move`: Money Movement Terminal — Double-entry transfer, deposit, and withdrawal forms with embedded `LedgerTrace` timeline, Mint projected balance calculation, and Butter idempotency disclosure.
-- `/app/transactions`: Searchable Transaction Ledger — Peach, Lavender, and Mint movement volume summary cards, type filter pills, and interactive detail modals.
-- `/app/audit`: Auditor & Compliance Console — Mint cryptographic status hero card, Zero-Sum Conservation Proof table ($\sum \equiv 0\text{ paise}$), Butter Idempotency Replay inspector, and append-only audit trail.
-- `/app/admin`: Administrative Console — Lavender, Peach, Mint, and Powder Blue system health cards, user provisioning modals, and account status management.
-- `/app/attack-lab`: Security & Concurrency Test Lab — Interactive race condition simulators, double-spend stress tests, and replay defense verifiers.
+| Route | Description |
+|---|---|
+| `/` | Landing page and project overview |
+| `/login` | Authentication and reviewer login |
+| `/signup` | User registration |
 
----
+### Protected Application
 
-## ⚡ Quick Start & Local Setup
-
-### Prerequisites
-- Node.js >= 20.0.0
-- npm >= 10.0.0
-- PostgreSQL 16 (optional; the test suite automatically provisions an embedded PostgreSQL instance if `DATABASE_URL` is omitted)
-
-### Installation
-```bash
-# Clone the repository
-git clone https://github.com/rupasribakka/LedgerLine.git
-cd LedgerLine
-
-# Install root dependencies
-npm install
-
-# Install client dependencies
-npm --prefix client install
-```
-
-### Environment Configuration
-Create a `.env` file in the root directory (refer to `.env.example`):
-```env
-PORT=5000
-DATABASE_URL=postgresql://user:password@localhost:5432/balancevault
-JWT_SECRET=super_secret_ledgerline_jwt_key_min_32_chars
-ENABLE_DEV_SEED=true
-```
-
-### Running Locally
-```bash
-# Terminal 1: Start Backend API (http://localhost:5000)
-npm run dev
-
-# Terminal 2: Start Frontend Application (http://localhost:5173)
-npm --prefix client run dev
-```
+| Route | Description |
+|---|---|
+| `/app` | Financial dashboard |
+| `/app/accounts` | Account portfolio |
+| `/app/accounts/:id` | Individual account statement |
+| `/app/move` | Transfer, deposit, and withdrawal |
+| `/app/transactions` | Transaction history |
+| `/app/audit` | Cryptographic audit console |
+| `/app/admin` | Administrative console |
+| `/app/attack-lab` | Security and concurrency testing |
 
 ---
 
-## 🧪 Testing & Verification
+## 🧪 Automated Testing
 
-Run the automated test suite verifying all 36 critical security and financial specifications:
+LedgerLine includes automated tests covering financial invariants, transaction integrity, and security scenarios.
+
+### Test Commands
+
 ```bash
-# Run backend invariant test suite (36 passing tests)
+# Run unit and integration tests
 npm test
 
-# Run the automated concurrency and double-spend attack suite
+# Run concurrency and double-spend attack tests
 npm run attack
 
-# Verify production client build and linting
+# Run mutation testing
+npm run mutation
+
+# Build the frontend
 npm --prefix client run build
+
+# Run frontend linting
 npm --prefix client run lint
 ```
 
+### Verified Test Results
+
+| Test Category | Result |
+|---|---|
+| Financial and integration tests | 36/36 passed |
+| Mutation testing | 6/6 killed |
+| Automated attack scenarios | 7/7 passed |
+
+The attack suite covers concurrent withdrawals, repeated requests, altered idempotency payloads, unauthorized operations, and ledger verification.
+
 ---
 
-## 📜 License & Compliance
+## ⚙️ Local Installation & Setup
 
-Engineered for high-integrity financial ledger auditing and enterprise banking infrastructure. All financial records, hash chains, and audit logs are governed by database immutability triggers and mathematical zero-sum equilibrium.
+### Prerequisites
+
+- Node.js 20+
+- npm
+- PostgreSQL database
+- Git
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/rupasribakka/LedgerLine.git
+
+cd LedgerLine
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Environment Variables
+
+Create the required environment configuration using the project's environment example.
+
+Configure the database connection, JWT secret, and migration database credentials.
+
+### 4. Run Database Migrations
+
+```bash
+npm run migrate
+npm run seed
+```
+
+### 5. Start the Backend
+
+```bash
+npm run dev
+```
+
+Backend runs at:
+
+`http://localhost:5000`
+
+### 6. Start the Frontend
+
+Open another terminal:
+
+```bash
+cd client
+
+npm install
+
+npm run dev
+```
+
+Frontend runs at:
+
+`http://localhost:5173`
+
+---
+
+## 🤖 AI-Assisted Development
+
+AI tools were used as development assistants for architecture exploration, implementation support, debugging, and testing.
+
+| Tool | Usage |
+|---|---|
+| Antigravity (Google) | Full-stack implementation assistance, UI development, debugging, and browser testing |
+| ChatGPT | Double-entry accounting concepts, financial invariants, security review, and implementation guidance |
+| Claude | Mathematical modeling and cryptographic hash-chain concepts |
+
+All generated implementations were subject to inspection, corrections, and testing during development.
+
+### Engineering Decisions & Corrections
+
+Several implementation issues were identified and corrected during development:
+
+**1. Frontend Runtime Error**
+
+An undeclared `useNavigate` hook caused a production blank-screen issue. The unused hook was removed, and the application was rebuilt and redeployed.
+
+**2. Floating-Point Precision**
+
+Floating-point calculations were replaced with integer paise arithmetic for financial balance mutations.
+
+**3. Concurrency Protection**
+
+Application-level in-memory locking was replaced with PostgreSQL row-level locking to support concurrent operations across application instances.
+
+**4. Interface Design**
+
+A generic dark cybersecurity dashboard was replaced with a warm editorial fintech design system focused on financial clarity and usability.
+
+---
+
+## 🚧 Limitations & Future Enhancements
+
+The following capabilities are outside the current implementation scope:
+
+1. **WebSocket / SSE Integration:** Real-time updates currently rely on application state updates and polling rather than persistent push connections.
+2. **HSM / Cloud KMS Integration:** Dedicated hardware-backed key management and automated key rotation are future enhancements.
+3. **Multi-Currency Conversion:** Native financial calculations currently use INR paise; dynamic cross-border FX conversion is not implemented.
+4. **Production Infrastructure:** The backend uses Render's free tier, so the first request after inactivity may experience a cold-start delay.
+
+---
+
+## 📜 License
+
+This project is available under the MIT License.
+
+See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👩‍💻 Author
+
+**Bakka Rupasri**
+
+B.Tech Computer Science and Engineering  
+VVIT — Vasireddy Venkatadri Institute of Technology
+
+GitHub: [@rupasribakka](https://github.com/rupasribakka)
+
+---
+
+**LedgerLine — Every transaction balanced. Every movement traceable. Every record verifiable.**
