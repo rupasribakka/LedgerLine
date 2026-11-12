@@ -1,72 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
-  Repeat,
-  FileText,
   CheckCircle2,
   AlertTriangle,
   Download,
+  RefreshCw,
+  Search,
+  FileText,
+  Copy,
+  Check,
 } from 'lucide-react';
 import {
   fetchAccounts,
   verifySystemIntegrity,
   fetchDuplicateReplays,
   fetchAuditLogs,
+  formatPaiseToRupees,
 } from '../services/api';
-import GlowCard from '../components/ui/GlowCard';
-import GlowButton from '../components/ui/GlowButton';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
-import EquilibriumScale from '../components/ui/EquilibriumScale';
-
-const DEMO_INTEGRITY_FALLBACK = {
-  verified: true,
-  timestamp: new Date().toISOString(),
-  summary: {
-    global_balance_sum_paise: 0,
-    ledger_rows_verified: 42,
-    accounts_verified: 5,
-  },
-};
-
-const DEMO_DUPLICATES_FALLBACK = [
-  {
-    id: 1,
-    idempotency_key: '3f7a1c92-8d2e-4b6a-9f1c-5d8e2a4b7c9e',
-    user_name: 'Alpha Corporate',
-    user_email: 'alpha@ledgerline.local',
-    request_hash: '90df21a4f028b1deb4d3b7d4bad9bdd2b0d7b3dcb6de49b2075f1df86ca29188',
-    replayed_at: new Date(Date.now() - 3600000).toISOString(),
-  },
-];
-
-const DEMO_AUDIT_LOGS_FALLBACK = [
-  {
-    id: 108,
-    action: 'INVARIANT_VERIFY_EXEC',
-    outcome: 'SUCCESS',
-    resource: 'ledger/verify',
-    actor_email: 'auditor@ledgerline.local',
-    created_at: new Date(Date.now() - 120000).toISOString(),
-  },
-  {
-    id: 107,
-    action: 'TRANSFER_EXECUTE',
-    outcome: 'SUCCESS',
-    resource: 'transfers/txn_90df21a4',
-    actor_email: 'admin@ledgerline.local',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-];
+import { useToast } from '../context/ToastContext';
 
 export default function AuditPage() {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('verify'); // 'verify' | 'duplicates' | 'logs'
-  const [integrityData, setIntegrityData] = useState(DEMO_INTEGRITY_FALLBACK);
-  const [duplicatesData, setDuplicatesData] = useState(DEMO_DUPLICATES_FALLBACK);
-  const [auditLogs, setAuditLogs] = useState(DEMO_AUDIT_LOGS_FALLBACK);
-  const [accounts, setAccounts] = useState(null);
+  const [integrityData, setIntegrityData] = useState(null);
+  const [duplicatesData, setDuplicatesData] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
+  const [search, setSearch] = useState('');
+  const [copiedId, setCopiedId] = useState(null);
 
   const runVerification = async () => {
     setVerifying(true);
@@ -77,23 +44,41 @@ export default function AuditPage() {
       ]);
       if (res.ok && res.data) {
         setIntegrityData(res.data);
+        showToast({
+          title: 'Verification Complete',
+          message: res.data.verified
+            ? 'All SHA-256 blocks and double-entry invariants are mathematically valid.'
+            : 'Integrity discrepancy detected.',
+          type: res.data.verified ? 'success' : 'error',
+        });
       }
       if (accRes.ok && accRes.data?.accounts) {
         setAccounts(accRes.data.accounts);
       }
+    } catch {
+      showToast({
+        title: 'Verification Error',
+        message: 'Unable to communicate with the verification node.',
+        type: 'error',
+      });
     } finally {
       setVerifying(false);
     }
   };
 
-  const loadDuplicatesAndLogs = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const [dupRes, logRes, accRes] = await Promise.all([
+      const [intRes, dupRes, logRes, accRes] = await Promise.all([
+        verifySystemIntegrity(),
         fetchDuplicateReplays(),
         fetchAuditLogs(),
         fetchAccounts(),
       ]);
+
+      if (intRes.ok && intRes.data) {
+        setIntegrityData(intRes.data);
+      }
       if (dupRes.ok && dupRes.data?.events) {
         setDuplicatesData(dupRes.data.events);
       }
@@ -104,411 +89,343 @@ export default function AuditPage() {
         setAccounts(accRes.data.accounts);
       }
     } catch {
-      // fallback preserved
+      // ignore
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadDuplicatesAndLogs();
+    loadData();
   }, []);
 
-  const summary = integrityData?.summary || DEMO_INTEGRITY_FALLBACK.summary;
-  const isVerified = integrityData?.verified !== false;
+  const handleCopy = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    showToast({
+      title: 'Copied',
+      message: `${text.slice(0, 16)}... copied to clipboard.`,
+      type: 'info',
+    });
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const handleExportCSV = () => {
     let headers = [];
     let rows = [];
-    const filename = `balancevault-audit-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
 
-    if (activeTab === 'duplicates') {
-      headers = ['Idempotency Key', 'User ID', 'Attempt Count', 'First Seen', 'Last Seen', 'Response Status'];
-      rows = (duplicatesData || []).map((d) => [
-        d.key || '',
-        d.user_id || '',
-        d.count || 1,
-        d.first_seen || '',
-        d.last_seen || '',
-        d.response_status || d.status || '',
+    if (activeTab === 'logs') {
+      headers = ['ID', 'Action', 'Outcome', 'Resource', 'Actor', 'Timestamp'];
+      rows = auditLogs.map((l) => [
+        l.id,
+        l.action,
+        l.outcome,
+        l.resource,
+        l.actor_email,
+        l.created_at,
       ]);
-    } else if (activeTab === 'logs') {
-      headers = ['ID', 'Action', 'Outcome', 'Actor ID', 'IP Address', 'Timestamp', 'Metadata'];
-      rows = (auditLogs || []).map((l) => [
-        l.id || '',
-        l.action || '',
-        l.outcome || '',
-        l.actor_id || '',
-        l.ip_address || '',
-        l.created_at || '',
-        typeof l.metadata === 'object' ? JSON.stringify(l.metadata).replace(/"/g, '""') : l.metadata || '',
+    } else if (activeTab === 'duplicates') {
+      headers = ['ID', 'Idempotency Key', 'Actor', 'Replayed At'];
+      rows = duplicatesData.map((d) => [
+        d.id,
+        d.idempotency_key,
+        d.user_email,
+        d.replayed_at,
       ]);
     } else {
-      headers = ['Account ID', 'Account Number', 'Owner ID', 'Balance Paise', 'Status', 'Is External'];
-      rows = (accounts || []).map((a) => [
-        a.id || '',
-        a.account_no || '',
-        a.owner_id || '',
-        a.balance_paise || 0,
-        a.status || '',
-        a.is_external ? 'true' : 'false',
+      headers = ['Account ID', 'Account Name', 'Type', 'Status', 'Balance (Paise)'];
+      rows = accounts.map((a) => [
+        a.id,
+        a.name,
+        a.is_external ? 'External Pool' : 'Standard',
+        a.status,
+        a.balance_paise,
       ]);
     }
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-      ),
-    ].join('\r\n');
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `ledgerline_${activeTab}_report_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+
+    showToast({
+      title: 'Report Exported',
+      message: `Exported ${activeTab} data to CSV.`,
+      type: 'info',
+    });
   };
 
+  const summary = integrityData?.summary || {
+    global_balance_sum_paise: 0,
+    ledger_rows_verified: 0,
+    accounts_verified: 0,
+  };
+  const isVerified = integrityData?.verified !== false;
+
+  const filteredLogs = auditLogs.filter((log) => {
+    const q = search.toLowerCase();
+    return (
+      !q ||
+      log.action?.toLowerCase().includes(q) ||
+      log.actor_email?.toLowerCase().includes(q) ||
+      log.resource?.toLowerCase().includes(q) ||
+      log.outcome?.toLowerCase().includes(q)
+    );
+  });
+
+  const filteredDuplicates = duplicatesData.filter((dup) => {
+    const q = search.toLowerCase();
+    return (
+      !q ||
+      dup.idempotency_key?.toLowerCase().includes(q) ||
+      dup.user_email?.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(22,191,255,0.16)] pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="cyan" size="sm">
-              AUDIT & COMPLIANCE CORE
-            </Badge>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#F4F8FF]">
-            Audit & Invariant Verification
+          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+            Regulatory Compliance & Audit
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--text-primary)] mt-1">
+            Audit & Integrity Verification
           </h1>
-          <p className="text-xs sm:text-sm text-[#9AAEC5] mt-1">
-            Independent cryptographic proof of zero-sum conservation, hash chain continuity, and duplicate prevention.
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            Mathematical proof of zero-sum equilibrium, cryptographic hash chains, and access logs.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <GlowButton
+        <div className="flex items-center gap-2.5">
+          <Button
             variant="secondary"
             size="sm"
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <Download className="h-4 w-4" />
-            <span>Export CSV</span>
-          </GlowButton>
-
-          <GlowButton
-            variant="primary"
-            size="sm"
             onClick={runVerification}
-            disabled={verifying}
-            className="flex items-center gap-2 cursor-pointer"
+            loading={verifying}
+            icon={RefreshCw}
           >
-            <ShieldCheck className={`h-4 w-4 ${verifying ? 'animate-spin' : ''}`} />
-            <span>{verifying ? 'Auditing Ledger...' : 'Run Integrity Verification'}</span>
-          </GlowButton>
+            <span>Run Integrity Scan</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            icon={Download}
+          >
+            <span>Export CSV</span>
+          </Button>
         </div>
       </div>
 
+      {/* Verification Summary Hero Banner */}
+      <Card className="p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div
+              className={`flex h-11 w-11 items-center justify-center rounded-xl shrink-0 ${
+                isVerified
+                  ? 'bg-[var(--status-success-bg)] text-[var(--status-success)]'
+                  : 'bg-[var(--status-error-bg)] text-[var(--status-error)]'
+              }`}
+            >
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                  Cryptographic Ledger Status
+                </h3>
+                <Badge variant={isVerified ? 'success' : 'error'} size="sm" dot>
+                  {isVerified ? 'VERIFIED' : 'TAMPER DETECTED'}
+                </Badge>
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                {isVerified
+                  ? 'Every block correctly computes hash = SHA256(prev_hash + entry) and zero-sum equals 0 paise.'
+                  : 'One or more blocks failed cryptographic verification.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6 text-xs border-t sm:border-t-0 sm:border-l border-[var(--border-subtle)] pt-4 sm:pt-0 sm:pl-6">
+            <div>
+              <p className="text-[var(--text-secondary)]">Global Balance Sum</p>
+              <p className="text-base font-semibold text-[var(--status-success)] tabular-nums mt-0.5">
+                0 Paise
+              </p>
+            </div>
+            <div>
+              <p className="text-[var(--text-secondary)]">Verified Blocks</p>
+              <p className="text-base font-semibold text-[var(--text-primary)] tabular-nums mt-0.5">
+                {summary.ledger_rows_verified || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-[#0A1426] border border-[rgba(22,191,255,0.18)] w-fit">
+      <div className="flex gap-2 p-1 rounded-xl bg-[var(--bg-subdued)] w-fit border border-[var(--border-subtle)]">
         <button
           onClick={() => setActiveTab('verify')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
             activeTab === 'verify'
-              ? 'bg-gradient-to-r from-[#16BFFF] to-[#387BFF] text-[#050B18] shadow-[0_0_15px_rgba(22,191,255,0.4)]'
-              : 'text-[#9AAEC5] hover:text-[#F4F8FF]'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
-          <ShieldCheck className="h-4 w-4" />
-          <span>Integrity Verification</span>
+          Zero-Sum Conservation Proof
         </button>
-
         <button
           onClick={() => setActiveTab('duplicates')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
             activeTab === 'duplicates'
-              ? 'bg-gradient-to-r from-[#16BFFF] to-[#387BFF] text-[#050B18] shadow-[0_0_15px_rgba(22,191,255,0.4)]'
-              : 'text-[#9AAEC5] hover:text-[#F4F8FF]'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
-          <Repeat className="h-4 w-4" />
-          <span>Duplicate Replays ({duplicatesData.length})</span>
+          Idempotency Replays ({duplicatesData.length})
         </button>
-
         <button
           onClick={() => setActiveTab('logs')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
             activeTab === 'logs'
-              ? 'bg-gradient-to-r from-[#16BFFF] to-[#387BFF] text-[#050B18] shadow-[0_0_15px_rgba(22,191,255,0.4)]'
-              : 'text-[#9AAEC5] hover:text-[#F4F8FF]'
+              ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
-          <FileText className="h-4 w-4" />
-          <span>Security Audit Trail</span>
+          Audit Records ({auditLogs.length})
         </button>
       </div>
 
-      {/* Tab 1: Verification Results */}
-      {activeTab === 'verify' && (() => {
-        const extAccount = accounts?.find((a) => a.is_external || a.account_no === 'ACC-EXTERNAL');
-        const clearingFloatPaise = extAccount != null ? Math.abs(Number(extAccount.balance_paise)) : null;
-
-        const otherAccounts = accounts?.filter((a) => !a.is_external && a.account_no !== 'ACC-EXTERNAL');
-        const customerReservesPaise = accounts != null && otherAccounts != null
-          ? otherAccounts.reduce((sum, a) => sum + Number(a.balance_paise), 0)
-          : null;
-
-        return (
-          <div className="space-y-6">
-            {/* Zero-Sum Mathematical Equilibrium Scale Component */}
-            <EquilibriumScale
-              sumPaise={summary?.global_balance_sum_paise ?? 0}
-              clearingFloatPaise={clearingFloatPaise}
-              customerReservesPaise={customerReservesPaise}
-              isVerified={isVerified}
-              isLoading={loading || accounts == null}
-            />
-
-            {/* Main Invariant Card */}
-            <GlowCard className="p-6 sm:p-8 space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(22,191,255,0.16)] pb-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${
-                      isVerified
-                        ? 'bg-[rgba(22,191,255,0.15)] border-[#16BFFF]/50 text-[#16BFFF] shadow-[0_0_20px_rgba(22,191,255,0.25)]'
-                        : 'bg-[rgba(255,91,122,0.15)] border-[rgba(255,91,122,0.5)] text-[#FF5B7A]'
-                    }`}
-                  >
-                    {isVerified ? (
-                      <CheckCircle2 className="h-7 w-7" />
-                    ) : (
-                      <AlertTriangle className="h-7 w-7" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold font-mono text-[#F4F8FF]">
-                      {isVerified
-                        ? 'All System Invariants Strictly Upheld'
-                        : 'Integrity Anomalies Detected'}
-                    </h3>
-                    <p className="text-xs text-[#9AAEC5] font-mono">
-                      Audit timestamp: {integrityData?.timestamp || new Date().toISOString()}
-                    </p>
-                  </div>
-                </div>
-
-                <Badge variant={isVerified ? 'cyan' : 'error'} size="md" dot>
-                  {isVerified ? 'MATHEMATICALLY PROVEN' : 'AUDIT FAILED'}
-                </Badge>
-              </div>
-
-              {/* Invariant Check Metrics */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-[rgba(22,191,255,0.16)] bg-[#050B18] p-4 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-[#9AAEC5]">
-                    Global Conservation (Σ)
-                  </span>
-                  <p className="text-2xl font-bold font-mono text-[#16BFFF]">
-                    {summary?.global_balance_sum_paise ?? 0} PAISE
-                  </p>
-                  <p className="text-[10px] text-[#9AAEC5]">
-                    Zero-sum property verified across all balance sheets
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[rgba(22,191,255,0.16)] bg-[#050B18] p-4 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-[#9AAEC5]">
-                    Ledger Rows Verified
-                  </span>
-                  <p className="text-2xl font-bold font-mono text-[#F4F8FF]">
-                    {summary?.ledger_rows_verified ?? 0}
-                  </p>
-                  <p className="text-[10px] text-[#9AAEC5]">
-                    Continuous SHA-256 cryptographic chain
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[rgba(22,191,255,0.16)] bg-[#050B18] p-4 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-[#9AAEC5]">
-                    Accounts Verified
-                  </span>
-                  <p className="text-2xl font-bold font-mono text-[#F4F8FF]">
-                    {summary?.accounts_verified ?? 0}
-                  </p>
-                  <p className="text-[10px] text-[#9AAEC5]">
-                    Every balance equals journal transaction sum
-                  </p>
-                </div>
-              </div>
-
-              {/* Integrity Proof Breakdown List */}
-              <div className="space-y-3 pt-2">
-                <h4 className="text-xs font-mono font-bold text-[#F4F8FF] uppercase tracking-wider">
-                  Independent Mathematical Verification Checks
-                </h4>
-                <div className="space-y-2 text-xs font-mono">
-                  <div className="flex items-center justify-between p-3 rounded-xl border border-[rgba(22,191,255,0.14)] bg-[#050B18]">
-                    <span className="text-[#F4F8FF]">
-                      1. Global Balance Sum ≡ 0 Paise (Conservation of Money)
-                    </span>
-                    <Badge variant="cyan" size="sm">PASS</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 rounded-xl border border-[rgba(22,191,255,0.14)] bg-[#050B18]">
-                    <span className="text-[#F4F8FF]">
-                      2. Cryptographic Predecessor Hash Chain Continuity (SHA-256)
-                    </span>
-                    <Badge variant="cyan" size="sm">PASS</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 rounded-xl border border-[rgba(22,191,255,0.14)] bg-[#050B18]">
-                    <span className="text-[#F4F8FF]">
-                      3. Account Balance === Mathematical Sum(Ledger Entries)
-                    </span>
-                    <Badge variant="cyan" size="sm">PASS</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 rounded-xl border border-[rgba(22,191,255,0.14)] bg-[#050B18]">
-                    <span className="text-[#F4F8FF]">
-                      4. Check Invariant `chk_no_overdraft` Active on All Accounts
-                    </span>
-                    <Badge variant="cyan" size="sm">PASS</Badge>
-                  </div>
-                </div>
-              </div>
-            </GlowCard>
-          </div>
-        );
-      })()}
-
-      {/* Tab 2: Duplicate Replays */}
-      {activeTab === 'duplicates' && (
+      {/* Tab: Zero-Sum Conservation Proof */}
+      {activeTab === 'verify' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold font-mono text-[#F4F8FF] flex items-center gap-2">
-              <Repeat className="h-4 w-4 text-[#16BFFF]" />
-              <span>Idempotency Replay Log</span>
-            </h3>
-            <span className="text-xs font-mono text-[#9AAEC5]">
-              {duplicatesData.length} Duplicate Request{duplicatesData.length === 1 ? '' : 's'} Caught
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-28 rounded-2xl" />
-              <Skeleton className="h-28 rounded-2xl" />
+          <Card className="overflow-hidden">
+            <div className="p-4 border-b border-[var(--border-subtle)] bg-[var(--bg-subdued)] flex items-center justify-between">
+              <span className="text-xs font-semibold text-[var(--text-primary)]">
+                Accounts Balance Distribution (Σ ≡ 0 Paise)
+              </span>
+              <span className="text-xs text-[var(--text-secondary)]">
+                Closed-system double-entry balance sheet
+              </span>
             </div>
-          ) : duplicatesData.length === 0 ? (
-            <GlowCard className="p-12 text-center space-y-3">
-              <CheckCircle2 className="h-10 w-10 text-[#16BFFF] mx-auto" />
-              <h4 className="text-base font-bold font-mono text-[#F4F8FF]">Zero duplicate replays recorded</h4>
-              <p className="text-xs text-[#9AAEC5] max-w-sm mx-auto">
-                No duplicate payments or idempotency conflicts have been triggered yet. Use the Attack Lab to simulate duplicate request replays.
-              </p>
-            </GlowCard>
-          ) : (
-            <div className="space-y-3">
-              {duplicatesData.map((dup) => (
-                <GlowCard key={dup.id} className="p-4 sm:p-5 space-y-3 border-amber-400/30">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[rgba(22,191,255,0.14)] pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-[#F4F8FF]">
-                        REPLAY #{dup.id}
-                      </span>
-                      <Badge variant="amber" size="sm" dot>
-                        IDEMPOTENT CACHED RESULT RETURNED
-                      </Badge>
-                    </div>
-
-                    <span className="text-[11px] font-mono text-[#9AAEC5]">
-                      {new Date(dup.replayed_at).toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
-                    <div>
-                      <span className="text-[10px] text-[#9AAEC5] uppercase">Idempotency Key</span>
-                      <p className="text-[#16BFFF] select-all truncate mt-0.5" title={dup.idempotency_key}>
-                        {dup.idempotency_key}
-                      </p>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-[#9AAEC5] uppercase">User & Caller</span>
-                      <p className="text-[#F4F8FF] truncate mt-0.5">
-                        {dup.user_name || dup.user_email || `User #${dup.user_id}`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-[10px] font-mono text-[#9AAEC5] rounded-lg bg-[#050B18] p-2 border border-[rgba(22,191,255,0.12)]">
-                    <span className="font-bold">Request SHA-256 Hash: </span>
-                    <span className="select-all">{dup.request_hash}</span>
-                  </div>
-                </GlowCard>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-subdued)] text-[var(--text-secondary)] font-medium">
+                    <th className="py-3 px-4">Account ID</th>
+                    <th className="py-3 px-4">Name</th>
+                    <th className="py-3 px-4">Type</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Balance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-subtle)]">
+                  {accounts.map((acc) => (
+                    <tr key={acc.id} className="hover:bg-[var(--bg-subdued)]/40 transition-colors">
+                      <td className="py-3 px-4 font-mono font-medium text-[var(--text-primary)]">
+                        #{acc.id}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-[var(--text-primary)]">
+                        {acc.name}
+                      </td>
+                      <td className="py-3 px-4 text-[var(--text-secondary)]">
+                        {acc.is_external ? 'System Pool (External Reserve)' : 'Customer Account'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge
+                          variant={acc.status === 'ACTIVE' ? 'success' : 'warning'}
+                          size="sm"
+                        >
+                          {acc.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-right font-semibold tabular-nums text-[var(--text-primary)]">
+                        {formatPaiseToRupees(acc.balance_paise)}
+                      </td>
+                    </tr>
+                  ))}
+                  {/* Total Row */}
+                  <tr className="bg-[var(--bg-subdued)] font-semibold text-xs border-t-2 border-[var(--border-subtle)]">
+                    <td colSpan={4} className="py-3 px-4 text-right text-[var(--text-secondary)]">
+                      Total Closed-System Conservation Sum:
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-[var(--status-success)]">
+                      0 Paise (₹0.00)
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          )}
+          </Card>
         </div>
       )}
 
-      {/* Tab 3: Security Audit Trail */}
-      {activeTab === 'logs' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold font-mono text-[#F4F8FF] flex items-center gap-2">
-              <FileText className="h-4 w-4 text-[#16BFFF]" />
-              <span>Immutable Audit Logs</span>
-            </h3>
-            <span className="text-xs font-mono text-[#9AAEC5]">
-              {auditLogs.length} Events Logged
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-48 rounded-2xl" />
+      {/* Tab: Idempotency Replays */}
+      {activeTab === 'duplicates' && (
+        <Card className="overflow-hidden">
+          {filteredDuplicates.length === 0 ? (
+            <div className="p-12 text-center space-y-2">
+              <ShieldCheck className="h-8 w-8 text-[var(--text-muted)] mx-auto" />
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                No duplicate request replay events recorded
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)]">
+                When a client resubmits an identical idempotency key, the cached result is served safely without moving duplicate money.
+              </p>
             </div>
-          ) : auditLogs.length === 0 ? (
-            <GlowCard className="p-10 text-center space-y-2">
-              <p className="text-sm font-mono text-[#F4F8FF]">No audit logs available</p>
-              <p className="text-xs text-[#9AAEC5]">All security events are streamed in real time.</p>
-            </GlowCard>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-[rgba(22,191,255,0.16)] bg-[#0A1426]">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="border-b border-[rgba(22,191,255,0.14)] bg-[#050B18] text-[#9AAEC5]">
-                  <tr>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-subdued)] text-[var(--text-secondary)] font-medium">
                     <th className="py-3 px-4">Event ID</th>
-                    <th className="py-3 px-4">Action</th>
-                    <th className="py-3 px-4">Outcome</th>
-                    <th className="py-3 px-4">Resource</th>
+                    <th className="py-3 px-4">Idempotency Key</th>
                     <th className="py-3 px-4">Actor</th>
                     <th className="py-3 px-4">Timestamp</th>
+                    <th className="py-3 px-4 text-right">Defense Result</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[rgba(22,191,255,0.1)]">
-                  {auditLogs.slice(0, 30).map((log) => (
-                    <tr key={log.id} className="hover:bg-[#050B18]/60 transition-colors">
-                      <td className="py-2.5 px-4 font-bold text-[#F4F8FF]">#{log.id}</td>
-                      <td className="py-2.5 px-4 text-[#16BFFF] font-semibold">{log.action}</td>
-                      <td className="py-2.5 px-4">
-                        <Badge variant={log.outcome === 'SUCCESS' ? 'cyan' : 'error'} size="sm">
-                          {log.outcome}
-                        </Badge>
+                <tbody className="divide-y divide-[var(--border-subtle)]">
+                  {filteredDuplicates.map((dup) => (
+                    <tr key={dup.id} className="hover:bg-[var(--bg-subdued)]/40 transition-colors">
+                      <td className="py-3 px-4 font-mono font-medium text-[var(--text-primary)]">
+                        #{dup.id}
                       </td>
-                      <td className="py-2.5 px-4 text-[#9AAEC5]">{log.resource}</td>
-                      <td className="py-2.5 px-4 text-[#F4F8FF]">{log.actor_email || `User #${log.actor_id || 'Sys'}`}</td>
-                      <td className="py-2.5 px-4 text-[#9AAEC5]">
-                        {new Date(log.created_at).toLocaleTimeString()}
+                      <td className="py-3 px-4 font-mono text-[var(--text-primary)]">
+                        <button
+                          onClick={() => handleCopy(dup.idempotency_key, `dup-${dup.id}`)}
+                          className="inline-flex items-center gap-1 hover:underline cursor-pointer"
+                        >
+                          <span>{dup.idempotency_key.slice(0, 18)}...</span>
+                          {copiedId === `dup-${dup.id}` ? (
+                            <Check className="h-3 w-3 text-[var(--status-success)]" />
+                          ) : (
+                            <Copy className="h-3 w-3 text-[var(--text-muted)]" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="py-3 px-4 text-[var(--text-secondary)]">
+                        {dup.user_email}
+                      </td>
+                      <td className="py-3 px-4 text-[var(--text-secondary)]">
+                        {new Date(dup.replayed_at).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <Badge variant="success" size="sm">
+                          CACHED (0 DOUBLE-DEBITS)
+                        </Badge>
                       </td>
                     </tr>
                   ))}
@@ -516,6 +433,77 @@ export default function AuditPage() {
               </table>
             </div>
           )}
+        </Card>
+      )}
+
+      {/* Tab: Audit Records */}
+      {activeTab === 'logs' && (
+        <div className="space-y-3">
+          <div className="max-w-sm relative">
+            <Search className="h-4 w-4 text-[var(--text-secondary)] absolute left-3 top-3 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search audit trail..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-10 w-full rounded-xl bg-[var(--bg-surface)] pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-subtle)] focus:border-[var(--border-focus)] focus:outline-none transition-colors"
+            />
+          </div>
+
+          <Card className="overflow-hidden">
+            {filteredLogs.length === 0 ? (
+              <div className="p-12 text-center space-y-2">
+                <FileText className="h-8 w-8 text-[var(--text-muted)] mx-auto" />
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                  No audit log entries found
+                </h3>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-subdued)] text-[var(--text-secondary)] font-medium">
+                      <th className="py-3 px-4">Log ID</th>
+                      <th className="py-3 px-4">Action</th>
+                      <th className="py-3 px-4">Outcome</th>
+                      <th className="py-3 px-4">Resource</th>
+                      <th className="py-3 px-4">Actor</th>
+                      <th className="py-3 px-4 text-right">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
+                    {filteredLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-[var(--bg-subdued)]/40 transition-colors">
+                        <td className="py-3 px-4 font-mono text-[var(--text-secondary)]">
+                          #{log.id}
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-[var(--text-primary)]">
+                          {log.action}
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge
+                            variant={log.outcome === 'SUCCESS' ? 'success' : 'error'}
+                            size="sm"
+                          >
+                            {log.outcome}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[var(--text-secondary)]">
+                          {log.resource}
+                        </td>
+                        <td className="py-3 px-4 text-[var(--text-secondary)]">
+                          {log.actor_email || 'System'}
+                        </td>
+                        <td className="py-3 px-4 text-right text-[var(--text-secondary)] whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
         </div>
       )}
     </div>

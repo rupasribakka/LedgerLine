@@ -1,43 +1,41 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, ArrowRight, ArrowLeft, AlertCircle, Sparkles } from 'lucide-react';
-import RingOrb from '../components/ui/RingOrb';
-import GlowCard from '../components/ui/GlowCard';
-import GlowButton from '../components/ui/GlowButton';
+import { Mail, Lock, ArrowRight, AlertCircle, ChevronDown, ChevronUp, User } from 'lucide-react';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
-import CyberBackground from '../components/CyberBackground';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-const SEED_ACCOUNTS = [
+const DEMO_PERSONAS = [
   {
     role: 'Holder 1',
     email: 'holder1@ledgerline.local',
     password: 'Holder1Password123!',
-    tag: 'Primary Holder',
-    variant: 'cyan',
+    tag: 'Primary Customer',
+    variant: 'accent',
   },
   {
     role: 'Holder 2',
     email: 'holder2@ledgerline.local',
     password: 'Holder2Password123!',
     tag: 'Counterparty',
-    variant: 'blue',
+    variant: 'neutral',
   },
   {
     role: 'Admin',
     email: 'admin@ledgerline.local',
     password: 'AdminPassword123!',
-    tag: 'L3 Root',
-    variant: 'purple',
+    tag: 'Administrator',
+    variant: 'warning',
   },
   {
     role: 'Auditor',
     email: 'auditor@ledgerline.local',
     password: 'AuditorPassword123!',
-    tag: 'L2 Verify',
-    variant: 'muted',
+    tag: 'Compliance',
+    variant: 'info',
   },
 ];
 
@@ -46,6 +44,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState(null);
+  const [showDemoAccess, setShowDemoAccess] = useState(false);
 
   const { login, authError, setAuthError } = useAuth();
   const { showToast } = useToast();
@@ -71,7 +70,7 @@ export default function LoginPage() {
     if (result.success) {
       showToast({
         title: 'Authentication Successful',
-        message: `Welcome back to BalanceVault, ${result.user?.name || result.user?.email}!`,
+        message: `Welcome back to LedgerLine, ${result.user?.name || result.user?.email}!`,
         type: 'success',
       });
       navigate(redirectPath, { replace: true });
@@ -80,186 +79,140 @@ export default function LoginPage() {
     }
   };
 
-  const fillPreset = (account) => {
-    setEmail(account.email);
-    setPassword(account.password);
+  const fillPreset = (persona) => {
+    setEmail(persona.email);
+    setPassword(persona.password);
     setLocalError(null);
     setAuthError(null);
+    showToast({
+      title: 'Credentials Loaded',
+      message: `Selected ${persona.role} evaluation account.`,
+      type: 'info',
+    });
   };
 
   const errorMessage = localError || authError;
 
   return (
-    <div className="min-h-screen bg-[#050B18] text-[#F4F8FF] flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
-      {/* Cybersecurity Radar & Zero-Trust Sentinel Mesh Background */}
-      <CyberBackground opacity={0.85} showRadar={true} showGrid={true} />
-
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-[rgba(22,191,255,0.22)] bg-[#101E33]/90 backdrop-blur-2xl overflow-hidden shadow-2xl shadow-[#050B18]/90 relative z-10">
-        {/* Left: Glowing Ring Orb Visual Side */}
-        <div className="lg:col-span-5 relative hidden lg:flex flex-col justify-between p-10 bg-gradient-to-br from-[#071324] via-[#0A1A33] to-[#050B18] border-r border-[rgba(22,191,255,0.15)] overflow-hidden">
-          {/* Background ambient gradient */}
-          <div className="absolute -top-32 -left-32 w-96 h-96 bg-[rgba(22,191,255,0.12)] rounded-full blur-3xl pointer-events-none" />
-
-          {/* Brand header */}
-          <Link to="/" className="relative z-10 flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/50 text-[#16BFFF] shadow-[0_0_15px_rgba(22,191,255,0.35)] transition-transform group-hover:scale-105">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <span className="text-lg font-bold font-mono tracking-tight text-[#F4F8FF]">
-                BALANCE<span className="text-[#16BFFF]">VAULT</span>
-              </span>
-              <p className="text-[10px] font-mono uppercase text-[#9AAEC5] tracking-widest">
-                LedgerLine Core Engine
-              </p>
-            </div>
-          </Link>
-
-          {/* Central Ring Orb */}
-          <div className="relative z-10 my-auto py-8 flex items-center justify-center">
-            <RingOrb size={320} label="CORE CONSERVATION" />
+    <div className="min-h-screen bg-[var(--bg-app)] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <Link to="/" className="inline-flex items-center gap-2.5 group">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-subtle)] text-[var(--accent-primary)] font-semibold text-sm">
+            LL
           </div>
+          <span className="text-xl font-semibold tracking-tight text-[var(--text-primary)] font-serif">
+            LedgerLine
+          </span>
+        </Link>
+        <h2 className="mt-4 text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+          Sign in to your account
+        </h2>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+          Access your high-integrity double-entry ledger accounts
+        </p>
+      </div>
 
-          {/* Footer note */}
-          <div className="relative z-10 pt-4 border-t border-[rgba(22,191,255,0.15)] text-xs text-[#9AAEC5]">
-            <p className="font-mono text-[11px] text-[#16BFFF] mb-1 font-bold">STRICT INVARIANTS ARMED</p>
-            <p className="text-[11px] leading-relaxed">
-              Every balance update is guarded by ordered row locks, append-only triggers, and integer paise precision.
-            </p>
-          </div>
-        </div>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0 space-y-4">
+        <Card className="p-6 sm:p-8">
+          {errorMessage && (
+            <div className="mb-5 rounded-xl border border-[var(--status-error)]/30 bg-[var(--status-error-bg)] p-3.5 flex items-start gap-3 text-xs text-[var(--status-error)]">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">{errorMessage}</p>
+            </div>
+          )}
 
-        {/* Right: Login Form Side */}
-        <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-center">
-          <div className="max-w-md mx-auto w-full">
-            {/* Back to Home Link */}
-            <Link
-              to="/"
-              className="inline-flex items-center gap-1.5 text-xs font-mono text-[#9AAEC5] hover:text-[#16BFFF] transition-colors mb-6 group"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Email address"
+              id="loginEmail"
+              type="email"
+              autoComplete="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              leftIcon={Mail}
+            />
+
+            <Input
+              label="Password"
+              id="loginPassword"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              leftIcon={Lock}
+            />
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              className="w-full mt-2"
+              loading={loading}
             >
-              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
-              <span>Back to home</span>
+              Sign In
+            </Button>
+          </form>
+
+          <div className="mt-6 pt-4 border-t border-[var(--border-subtle)] text-center text-xs text-[var(--text-secondary)]">
+            Don't have an account?{' '}
+            <Link to="/signup" className="font-medium text-[var(--accent-primary)] hover:underline">
+              Create an account
             </Link>
+          </div>
+        </Card>
 
-            {/* Header */}
-            <div className="mb-8">
-              <Link to="/" className="flex items-center gap-2 mb-3 lg:hidden group">
-                <ShieldCheck className="h-6 w-6 text-[#16BFFF]" />
-                <span className="text-base font-bold font-mono text-[#F4F8FF] group-hover:text-[#16BFFF] transition-colors">
-                  BALANCEVAULT
-                </span>
-              </Link>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#F4F8FF] font-mono">
-                Sign in to your ledger
-              </h1>
-              <p className="text-sm text-[#9AAEC5] mt-1.5">
-                Access your balance, execute atomic transfers, or inspect cryptographic audit proofs.
-              </p>
+        {/* Separated Evaluation / Demo Access */}
+        <Card className="p-4 border-[var(--border-subtle)] bg-[var(--bg-subdued)]">
+          <button
+            type="button"
+            onClick={() => setShowDemoAccess((prev) => !prev)}
+            className="w-full flex items-center justify-between text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span>Evaluation & Demo Personas</span>
             </div>
-
-            {/* Error Message banner */}
-            {errorMessage && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl border border-[rgba(255,91,122,0.35)] bg-[rgba(255,91,122,0.12)] p-3.5 text-xs text-[#FF5B7A]">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <p className="leading-relaxed font-medium">{errorMessage}</p>
-              </div>
+            {showDemoAccess ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
             )}
+          </button>
 
-            {/* Seed reviewer role chips */}
-            <div className="mb-7">
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs font-semibold text-[#9AAEC5] flex items-center gap-1.5 uppercase tracking-wider font-mono">
-                  <Sparkles className="h-3.5 w-3.5 text-[#16BFFF]" />
-                  Demo Reviewer Accounts
-                </span>
-                <span className="text-[11px] text-[#16BFFF] font-mono">1-Click Fill</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {SEED_ACCOUNTS.map((acc) => (
+          {showDemoAccess && (
+            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] space-y-2">
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                1-click credentials for reviewer evaluation across all Role-Based Access levels:
+              </p>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {DEMO_PERSONAS.map((persona) => (
                   <button
-                    key={acc.email}
+                    key={persona.email}
                     type="button"
-                    onClick={() => fillPreset(acc)}
-                    className="flex flex-col items-start p-2.5 rounded-xl border border-[rgba(22,191,255,0.15)] bg-[#0A1426]/70 hover:bg-[#0E2038] hover:border-[#16BFFF]/50 text-left transition-all duration-150 group cursor-pointer"
+                    onClick={() => fillPreset(persona)}
+                    className="p-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-hover)] text-left transition-colors cursor-pointer"
                   >
-                    <div className="flex items-center justify-between w-full mb-1">
-                      <span className="text-xs font-bold text-[#F4F8FF] group-hover:text-[#16BFFF] font-mono">
-                        {acc.role}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[var(--text-primary)]">
+                        {persona.role}
                       </span>
-                      <Badge variant={acc.variant} size="sm">
-                        {acc.tag}
+                      <Badge variant={persona.variant} size="sm">
+                        {persona.tag}
                       </Badge>
                     </div>
-                    <span className="text-[10px] font-mono text-[#9AAEC5] truncate w-full">
-                      {acc.email}
-                    </span>
+                    <p className="text-[10px] text-[var(--text-secondary)] font-mono truncate mt-1">
+                      {persona.email}
+                    </p>
                   </button>
                 ))}
               </div>
             </div>
-
-            {/* Main Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label="Email Address"
-                id="email"
-                type="email"
-                placeholder="e.g. holder1@ledgerline.local"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                leftIcon={Mail}
-                required
-                disabled={loading}
-              />
-
-              <Input
-                label="Password"
-                id="password"
-                type="password"
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                leftIcon={Lock}
-                required
-                disabled={loading}
-              />
-
-              <div className="pt-2">
-                <GlowButton
-                  type="submit"
-                  size="md"
-                  loading={loading}
-                  className="w-full justify-center"
-                >
-                  <span>Sign in</span>
-                  <ArrowRight className="h-4 w-4" />
-                </GlowButton>
-              </div>
-            </form>
-
-            {/* Footer Navigation */}
-            <div className="mt-8 text-center text-xs text-[#9AAEC5] space-y-2.5 font-mono">
-              <div>
-                <span>Need an account? </span>
-                <Link
-                  to="/signup"
-                  className="text-[#16BFFF] font-semibold hover:underline cursor-pointer"
-                >
-                  Create one now
-                </Link>
-              </div>
-              <div>
-                <Link
-                  to="/"
-                  className="inline-flex items-center gap-1 text-[#9AAEC5] hover:text-[#16BFFF] transition-colors cursor-pointer"
-                >
-                  <ArrowLeft className="h-3 w-3" />
-                  <span>Back to home</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
+          )}
+        </Card>
       </div>
     </div>
   );

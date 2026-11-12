@@ -4,19 +4,24 @@ import {
   Wallet,
   ArrowLeftRight,
   ShieldCheck,
-  Zap,
-  Activity,
-  Layers,
-  Sparkles,
-  Lock,
   ArrowRight,
   RefreshCw,
-  Link2,
+  ArrowUpRight,
+  ArrowDownLeft,
+  CheckCircle2,
+  Clock,
+  Layers,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { fetchAccounts, formatPaiseToRupees, verifySystemIntegrity } from '../services/api';
-import GlowCard from '../components/ui/GlowCard';
-import GlowButton from '../components/ui/GlowButton';
+import {
+  fetchAccounts,
+  fetchTransactions,
+  formatPaiseToRupees,
+  verifySystemIntegrity,
+} from '../services/api';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import SmoothPaiseCounter from '../components/ui/SmoothPaiseCounter';
@@ -24,23 +29,36 @@ import SmoothPaiseCounter from '../components/ui/SmoothPaiseCounter';
 export default function OverviewPage() {
   const { user } = useAuth();
   const [accounts, setAccounts] = useState([]);
+  const [recentTransactions, setRecentTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [integrityStatus, setIntegrityStatus] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const role = (user?.role || 'holder').toLowerCase();
+  const isHolder = role === 'holder';
+  const isAdmin = role === 'admin';
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [accRes, intRes] = await Promise.all([
+      const [accRes, txRes, intRes] = await Promise.all([
         fetchAccounts(),
-        role !== 'holder' ? verifySystemIntegrity() : Promise.resolve(null),
+        fetchTransactions({ limit: 5 }),
+        verifySystemIntegrity(),
       ]);
 
       if (accRes.ok && accRes.data?.accounts) {
-        setAccounts(accRes.data.accounts);
+        // Exclude system external/clearing pools for customer-facing views
+        const visibleAccounts = isHolder
+          ? accRes.data.accounts.filter((a) => !a.is_external && a.account_no !== 'ACC-EXTERNAL')
+          : accRes.data.accounts;
+        setAccounts(visibleAccounts);
       }
+
+      if (txRes.ok && txRes.data?.transactions) {
+        setRecentTransactions(txRes.data.transactions.slice(0, 5));
+      }
+
       if (intRes && intRes.ok) {
         setIntegrityStatus(intRes.data);
       }
@@ -56,32 +74,33 @@ export default function OverviewPage() {
     loadData();
   }, [user]);
 
-  const totalPaise = accounts.reduce((acc, a) => acc + Number(a.balance_paise || 0), 0);
+  const totalPaise = accounts.reduce((sum, a) => sum + Number(a.balance_paise || 0), 0);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[rgba(22,191,255,0.16)] pb-6">
+    <div className="space-y-8 max-w-6xl mx-auto">
+      {/* Editorial Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs font-mono uppercase text-[#16BFFF] tracking-wider font-bold">
-              {role === 'admin'
-                ? 'Root Administrative Clearance'
-                : role === 'auditor'
-                ? 'Independent Audit Clearance'
-                : 'Standard Account Holder'}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-[#F4F8FF]">
-            Financial Operations Overview
+          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+            Financial Workspace
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--text-primary)] mt-1">
+            {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'User'}
           </h1>
-          <p className="text-xs sm:text-sm text-[#9AAEC5] mt-1">
-            Real-time ledger state, cryptographic continuity proofs, and account balances.
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            Consolidated ledger balances, verified transactions, and account records.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <GlowButton
+        <div className="flex items-center gap-2.5">
+          <Button
             variant="secondary"
             size="sm"
             onClick={() => {
@@ -89,274 +108,339 @@ export default function OverviewPage() {
               loadData();
             }}
             disabled={refreshing}
-            className="flex items-center gap-2"
+            icon={RefreshCw}
+            className={refreshing ? '[&_svg]:animate-spin' : ''}
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Sync Balances</span>
-          </GlowButton>
+            <span>Sync</span>
+          </Button>
 
           {role !== 'auditor' && (
             <Link to="/app/move">
-              <GlowButton variant="primary" size="sm" className="flex items-center gap-1.5">
-                <ArrowLeftRight className="h-3.5 w-3.5" />
+              <Button variant="primary" size="sm" icon={ArrowLeftRight}>
                 <span>Move Money</span>
-              </GlowButton>
+              </Button>
             </Link>
           )}
         </div>
       </div>
 
-      {/* Live Blockchain Telemetry & Chain Strip */}
-      <div className="relative overflow-hidden rounded-2xl border border-[rgba(22,191,255,0.2)] bg-[#0A1426]/90 p-5 backdrop-blur-xl shadow-[0_0_30px_rgba(22,191,255,0.08)]">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/50 text-[#16BFFF] shadow-[0_0_15px_rgba(22,191,255,0.3)] shrink-0">
-              <Link2 className="h-5 w-5" />
+      {/* Main Consolidated Balance Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 p-6 sm:p-8 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+                Total Consolidated Balance
+              </span>
+              <Badge variant="success" size="sm" dot>
+                {integrityStatus?.verified !== false ? 'Ledger Verified' : 'Checking Invariants'}
+              </Badge>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-[#F4F8FF] uppercase tracking-wide">
-                  BalanceVault Blockchain Stream
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/40 px-2.5 py-0.5 text-[10px] font-mono text-[#16BFFF] shadow-[0_0_8px_rgba(22,191,255,0.3)]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#16BFFF] animate-pulse" />
-                  CONSENSUS LIVE
-                </span>
+
+            <div className="mt-4">
+              <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-[var(--text-primary)] tabular-nums">
+                {loading ? (
+                  <Skeleton className="h-10 w-48 rounded-lg" />
+                ) : (
+                  <SmoothPaiseCounter paise={totalPaise} />
+                )}
               </div>
-              <p className="text-[11px] font-mono text-[#9AAEC5] mt-0.5">
-                Trigger-protected append-only blocks &bull; SHA-256 continuous hash chaining &bull; Zero-sum equilibrium
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                Represented strictly in 64-bit integer paise (1 INR = 100 paise)
               </p>
             </div>
           </div>
 
-          {/* Connected Block Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 font-mono text-xs">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(22,191,255,0.16)] bg-[#050B18] text-[#9AAEC5] shrink-0">
-              <span className="text-[#16BFFF] font-bold">#1047</span>
-              <span className="text-[10px] text-[#9AAEC5]">(0x4e9b)</span>
+          <div className="pt-6 mt-6 border-t border-[var(--border-subtle)] grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-[var(--text-secondary)]">Active Accounts</p>
+              <p className="text-base font-semibold text-[var(--text-primary)] mt-0.5">
+                {loading ? '—' : accounts.length}
+              </p>
             </div>
-            <span className="text-[#16BFFF] font-bold shrink-0">⛓</span>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(22,191,255,0.16)] bg-[#050B18] text-[#9AAEC5] shrink-0">
-              <span className="text-[#16BFFF] font-bold">#1048</span>
-              <span className="text-[10px] text-[#9AAEC5]">(0xf71c)</span>
+            <div>
+              <p className="text-xs text-[var(--text-secondary)]">Double-Entry Status</p>
+              <p className="text-base font-semibold text-[var(--status-success)] mt-0.5 flex items-center gap-1">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Zero-Sum</span>
+              </p>
             </div>
-            <span className="text-[#16BFFF] font-bold shrink-0">⛓</span>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#16BFFF]/50 bg-[rgba(22,191,255,0.16)] text-[#16BFFF] shadow-[0_0_15px_rgba(22,191,255,0.3)] shrink-0 font-bold">
-              <span>#1049 HEAD</span>
-              <span className="text-[10px] text-[#38bdf8]">(VERIFIED)</span>
+            <div className="col-span-2 sm:col-span-1">
+              <p className="text-xs text-[var(--text-secondary)]">Cryptographic Proof</p>
+              <p className="text-base font-semibold text-[var(--text-primary)] mt-0.5 font-mono text-xs">
+                SHA-256 Chained
+              </p>
             </div>
           </div>
-        </div>
+        </Card>
+
+        {/* Quick Actions & Short Navigation */}
+        <Card className="p-6 flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+              Quick Operations
+            </h3>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+              Instant access to core financial tasks
+            </p>
+
+            <div className="mt-4 space-y-2">
+              <Link
+                to="/app/move"
+                className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-subdued)] transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[var(--accent-subtle)] text-[var(--accent-primary)]">
+                    <ArrowLeftRight className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--text-primary)]">
+                      Transfer Funds
+                    </p>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
+                      Instant double-entry settlement
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-transform group-hover:translate-x-0.5" />
+              </Link>
+
+              <Link
+                to="/app/accounts"
+                className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-subdued)] transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[var(--bg-subdued)] text-[var(--text-primary)]">
+                    <Wallet className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--text-primary)]">
+                      View Statements
+                    </p>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
+                      Ledger history and block proofs
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-transform group-hover:translate-x-0.5" />
+              </Link>
+
+              {(role === 'admin' || role === 'auditor') && (
+                <Link
+                  to="/app/audit"
+                  className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-subdued)] transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[var(--status-info-bg)] text-[var(--status-info)]">
+                      <ShieldCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--text-primary)]">
+                        Audit & Verification
+                      </p>
+                      <p className="text-[11px] text-[var(--text-secondary)]">
+                        Verify full ledger chain
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-[var(--border-subtle)] text-[11px] text-[var(--text-secondary)] flex items-center justify-between">
+            <span>Deterministic Concurrency</span>
+            <span className="font-mono">SELECT FOR UPDATE</span>
+          </div>
+        </Card>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Available Balance */}
-        <GlowCard className="p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#9AAEC5]">
-            <span className="text-xs font-mono font-medium">TOTAL BALANCES</span>
-            <Wallet className="h-4 w-4 text-[#16BFFF]" />
-          </div>
-          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#F4F8FF]">
-            {loading ? <Skeleton className="h-8 w-28" /> : <SmoothPaiseCounter paise={totalPaise} />}
-          </p>
-          <p className="text-[11px] font-mono text-[#9AAEC5]">
-            Across {accounts.length} active account{accounts.length === 1 ? '' : 's'}
-          </p>
-        </GlowCard>
-
-        {/* Global Sum Invariant */}
-        <GlowCard className="p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#9AAEC5]">
-            <span className="text-xs font-mono font-medium">GLOBAL SUM (Σ)</span>
-            <ShieldCheck className="h-4 w-4 text-[#16BFFF]" />
-          </div>
-          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#16BFFF]">
-            0 PAISE
-          </p>
-          <p className="text-[11px] font-mono text-[#9AAEC5]">
-            Zero-Sum Conservation Proof
-          </p>
-        </GlowCard>
-
-        {/* Concurrency Guard */}
-        <GlowCard className="p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#9AAEC5]">
-            <span className="text-xs font-mono font-medium">CONCURRENCY LOCK</span>
-            <Lock className="h-4 w-4 text-[#387BFF]" />
-          </div>
-          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#F4F8FF]">
-            ORDER BY ASC
-          </p>
-          <p className="text-[11px] font-mono text-[#9AAEC5]">
-            Deadlock-Free FOR UPDATE
-          </p>
-        </GlowCard>
-
-        {/* Cryptographic Continuity */}
-        <GlowCard className="p-5 space-y-2">
-          <div className="flex items-center justify-between text-[#9AAEC5]">
-            <span className="text-xs font-mono font-medium">IMMUTABILITY</span>
-            <Activity className="h-4 w-4 text-[#8B7CFF]" />
-          </div>
-          <p className="text-2xl sm:text-3xl font-bold font-mono text-[#8B7CFF]">
-            SHA-256
-          </p>
-          <p className="text-[11px] font-mono text-[#9AAEC5]">
-            Append-Only Trigger Protected
-          </p>
-        </GlowCard>
-      </div>
-
-      {/* Account Cards Section */}
+      {/* Accounts Overview Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold font-mono text-[#F4F8FF]">
-              Active Financial Accounts
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">
+              Accounts Portfolio
             </h2>
-            <p className="text-xs text-[#9AAEC5]">
-              Authorized accounts associated with this session
+            <p className="text-xs text-[var(--text-secondary)]">
+              Active ledger accounts registered in this session
             </p>
           </div>
-          <Link to="/app/accounts" className="text-xs font-mono text-[#16BFFF] hover:underline flex items-center gap-1">
-            <span>View All</span>
-            <ArrowRight className="h-3 w-3" />
+          <Link
+            to="/app/accounts"
+            className="text-xs font-medium text-[var(--accent-primary)] hover:underline flex items-center gap-1"
+          >
+            <span>View all accounts</span>
+            <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Skeleton className="h-32 rounded-2xl" />
-            <Skeleton className="h-32 rounded-2xl" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Skeleton className="h-36 rounded-xl" />
+            <Skeleton className="h-36 rounded-xl" />
+            <Skeleton className="h-36 rounded-xl" />
           </div>
         ) : accounts.length === 0 ? (
-          <GlowCard className="p-8 text-center space-y-3">
-            <Wallet className="h-8 w-8 text-[#9AAEC5] mx-auto" />
-            <p className="text-sm font-mono text-[#F4F8FF]">No accounts loaded yet</p>
-            <p className="text-xs text-[#9AAEC5]">Sign in or contact system administrator to provision an account.</p>
-          </GlowCard>
+          <Card className="p-8 text-center space-y-2">
+            <Wallet className="h-8 w-8 text-[var(--text-muted)] mx-auto" />
+            <p className="text-sm font-medium text-[var(--text-primary)]">No accounts available</p>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Please contact the system administrator to provision a new account.
+            </p>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {accounts.map((acc) => (
-              <GlowCard key={acc.id} className="p-5 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="text-[10px] font-mono text-[#9AAEC5]">
-                      ACCOUNT #{String(acc.id).padStart(4, '0')}
-                    </span>
-                    <h3 className="text-base font-bold font-mono text-[#F4F8FF] truncate">
-                      {acc.name || `Account ${acc.id}`}
-                    </h3>
-                  </div>
-                  <Badge variant={acc.status === 'ACTIVE' ? 'cyan' : 'amber'} size="sm">
-                    {acc.status || 'ACTIVE'}
-                  </Badge>
-                </div>
-
+              <Card
+                key={acc.id}
+                className="p-5 flex flex-col justify-between hover:border-[var(--border-hover)] transition-all group"
+              >
                 <div>
-                  <span className="text-[11px] font-mono text-[#9AAEC5]">Settled Balance</span>
-                  <p className="text-xl font-bold font-mono text-[#16BFFF]">
-                    <SmoothPaiseCounter paise={acc.balance_paise} />
-                  </p>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[11px] text-[var(--text-secondary)] font-mono">
+                        {acc.account_no || `ACC-${String(acc.id).padStart(4, '0')}`}
+                      </p>
+                      <h4 className="text-sm font-semibold text-[var(--text-primary)] mt-0.5 truncate">
+                        {acc.name || `Account #${acc.id}`}
+                      </h4>
+                    </div>
+                    <Badge
+                      variant={
+                        acc.status === 'ACTIVE'
+                          ? 'success'
+                          : acc.status === 'FROZEN'
+                          ? 'warning'
+                          : 'neutral'
+                      }
+                      size="sm"
+                    >
+                      {acc.status || 'ACTIVE'}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-4">
+                    <p className="text-[11px] text-[var(--text-secondary)]">Available Balance</p>
+                    <p className="text-xl font-semibold text-[var(--text-primary)] tabular-nums mt-0.5">
+                      <SmoothPaiseCounter paise={acc.balance_paise} />
+                    </p>
+                  </div>
                 </div>
 
-                <div className="pt-2 border-t border-[rgba(22,191,255,0.12)] flex items-center justify-between text-xs font-mono">
-                  <span className="text-[#9AAEC5]">
-                    {acc.is_external ? 'System Pool' : 'Standard User'}
+                <div className="pt-4 mt-4 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
+                  <span className="text-[11px] text-[var(--text-secondary)]">
+                    {acc.is_external ? 'System Pool' : 'Personal Account'}
                   </span>
                   <Link
                     to={`/app/accounts/${acc.id}`}
-                    className="text-[#16BFFF] hover:underline flex items-center gap-1"
+                    className="font-medium text-[var(--accent-primary)] hover:underline inline-flex items-center gap-1"
                   >
-                    <span>Inspect Statement</span>
+                    <span>Statement</span>
                     <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>
-              </GlowCard>
+              </Card>
             ))}
           </div>
         )}
       </div>
 
-      {/* Quick Action Route Shortcuts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-        <Link to="/app/move" className="group">
-          <GlowCard className="p-5 space-y-2 h-full hover:border-[#16BFFF]/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/40 text-[#16BFFF]">
-                <ArrowLeftRight className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold font-mono text-[#F4F8FF] group-hover:text-[#16BFFF] transition-colors">
-                  Money Movement
-                </h4>
-                <p className="text-[11px] text-[#9AAEC5]">
-                  Transfers, withdrawals & admin deposits
-                </p>
-              </div>
+      {/* Recent Transactions List */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">
+              Recent Transactions
+            </h2>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Most recent atomic entries recorded in the double-entry journal
+            </p>
+          </div>
+          <Link
+            to="/app/transactions"
+            className="text-xs font-medium text-[var(--accent-primary)] hover:underline flex items-center gap-1"
+          >
+            <span>View full history</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {loading ? (
+          <Card className="p-4">
+            <Skeleton className="h-40 rounded-lg" />
+          </Card>
+        ) : recentTransactions.length === 0 ? (
+          <Card className="p-8 text-center space-y-2">
+            <Clock className="h-8 w-8 text-[var(--text-muted)] mx-auto" />
+            <p className="text-sm font-medium text-[var(--text-primary)]">No recent transactions</p>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Transactions performed on this account will appear here immediately.
+            </p>
+          </Card>
+        ) : (
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-subdued)] text-[var(--text-secondary)] font-medium">
+                    <th className="py-3 px-4">Type</th>
+                    <th className="py-3 px-4">Description</th>
+                    <th className="py-3 px-4">Accounts</th>
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-subtle)]">
+                  {recentTransactions.map((tx) => {
+                    const isCredit = tx.type === 'DEPOSIT';
+                    const isDebit = tx.type === 'WITHDRAWAL';
+                    return (
+                      <tr key={tx.id} className="hover:bg-[var(--bg-subdued)]/50 transition-colors">
+                        <td className="py-3.5 px-4 font-medium text-[var(--text-primary)]">
+                          <Badge
+                            variant={
+                              tx.type === 'TRANSFER'
+                                ? 'accent'
+                                : tx.type === 'DEPOSIT'
+                                ? 'success'
+                                : 'warning'
+                            }
+                            size="sm"
+                          >
+                            {tx.type}
+                          </Badge>
+                        </td>
+                        <td className="py-3.5 px-4 text-[var(--text-secondary)] max-w-xs truncate">
+                          {tx.description || `Transaction #${tx.id}`}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono text-[11px] text-[var(--text-secondary)]">
+                          {tx.from_account_id ? `#${tx.from_account_id}` : 'External'} →{' '}
+                          {tx.to_account_id ? `#${tx.to_account_id}` : 'External'}
+                        </td>
+                        <td className="py-3.5 px-4 text-[var(--text-secondary)] whitespace-nowrap">
+                          {tx.created_at
+                            ? new Date(tx.created_at).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : 'Just now'}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-semibold tabular-nums whitespace-nowrap text-[var(--text-primary)]">
+                          {isCredit && <span className="text-[var(--status-success)]">+</span>}
+                          {isDebit && <span className="text-[var(--status-error)]">-</span>}
+                          {formatPaiseToRupees(tx.amount_paise || 0)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          </GlowCard>
-        </Link>
-
-        {(role === 'admin' || role === 'auditor') && (
-          <Link to="/app/audit" className="group">
-            <GlowCard className="p-5 space-y-2 h-full hover:border-[#387BFF]/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(56,123,255,0.15)] border border-[#387BFF]/40 text-[#387BFF]">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold font-mono text-[#F4F8FF] group-hover:text-[#387BFF] transition-colors">
-                    Auditor & Duplicates
-                  </h4>
-                  <p className="text-[11px] text-[#9AAEC5]">
-                    Zero-sum proof and replay detection
-                  </p>
-                </div>
-              </div>
-            </GlowCard>
-          </Link>
-        )}
-
-        {(role === 'admin' || role === 'holder') && (
-          <Link to="/app/attack-lab" className="group">
-            <GlowCard className="p-5 space-y-2 h-full hover:border-[#8B7CFF]/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(139,124,255,0.15)] border border-[#8B7CFF]/40 text-[#8B7CFF]">
-                  <Zap className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold font-mono text-[#F4F8FF] group-hover:text-[#8B7CFF] transition-colors">
-                    Attack Lab
-                  </h4>
-                  <p className="text-[11px] text-[#9AAEC5]">
-                    Concurrency race & replay testing
-                  </p>
-                </div>
-              </div>
-            </GlowCard>
-          </Link>
-        )}
-
-        {role === 'admin' && (
-          <Link to="/app/admin" className="group">
-            <GlowCard className="p-5 space-y-2 h-full hover:border-[#16BFFF]/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(22,191,255,0.15)] border border-[#16BFFF]/40 text-[#16BFFF]">
-                  <Layers className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold font-mono text-[#F4F8FF] group-hover:text-[#16BFFF] transition-colors">
-                    Admin Console
-                  </h4>
-                  <p className="text-[11px] text-[#9AAEC5]">
-                    Create accounts and manage users
-                  </p>
-                </div>
-              </div>
-            </GlowCard>
-          </Link>
+          </Card>
         )}
       </div>
     </div>

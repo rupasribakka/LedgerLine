@@ -6,14 +6,14 @@ import {
   ArrowRight,
   RefreshCw,
   Plus,
-  Shield,
-  Layers,
-  ExternalLink,
+  ShieldCheck,
+  CheckCircle2,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { fetchAccounts, formatPaiseToRupees } from '../services/api';
-import GlowCard from '../components/ui/GlowCard';
-import GlowButton from '../components/ui/GlowButton';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import SmoothPaiseCounter from '../components/ui/SmoothPaiseCounter';
@@ -26,13 +26,18 @@ export default function AccountsPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   const role = (user?.role || 'holder').toLowerCase();
+  const isHolder = role === 'holder';
 
   const loadAccounts = async () => {
     setLoading(true);
     try {
       const res = await fetchAccounts();
       if (res.ok && res.data?.accounts) {
-        setAccounts(res.data.accounts);
+        // Exclude system external pool for ordinary customer view
+        const visible = isHolder
+          ? res.data.accounts.filter((a) => !a.is_external && a.account_no !== 'ACC-EXTERNAL')
+          : res.data.accounts;
+        setAccounts(visible);
       }
     } catch {
       // ignore
@@ -50,31 +55,32 @@ export default function AccountsPage() {
     const q = search.toLowerCase();
     return (
       String(a.id).includes(q) ||
+      (a.account_no && a.account_no.toLowerCase().includes(q)) ||
       (a.name && a.name.toLowerCase().includes(q)) ||
       (a.status && a.status.toLowerCase().includes(q))
     );
   });
 
+  const totalPaise = filtered.reduce((acc, a) => acc + Number(a.balance_paise || 0), 0);
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#101E33] pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="cyan" size="sm">
-              DOUBLE-ENTRY LEDGER ACCOUNTS
-            </Badge>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-sans text-[#F4F8FF]">
-            Accounts & Balances
+          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+            Ledger Portfolio
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--text-primary)] mt-1">
+            Accounts
           </h1>
-          <p className="text-xs sm:text-sm text-[#9AAEC5] mt-1">
-            Real-time balance records enforced with PostgreSQL <code className="text-[#16BFFF]">chk_no_overdraft</code> constraint.
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            Real-time balance records enforced by the PostgreSQL no-overdraft invariant.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <GlowButton
+        <div className="flex items-center gap-2.5">
+          <Button
             variant="secondary"
             size="sm"
             onClick={() => {
@@ -82,112 +88,151 @@ export default function AccountsPage() {
               loadAccounts();
             }}
             disabled={refreshing}
-            className="flex items-center gap-2"
+            icon={RefreshCw}
+            className={refreshing ? '[&_svg]:animate-spin' : ''}
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
-          </GlowButton>
+          </Button>
 
           {role === 'admin' && (
             <Link to="/app/admin">
-              <GlowButton variant="primary" size="sm" className="flex items-center gap-1.5">
-                <Plus className="h-4 w-4" />
+              <Button variant="primary" size="sm" icon={Plus}>
                 <span>Create Account</span>
-              </GlowButton>
+              </Button>
             </Link>
           )}
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="flex items-center gap-3 rounded-2xl border border-[#101E33] bg-[#0A1426] px-4 py-2.5 max-w-md">
-        <Search className="h-4 w-4 text-[#9AAEC5]" />
-        <input
-          type="text"
-          placeholder="Filter by account name, ID, or status..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-transparent text-xs sm:text-sm font-sans text-[#F4F8FF] placeholder-[#9AAEC5]/60 focus:outline-none"
-        />
+      {/* Overview Metric Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="p-4">
+          <p className="text-xs text-[var(--text-secondary)]">Total Accounts</p>
+          <p className="text-xl font-semibold text-[var(--text-primary)] mt-1">
+            {loading ? '—' : accounts.length}
+          </p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs text-[var(--text-secondary)]">Active Balance</p>
+          <p className="text-xl font-semibold text-[var(--text-primary)] mt-1 tabular-nums">
+            {loading ? <Skeleton className="h-6 w-24" /> : formatPaiseToRupees(totalPaise)}
+          </p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs text-[var(--text-secondary)]">Overdraft Protection</p>
+          <p className="text-xl font-semibold text-[var(--status-success)] mt-1 flex items-center gap-1.5 text-sm">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Enforced by DB Engine</span>
+          </p>
+        </Card>
       </div>
 
-      {/* Accounts List / Cards */}
+      {/* Filter and Search Bar */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 max-w-sm relative">
+          <Search className="h-4 w-4 text-[var(--text-secondary)] absolute left-3 top-3 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by account name or ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-10 w-full rounded-xl bg-[var(--bg-surface)] pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] border border-[var(--border-subtle)] focus:border-[var(--border-focus)] focus:outline-none transition-colors"
+          />
+        </div>
+      </div>
+
+      {/* Accounts List / Responsive Table */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Skeleton className="h-44 rounded-2xl" />
-          <Skeleton className="h-44 rounded-2xl" />
-          <Skeleton className="h-44 rounded-2xl" />
-        </div>
+        <Card className="p-6">
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-full rounded-lg" />
+            <Skeleton className="h-12 w-full rounded-lg" />
+            <Skeleton className="h-12 w-full rounded-lg" />
+          </div>
+        </Card>
       ) : filtered.length === 0 ? (
-        <GlowCard className="p-10 text-center space-y-3">
-          <Wallet className="h-10 w-10 text-[#9AAEC5] mx-auto opacity-60" />
-          <h3 className="text-base font-bold text-[#F4F8FF]">No matching accounts found</h3>
-          <p className="text-xs text-[#9AAEC5]">Try adjusting your search criteria or sync with the server.</p>
-        </GlowCard>
+        <Card className="p-12 text-center space-y-2">
+          <Wallet className="h-8 w-8 text-[var(--text-muted)] mx-auto" />
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+            No matching accounts found
+          </h3>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Try adjusting your search criteria or refresh the ledger list.
+          </p>
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((acc) => (
-            <GlowCard
-              key={acc.id}
-              className="p-6 flex flex-col justify-between hover:border-[#16BFFF]/40 transition-colors group"
-            >
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-mono font-bold text-[#9AAEC5] tracking-wider">
-                      ACCOUNT #{String(acc.id).padStart(4, '0')}
-                    </span>
-                    <h3 className="text-base font-bold text-[#F4F8FF] group-hover:text-[#16BFFF] transition-colors truncate">
-                      {acc.name || `Account ${acc.id}`}
-                    </h3>
-                  </div>
-
-                  <Badge
-                    variant={acc.status === 'ACTIVE' ? 'cyan' : acc.status === 'FROZEN' ? 'amber' : 'muted'}
-                    size="sm"
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-subdued)] text-[var(--text-secondary)] text-xs font-medium">
+                  <th className="py-3 px-5">Account</th>
+                  <th className="py-3 px-5">Identifier</th>
+                  <th className="py-3 px-5">Status</th>
+                  <th className="py-3 px-5">Type</th>
+                  <th className="py-3 px-5 text-right">Balance</th>
+                  <th className="py-3 px-5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-subtle)]">
+                {filtered.map((acc) => (
+                  <tr
+                    key={acc.id}
+                    className="hover:bg-[var(--bg-subdued)]/50 transition-colors group"
                   >
-                    {acc.status || 'ACTIVE'}
-                  </Badge>
-                </div>
-
-                <div className="rounded-xl border border-[#101E33] bg-[#050B18] p-3.5 space-y-1">
-                  <span className="text-[10px] font-mono text-[#9AAEC5] uppercase tracking-wider">
-                    Settled Integer Balance
-                  </span>
-                  <div className="flex items-baseline justify-between">
-                    <p className="text-2xl font-bold font-mono text-[#16BFFF]">
-                      <SmoothPaiseCounter paise={acc.balance_paise} />
-                    </p>
-                    <span className="text-[10px] font-mono text-[#9AAEC5]">
-                      {acc.balance_paise} paise
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] font-mono text-[#9AAEC5]">
-                  <span>Type:</span>
-                  <span className="text-[#F4F8FF]">
-                    {acc.is_external ? 'System Pool (External)' : 'Customer Ledger Account'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-[#101E33] flex items-center justify-between">
-                <span className="text-[10px] font-mono text-[#9AAEC5]">
-                  SHA-256 Chained
-                </span>
-
-                <Link
-                  to={`/app/accounts/${acc.id}`}
-                  className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-[#16BFFF] hover:underline"
-                >
-                  <span>View Statement</span>
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              </div>
-            </GlowCard>
-          ))}
-        </div>
+                    <td className="py-4 px-5 font-medium text-[var(--text-primary)]">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-subdued)] text-[var(--text-primary)]">
+                          <Wallet className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-xs text-[var(--text-primary)]">
+                            {acc.name || `Account #${acc.id}`}
+                          </p>
+                          <p className="text-[11px] text-[var(--text-secondary)]">
+                            ID: #{acc.id}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-5 font-mono text-xs text-[var(--text-secondary)]">
+                      {acc.account_no || `ACC-${String(acc.id).padStart(4, '0')}`}
+                    </td>
+                    <td className="py-4 px-5">
+                      <Badge
+                        variant={
+                          acc.status === 'ACTIVE'
+                            ? 'success'
+                            : acc.status === 'FROZEN'
+                            ? 'warning'
+                            : 'neutral'
+                        }
+                        size="sm"
+                      >
+                        {acc.status || 'ACTIVE'}
+                      </Badge>
+                    </td>
+                    <td className="py-4 px-5 text-xs text-[var(--text-secondary)]">
+                      {acc.is_external ? 'System Pool' : 'Personal Account'}
+                    </td>
+                    <td className="py-4 px-5 text-right font-semibold tabular-nums text-[var(--text-primary)]">
+                      {formatPaiseToRupees(acc.balance_paise)}
+                    </td>
+                    <td className="py-4 px-5 text-right">
+                      <Link
+                        to={`/app/accounts/${acc.id}`}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent-primary)] hover:underline"
+                      >
+                        <span>Statement</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   );

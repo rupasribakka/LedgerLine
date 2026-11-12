@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 import CustomCursor from './components/motion/CustomCursor';
@@ -47,10 +48,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <ToastProvider>
-        <AuthProvider>
-          <CustomCursor />
-          <Routes>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <CustomCursor />
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<LoginPage />} />
@@ -110,6 +112,7 @@ export default function App() {
           </Routes>
         </AuthProvider>
       </ToastProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

@@ -10,7 +10,7 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const showToast = useCallback(({ message, type = 'info', title, duration = 4500 }) => {
+  const showToast = useCallback(({ message, type = 'info', title, duration = 4000 }) => {
     const id = Date.now() + Math.random().toString(36).substring(2, 6);
     setToasts((prev) => [...prev, { id, message, type, title }]);
 
@@ -25,7 +25,7 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={{ showToast, removeToast }}>
       {children}
       {/* Toast Render Container */}
-      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0">
+      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0">
         {toasts.map((toast) => {
           const isError = toast.type === 'error';
           const isSuccess = toast.type === 'success';
@@ -33,33 +33,31 @@ export function ToastProvider({ children }) {
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto flex items-start gap-3 rounded-2xl p-4 shadow-2xl backdrop-blur-xl border transition-all duration-200 animate-in slide-in-from-bottom-2 ${
-                isError
-                  ? 'bg-[#150a0d] border-[rgba(255,93,122,0.35)] text-[#ff5d7a]'
-                  : isSuccess
-                  ? 'bg-[#06150e] border-[rgba(45,255,154,0.3)] text-[#2dff9a]'
-                  : 'bg-[#07110d] border-[rgba(60,255,160,0.18)] text-[#eafff5]'
-              }`}
+              className="pointer-events-auto flex items-start gap-3 rounded-xl p-3.5 shadow-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-all duration-150"
             >
               {isError ? (
-                <AlertCircle className="h-5 w-5 shrink-0 text-[#ff5d7a] mt-0.5" />
+                <AlertCircle className="h-4 w-4 shrink-0 text-[var(--status-error)] mt-0.5" />
               ) : isSuccess ? (
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-[#2dff9a] mt-0.5" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--status-success)] mt-0.5" />
               ) : (
-                <Info className="h-5 w-5 shrink-0 text-[#7ea594] mt-0.5" />
+                <Info className="h-4 w-4 shrink-0 text-[var(--accent-primary)] mt-0.5" />
               )}
 
               <div className="flex-1 text-xs">
-                {toast.title && <h4 className="font-bold mb-0.5 text-[#eafff5]">{toast.title}</h4>}
-                <p className="text-slate-200 leading-relaxed">{toast.message}</p>
+                {toast.title && (
+                  <h4 className="font-semibold mb-0.5 text-[var(--text-primary)]">
+                    {toast.title}
+                  </h4>
+                )}
+                <p className="text-[var(--text-secondary)] leading-relaxed">{toast.message}</p>
               </div>
 
               <button
                 onClick={() => removeToast(toast.id)}
-                className="text-[#7ea594] hover:text-[#eafff5] p-1 rounded-lg transition-colors cursor-pointer"
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded-md transition-colors cursor-pointer"
                 aria-label="Dismiss toast"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           );

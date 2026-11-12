@@ -33,17 +33,16 @@ export default function SmoothPaiseCounter({
       } else if (toPaise < fromPaise) {
         setFlashType('debit');
       }
-      const timer = setTimeout(() => setFlashType(null), 700);
+      const timer = setTimeout(() => setFlashType(null), 500);
       return () => clearTimeout(timer);
     }
 
-    const duration = 450;
+    const duration = 300;
     const startTime = performance.now();
 
     const animate = (currentTime) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease-out cubic curve
       const eased = 1 - Math.pow(1 - progress, 3);
       const currentVal = Math.round(fromPaise + (toPaise - fromPaise) * eased);
 
@@ -68,17 +67,17 @@ export default function SmoothPaiseCounter({
 
   return (
     <span
-      className={`inline-flex items-baseline gap-1 font-mono transition-colors duration-300 ${
+      className={`inline-flex items-baseline gap-1 tabular-nums transition-colors duration-200 ${
         flashType === 'credit'
-          ? 'text-[#16BFFF] drop-shadow-[0_0_12px_rgba(22,191,255,0.7)]'
+          ? 'text-[var(--status-success)]'
           : flashType === 'debit'
-          ? 'text-[#FF5B7A] drop-shadow-[0_0_12px_rgba(255,91,122,0.7)]'
+          ? 'text-[var(--status-error)]'
           : ''
       } ${className}`}
     >
       <span>{formatted}</span>
       {showDetail && (
-        <span className="text-[10px] text-[#9AAEC5] font-normal font-mono">
+        <span className="text-[11px] text-[var(--text-secondary)] font-normal">
           ({displayPaise} paise)
         </span>
       )}
